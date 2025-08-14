@@ -1,6 +1,6 @@
 // app/api/events/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "../../../lib/generated/prisma/client.js"; // adapte le chemin si nécessaire
+import { PrismaClient } from "@/lib/generated/prisma/client.js"; // adapte le chemin si nécessaire
 
 const prisma = new PrismaClient();
 
