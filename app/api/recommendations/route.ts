@@ -1,10 +1,10 @@
 // app/api/recommendations/route.ts
-import { NextResponse } from "next/server";
+/*import { NextResponse } from "next/server";
 import { PrismaClient } from "@/lib/generated/prisma/client.js";
 
 const prisma = new PrismaClient();
 
-/*export async function POST(req: Request) {
+export async function POST(req: Request) {
     try {
         const body = await req.json();
         const { interest, location, budget, type } = body;
