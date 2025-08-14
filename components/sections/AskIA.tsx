@@ -81,7 +81,7 @@ export function AskIA() {
             </DialogTrigger>
 
             <DialogContent className="max-w-lg">
-                <DialogTitle>Recommandation d'événements</DialogTitle>
+                <DialogTitle>Recommandation d&apos;événements</DialogTitle>
                 <DialogDescription>
                     Répondez à quelques questions pour que l&apos;IA vous
                     recommande des événements adaptés.
