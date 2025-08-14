@@ -83,8 +83,8 @@ export function AskIA() {
             <DialogContent className="max-w-lg">
                 <DialogTitle>Recommandation d'événements</DialogTitle>
                 <DialogDescription>
-                    Répondez à quelques questions pour que l’IA vous recommande
-                    des événements adaptés.
+                    Répondez à quelques questions pour que l&apos;IA vous
+                    recommande des événements adaptés.
                 </DialogDescription>
 
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4">
