@@ -9,8 +9,8 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"; // avec composant Dialog de ton UI ou un modal simple
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation"; // si navigation nécessaire
-import { cn } from "@/lib/utils";
+// import { useRouter } from "next/navigation"; // si navigation nécessaire
+// import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 
