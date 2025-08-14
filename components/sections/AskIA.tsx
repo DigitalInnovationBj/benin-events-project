@@ -94,7 +94,7 @@ export function AskIA() {
                             htmlFor="interest"
                             className="block font-semibold mb-1"
                         >
-                            Centres d’intérêt
+                            Centres d&apos;intérêt
                         </label>
                         <input
                             type="text"
@@ -165,7 +165,7 @@ export function AskIA() {
                             htmlFor="type"
                             className="block font-semibold mb-1"
                         >
-                            Type d'événement
+                            Type d&apos;événement
                         </label>
                         <select
                             id="type"

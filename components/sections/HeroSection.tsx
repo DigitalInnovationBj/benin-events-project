@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AskIA } from "./AskIA";
+import Image from "next/image";
 
 export function HeroSection() {
     return (
@@ -23,9 +24,11 @@ export function HeroSection() {
             </div>
             {/* Optionnel : image ou illustration */}
             <div className="mt-12 mb-10 lg:mb-20 max-w-5xl w-full">
-                <img
+                <Image
                     src="/hero-event.jpg"
                     alt="Festivals et événements au Bénin"
+                    width={1000}
+                    height={500}
                     className="w-full rounded-2xl shadow-xl object-cover"
                     loading="lazy"
                 />
