@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seeder pour Benin Events
 
-## Getting Started
+Ce dossier contient le script de seeding pour remplir la base de données avec des données de test.
 
-First, run the development server:
+## Utilisation
+
+### Exécuter le seeder
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm prisma db seed
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Nettoyer la base de données
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm prisma db push --force-reset
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Données générées
 
-## Learn More
+Le seeder génère les données suivantes :
 
-To learn more about Next.js, take a look at the following resources:
+- **51 utilisateurs** (1 admin + 50 utilisateurs normaux)
+- **100 événements** avec différents types et statuts
+- **~200 dates d'événements** avec récurrence
+- **200 billets** (en respectant les contraintes d'unicité)
+- **150 favoris** d'événements
+- **100 notifications** utilisateur
+- **80 feedbacks** et avis
+- **60 recommandations** d'événements
+- **20 campagnes marketing**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Le seeder utilise la librairie **Faker.js** pour générer des données réalistes en français.
 
-## Deploy on Vercel
+### Compte administrateur par défaut
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Email** : `admin@beninevents.com`
+- **Nom** : `Admin Benin Events`
+- **Rôle** : `ADMIN`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Structure des données
+
+### Types d'événements
+- `FREE` : Événements gratuits
+- `FREE_WITH_REGISTRATION` : Gratuits avec inscription
+- `PAID` : Événements payants
+
+### Statuts d'événements
+- `PENDING` : En attente d'approbation
+- `APPROVED` : Approuvé
+- `REJECTED` : Rejeté
+- `CANCELLED` : Annulé
+
+### Types de récurrence
+- `NONE` : Pas de récurrence
+- `DAILY` : Quotidien
+- `WEEKLY` : Hebdomadaire
+- `MONTHLY` : Mensuel
+- `YEARLY` : Annuel
+
+## Notes importantes
+
+- Le seeder nettoie automatiquement la base de données avant d'insérer les nouvelles données
+- Les contraintes d'unicité sont respectées (ex: un utilisateur ne peut avoir qu'un seul billet par événement)
+- Les données sont générées de manière cohérente (ex: les billets sont liés à des dates d'événements existantes)
