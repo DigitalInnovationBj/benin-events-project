@@ -19,6 +19,7 @@ async function main() {
   await prisma.ticket.deleteMany();
   await prisma.eventDate.deleteMany();
   await prisma.event.deleteMany();
+  await prisma.category.deleteMany();
   await prisma.verification.deleteMany();
   await prisma.account.deleteMany();
   await prisma.session.deleteMany();
@@ -49,7 +50,7 @@ async function main() {
         name: faker.person.fullName(),
         email: faker.internet.email(),
         role: 'USER',
-        emailVerified: faker.datatype.boolean(0.8), // 80% des utilisateurs vérifiés
+        emailVerified: faker.datatype.boolean(0.8),
         image: faker.image.avatar(),
       },
     });
@@ -72,15 +73,43 @@ async function main() {
     });
   }
 
+  // Créer des catégories
+  console.log('📑 Création des catégories...');
+  const categories = [];
+  const categoryNames = [
+    'Conférences',
+    'Concerts',
+    'Festivals',
+    'Expositions',
+    'Ateliers',
+    'Sports',
+    'Théâtre',
+    'Cinéma',
+    'Événements pour enfants',
+    'Networking',
+  ];
+
+  for (const name of categoryNames) {
+    const category = await prisma.category.create({
+      data: {
+        id: faker.string.uuid(),
+        name,
+        description: faker.lorem.sentence(),
+      },
+    });
+    categories.push(category);
+  }
+
   // Créer des événements
   console.log('🎉 Création des événements...');
   const events = [];
   const eventTypes = ['FREE', 'FREE_WITH_REGISTRATION', 'PAID'];
   const eventStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
-  const recurrenceTypes = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
 
   for (let i = 0; i < 100; i++) {
     const eventType = faker.helpers.arrayElement(eventTypes);
+    const category = faker.helpers.arrayElement(categories);
+    const organizer = faker.helpers.arrayElement(users);
     const event = await prisma.event.create({
       data: {
         id: faker.string.uuid(),
@@ -93,6 +122,12 @@ async function main() {
         price: eventType === 'PAID' ? faker.number.float({ min: 1000, max: 50000, fractionDigits: 0 }) : null,
         maxTickets: faker.number.int({ min: 10, max: 500 }),
         image: faker.image.url({ width: 800, height: 600 }),
+        organizer: {
+          connect: { id: organizer.id }, // Utiliser la relation 'organizer' avec 'connect'
+        },
+        categories: {
+          connect: { id: category.id },
+        },
       },
     });
     events.push(event);
@@ -101,6 +136,7 @@ async function main() {
   // Créer des dates d'événements
   console.log('📅 Création des dates d\'événements...');
   const eventDates = [];
+  const recurrenceTypes = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
   
   for (const event of events) {
     const numDates = faker.number.int({ min: 1, max: 3 });
@@ -116,7 +152,7 @@ async function main() {
           eventId: event.id,
           startDateTime: startDate,
           endDateTime: endDate,
-          isAllDay: faker.datatype.boolean(0.3), // 30% d'événements toute la journée
+          isAllDay: faker.datatype.boolean(0.3),
           reccurenceType: recurrenceType,
           reccurenceEnd: recurrenceType !== 'NONE' ? faker.date.future({ refDate: endDate }) : null,
         },
@@ -134,7 +170,6 @@ async function main() {
     const event = faker.helpers.arrayElement(events);
     const eventDate = eventDates.find(ed => ed.eventId === event.id);
     
-    // Créer une clé unique pour la combinaison eventId + userId
     const combinationKey = `${event.id}-${user.id}`;
     
     if (eventDate && !ticketCombinations.has(combinationKey)) {
@@ -159,7 +194,6 @@ async function main() {
     const user = faker.helpers.arrayElement(users);
     const event = faker.helpers.arrayElement(events);
     
-    // Vérifier que la combinaison n'existe pas déjà
     const existingFavorite = await prisma.favorite.findUnique({
       where: {
         userId_eventId: {
@@ -190,7 +224,7 @@ async function main() {
         userId: user.id,
         subject: faker.lorem.sentence(),
         content: faker.lorem.paragraph(),
-        isRead: faker.datatype.boolean(0.6), // 60% des notifications lues
+        isRead: faker.datatype.boolean(0.6),
       },
     });
   }
@@ -252,6 +286,7 @@ async function main() {
   console.log('✅ Seeding terminé avec succès!');
   console.log(`📊 Statistiques:`);
   console.log(`   - ${users.length} utilisateurs créés`);
+  console.log(`   - ${categories.length} catégories créées`);
   console.log(`   - ${events.length} événements créés`);
   console.log(`   - ${eventDates.length} dates d'événements créées`);
   console.log(`   - 200 billets créés`);

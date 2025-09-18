@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ca } from 'zod/v4/locales';
 
 export const eventSchema = z.object({
     id: z.cuid(),
@@ -15,6 +16,8 @@ export const eventSchema = z.object({
     price: z.number().nonnegative().optional().nullable(),
     maxTickets: z.number().int().nonnegative().optional().nullable(),
     image: z.string().min(1, 'L\'image est requise'),
+    organizerId: z.cuid('ID d\'organisateur invalide').nullable(),
+    categoryId: z.string().min(1, 'ID de catégorie requis').nullable(),
     createdAt: z.date(),
     updatedAt: z.date(),
 });

@@ -49,6 +49,7 @@ model User {
   image         String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @default(now()) @updatedAt
+  events        Event[]        @relation("EventOrganizer")
   sessions      Session[]
   accounts      Account[]
   tickets       Ticket[]
@@ -106,24 +107,28 @@ model Verification {
 }
 
 model Event {
-  id          String      @id @default(cuid())
-  title       String
-  slug        String      @unique
-  description String
-  location    String
-  type        EVENT_TYPE
-  status      EVENTSTATUS @default(PENDING)
-  price       Float?
-  maxTickets  Int?
-  image       String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
-  dates       EventDate[]
-  tickets     Ticket[]
-  favorites   Favorite[]
-  feedbacks   Feedback[]
-  recommendations Recommendation[]
+  id                 String              @id @default(cuid())
+  title              String
+  slug               String              @unique
+  description        String
+  location           String
+  type               EVENT_TYPE
+  status             EVENTSTATUS         @default(PENDING)
+  price              Float?
+  maxTickets         Int?
+  image              String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  dates              EventDate[]
+  tickets            Ticket[]
+  favorites          Favorite[]
+  feedbacks          Feedback[]
+  organizerId        String?
+  organizer          User ?               @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  recommendations    Recommendation[]
   marketingCampaigns MarketingCampaign[]
+  categoryId         String?
+  categories         Category?            @relation("EventCategories", fields: [categoryId], references: [id], onDelete: Cascade)
 }
 
 model EventDate {
@@ -195,14 +200,14 @@ model Feedback {
 }
 
 model Recommendation {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  eventId     String
-  score       Float
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  message     String?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  eventId   String
+  score     Float
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  message   String?
+  createdAt DateTime @default(now())
 }
 
 model MarketingCampaign {
@@ -213,6 +218,15 @@ model MarketingCampaign {
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   startDate   DateTime
   endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  events      Event[]  @relation("EventCategories")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
 }

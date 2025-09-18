@@ -2,10 +2,10 @@ import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
 import { Role } from "@/lib/generated/prisma";
 import { ApiResponse } from "@/utils/format-api-response";
-import { Event, eventSchema } from "@/validators/eventSchema";
+import { feedbackSchema } from "@/validators/feedbackSchema";
 import { isValidSlug } from "@/validators/valid-slug";
 
-export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET( _request: Request, { params }: { params: Promise<{ slug: string }> }) {
     try {
         const { slug } = await params; // Await params to resolve the object
         if (!slug) {
@@ -23,10 +23,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
                 statusCode: 400,
             });
         }
-        const event = await prisma.event.findUnique({
+        const feedbacks = await prisma.event.findUnique({
             where: { slug }, // Use the resolved slug
+            include: {
+                feedbacks: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                name: true,
+                                email: true,
+                            },
+                        },
+                    },
+                },
+            },
         });
-        if (!event) {
+        if (!feedbacks) {
             return ApiResponse({
                 success: false,
                 error: "Event not found",
@@ -35,7 +48,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
         }
         return ApiResponse({
             success: true,
-            data: event,
+            data: feedbacks.feedbacks,
             statusCode: 200,
         });
     } catch (error) {
@@ -47,7 +60,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function POST( request: Request, { params }: { params: Promise<{ slug: string }> }) {
     const user = await CheckUserRole(request, Role.USER);
     if (user.state === false) {
         return ApiResponse({
@@ -77,59 +90,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ s
             where: { slug }, // Use the resolved slug
         });
         if (!event) {
-            return ApiResponse({
-                success: false,
-                error: "Event not found",
-                statusCode: 404,
-            });
-        }
-        const deletedEvent = await prisma.event.delete({
-            where: { id: event.id },
-        });
-        return ApiResponse({
-            success: true,
-            data: deletedEvent,
-            statusCode: 200,
-        });
-    } catch (error) {
-        return ApiResponse({
-            success: false,
-            error: (error as Error).message,
-            statusCode: 500,
-        });
-    }
-}
-
-export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-    const user = await CheckUserRole(request, Role.USER);
-    if (user.state === false) {
-        return ApiResponse({
-            success: false,
-            error: user.error || "Unauthorized",
-            statusCode: 401,
-        });
-    }
-    try {
-        const { slug } = await params; // Await params to resolve the object
-        if (!slug) {
-            return ApiResponse({
-                success: false,
-                error: "Slug parameter is required",
-                statusCode: 400,
-            });
-        }
-        const isCorrectSlug = isValidSlug(slug);
-        if (!isCorrectSlug) {
-            return ApiResponse({
-                success: false,
-                error: "Invalid slug format",
-                statusCode: 400,
-            });
-        }
-        const existingEvent = await prisma.event.findUnique({
-            where: { slug }, // Use the resolved slug
-        });
-        if (!existingEvent) {
             return ApiResponse({
                 success: false,
                 error: "Event not found",
@@ -137,22 +97,34 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
             });
         }
         const body = await request.json();
-        const validateData = eventSchema.safeParse(body);
-        if (!validateData.success) {
+        const validatedData = feedbackSchema.safeParse(body);
+        if (!validatedData.success) {
             return ApiResponse({
                 success: false,
-                error: validateData.error.issues.map(issue => issue.message).join(", "),
+                error: validatedData.error.issues.map(issue => issue.message).join(", "),
                 statusCode: 400,
             });
         }
-        const updatedEvent = await prisma.event.update({
-            where: { id: existingEvent.id },
-            data: validateData.data,
+        const newFeedback = await prisma.feedback.create({
+            data: {
+                ...validatedData.data,
+                eventId: event.id,
+                userId: user.user?.id,
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
         });
         return ApiResponse({
             success: true,
-            data: updatedEvent,
-            statusCode: 200,
+            data: newFeedback,
+            statusCode: 201,
         });
     } catch (error) {
         return ApiResponse({
