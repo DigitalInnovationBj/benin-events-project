@@ -16,7 +16,7 @@
         "seed": "node prisma/seed.cjs"
     },
     "prisma": {
-        "seed": "ts-node prisma/seed.ts"
+        "seed": "node prisma/seed.cjs"
     },
     "dependencies": {
         "@feexpay/react-sdk": "^1.5.7",

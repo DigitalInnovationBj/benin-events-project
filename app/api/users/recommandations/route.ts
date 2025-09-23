@@ -5,6 +5,7 @@ import { createClient } from 'redis';
 import { dot, norm } from 'mathjs';
 import { z } from 'zod';
 import { createHash } from 'crypto';
+import { Event } from '@/validators/eventSchema';
 
 // Input validation schema
 const inputSchema = z.object({
@@ -12,7 +13,7 @@ const inputSchema = z.object({
     location: z.string().optional(),
     eventType: z.enum(['FREE', 'FREE_WITH_REGISTRATION', 'PAID']).optional(),
     name: z.string().optional().default('Anonymous'),
-    email: z.string().email().optional().default('anonymous@example.com'),
+    email: z.email().optional().default('anonymous@example.com'),
 });
 
 // Redis client setup (connect lazily)
@@ -64,7 +65,7 @@ async function buildInputVector(input: z.infer<typeof inputSchema>): Promise<num
 }
 
 // Build event vector
-async function buildEventVector(event: any, categoryMap: Map<string, number>): Promise<number[]> {
+async function buildEventVector(event: Event, categoryMap: Map<string, number>): Promise<number[]> {
     const vector: number[] = new Array(categoryMap.size + 3).fill(0); // +3 for event types
     if (event.categoryId && categoryMap.has(event.categoryId)) {
         vector[categoryMap.get(event.categoryId)!] = 1;

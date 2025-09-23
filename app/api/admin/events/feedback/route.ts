@@ -3,9 +3,9 @@ import { prisma } from "@/functions/prisma";
 import { Role } from "@/lib/generated/prisma";
 import { ApiResponse } from "@/utils/format-api-response";
 
-export async function GET( request: Request) {
+export async function GET(request: Request, ) {
     try {
-        const user = await CheckUserRole(request, Role.USER);
+        const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {
             return ApiResponse({
                 success: false,
@@ -13,25 +13,14 @@ export async function GET( request: Request) {
                 statusCode: 401,
             });
         }
-        const userData = await prisma.user.findUnique({
-            where: { id: user.user?.id },
+        const feedbacks = await prisma.feedback.findMany({
             include: {
-                favorites: true,
-                notifications: true,
-                feedbacks: true,
-                events: true,
+                event: true,
             },
         });
-        if (!userData) {
-            return ApiResponse({
-                success: false,
-                error: "User not found",
-                statusCode: 404,
-            });
-        }
         return ApiResponse({
             success: true,
-            data: userData,
+            data: feedbacks,
             statusCode: 200,
         });
     } catch (error) {

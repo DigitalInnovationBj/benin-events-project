@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { CheckUserRole } from "./checkUserRole";
 import { Role } from "@/lib/generated/prisma";
-
+import { ApiResponse } from "@/utils/format-api-response";
 /**
  * Middleware pour protéger les routes admin
  * @param request - La requête HTTP
@@ -10,7 +10,7 @@ import { Role } from "@/lib/generated/prisma";
  */
 export async function withAdminAuth(
     request: Request, 
-    handler: (user: any) => Promise<NextResponse> | NextResponse
+    handler: (user: any) => Promise<NextResponse> | NextResponse | typeof ApiResponse
 ) {
     try {
         const checkRole = await CheckUserRole(request, Role.ADMIN);

@@ -6,6 +6,7 @@ import { dot, norm } from 'mathjs';
 import { Matrix } from 'ml-matrix';
 import { CheckUserRole } from '@/functions/checkUserRole';
 import { Role } from '@/lib/generated/prisma';
+import { Event } from '@/validators/eventSchema';
 
 // Redis client setup
 const redis = createClient({
@@ -39,7 +40,6 @@ async function buildUserVector(userId: string): Promise<number[]> {
         where: { id: userId },
         include: {
             favorites: { include: { event: { include: { categories: true } } } },
-            tickets: { include: { event: { include: { categories: true } } } },
             feedbacks: { select: { eventId: true, rating: true } },
         },
     });
@@ -57,11 +57,6 @@ async function buildUserVector(userId: string): Promise<number[]> {
             vector[categoryMap.get(fav.event.categoryId)!] += 1;
         }
     });
-    user.tickets.forEach(ticket => {
-        if (ticket.event.categoryId && categoryMap.has(ticket.event.categoryId)) {
-            vector[categoryMap.get(ticket.event.categoryId)!] += 1.5; // Higher weight for purchases
-        }
-    });
     user.feedbacks.forEach(fb => {
         if (fb.rating >= 4 && categoryMap.has(fb.eventId)) {
             vector[categoryMap.get(fb.eventId)!] += fb.rating / 5; // Weight by rating
@@ -71,7 +66,7 @@ async function buildUserVector(userId: string): Promise<number[]> {
     return vector;
 }
 
-async function buildEventVector(event: any, categoryMap: Map<string, number>): Promise<number[]> {
+async function buildEventVector(event: Event, categoryMap: Map<string, number>): Promise<number[]> {
     const vector: number[] = new Array(categoryMap.size).fill(0);
     if (event.categoryId && categoryMap.has(event.categoryId)) {
         vector[categoryMap.get(event.categoryId)!] = 1;
@@ -80,10 +75,9 @@ async function buildEventVector(event: any, categoryMap: Map<string, number>): P
 }
 
 // Collaborative filtering using k-NN
-async function getCollaborativeScores(userId: string, events: any[]): Promise<Map<string, number>> {
+async function getCollaborativeScores(userId: string, events: Event[]): Promise<Map<string, number>> {
     const users = await prisma.user.findMany({ select: { id: true } });
     const favorites = await prisma.favorite.findMany({ select: { userId: true, eventId: true } });
-    const tickets = await prisma.ticket.findMany({ select: { userId: true, eventId: true } });
 
     // Build user-event matrix
     const matrix = Matrix.zeros(users.length, events.length);
@@ -93,11 +87,6 @@ async function getCollaborativeScores(userId: string, events: any[]): Promise<Ma
     favorites.forEach(fav => {
         if (userIndex.has(fav.userId) && eventIndex.has(fav.eventId)) {
             matrix.set(userIndex.get(fav.userId)!, eventIndex.get(fav.eventId)!, 1);
-        }
-    });
-    tickets.forEach(ticket => {
-        if (userIndex.has(ticket.userId) && eventIndex.has(ticket.eventId)) {
-            matrix.set(userIndex.get(ticket.userId)!, eventIndex.get(ticket.eventId)!, 1.5);
         }
     });
 

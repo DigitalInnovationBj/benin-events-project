@@ -2,12 +2,19 @@ import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
 import { Role } from "@/lib/generated/prisma";
 import { ApiResponse } from "@/utils/format-api-response";
-import {  eventSchema } from "@/validators/eventSchema";
-import { isValidSlug } from "@/validators/valid-slug";
+import { eventDateSchema } from "@/validators/eventDateSchema";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
     try {
-        const { slug } = await params; // Await params to resolve the object
+        const user = await CheckUserRole(request, Role.USER);
+        if (user.state === false) {
+            return ApiResponse({
+                success: false,
+                error: user.error || "Unauthorized",
+                statusCode: 401,
+            });
+        }
+        const { slug } = await params;
         if (!slug) {
             return ApiResponse({
                 success: false,
@@ -15,16 +22,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
                 statusCode: 400,
             });
         }
-        const isCorrectSlug = isValidSlug(slug);
-        if (!isCorrectSlug) {
-            return ApiResponse({
-                success: false,
-                error: "Invalid slug format",
-                statusCode: 400,
-            });
-        }
         const event = await prisma.event.findUnique({
-            where: { slug }, // Use the resolved slug
+            where: { slug },
+            include: {
+                dates: true,
+            },
         });
         if (!event) {
             return ApiResponse({
@@ -35,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
         }
         return ApiResponse({
             success: true,
-            data: event,
+            data: event.dates,
             statusCode: 200,
         });
     } catch (error) {
@@ -47,18 +49,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     }
 }
 
-
-export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-    const user = await CheckUserRole(request, Role.USER);
-    if (user.state === false) {
-        return ApiResponse({
-            success: false,
-            error: user.error || "Unauthorized",
-            statusCode: 401,
-        });
-    }
+export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
     try {
-        const { slug } = await params; // Await params to resolve the object
+        const user = await CheckUserRole(request, Role.USER);
+        if (user.state === false) {
+            return ApiResponse({
+                success: false,
+                error: user.error || "Unauthorized",
+                statusCode: 401,
+            });
+        }
+        const { slug } = await params;
         if (!slug) {
             return ApiResponse({
                 success: false,
@@ -66,33 +67,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
                 statusCode: 400,
             });
         }
-        const isCorrectSlug = isValidSlug(slug);
-        if (!isCorrectSlug) {
-            return ApiResponse({
-                success: false,
-                error: "Invalid slug format",
-                statusCode: 400,
-            });
-        }
-        const existingEvent = await prisma.event.findUnique({
-            where: { slug }, // Use the resolved slug
-        });
-        if (!existingEvent) {
+        const event = await prisma.event.findUnique({ where: { slug } });
+        if (!event) {
             return ApiResponse({
                 success: false,
                 error: "Event not found",
                 statusCode: 404,
             });
         }
-        if (existingEvent.organizerId !== user.user?.id) {
-            return ApiResponse({
-                success: false,
-                error: "You are not the organizer of this event",
-                statusCode: 403,
-            });
-        }
-        const body = await request.json();
-        const validateData = eventSchema.partial().safeParse(body);
+        const data = await request.json()
+        const validateData = eventDateSchema.safeParse(data);
         if (!validateData.success) {
             return ApiResponse({
                 success: false,
@@ -100,13 +84,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
                 statusCode: 400,
             });
         }
-        const updatedEvent = await prisma.event.update({
-            where: { id: existingEvent.id },
-            data: validateData.data,
-        });
+        const date = await prisma.eventDate.create({
+            data: {
+                eventId: event.id,
+                ...validateData.data
+            }
+        })
         return ApiResponse({
             success: true,
-            data: updatedEvent,
+            data: date,
             statusCode: 200,
         });
     } catch (error) {

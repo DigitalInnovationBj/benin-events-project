@@ -2,7 +2,7 @@ import { prisma } from "@/functions/prisma";
 import { ApiResponse } from "@/utils/format-api-response";
 import { isValidSlug } from "@/validators/valid-slug";
 
-export async function GET( _request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
     try {
         const { slug } = await params; // Await params to resolve the object
         if (!slug) {
@@ -20,15 +20,29 @@ export async function GET( _request: Request, { params }: { params: Promise<{ sl
                 statusCode: 400,
             });
         }
-        const tickets = await prisma.ticket.findMany({
-            where: { event: { slug } }
+        const event = await prisma.event.findUnique({
+            where: { slug },
+             include : { feedbacks: true }
         });
-        return ApiResponse({ success: true, data: tickets });
-    } catch (error) {
+        if (!event) {
+            return ApiResponse({
+                success: false,
+                error: "Event not found",
+                statusCode: 404,
+            });
+        }
         return ApiResponse({
-            success: false,
-            error: (error as Error).message,
-            statusCode: 500,
+            success: true,
+            data: event.feedbacks,
+            statusCode: 200,
         });
+    } catch (error) {
+        return ApiResponse(
+            {
+                success: false,
+                error: (error as Error).message,
+                statusCode: 500,
+            }
+        ) ;
     }
 }

@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const eventDateSchema = z.object({
   id: z.cuid(),
-  eventId: z.string().cuid(),
   startDateTime: z.date(),
   endDateTime: z.date().optional().nullable(),
   isAllDay: z.boolean().default(false),

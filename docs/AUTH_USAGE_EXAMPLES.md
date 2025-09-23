@@ -200,3 +200,4 @@ Si vous avez des problèmes de session :
 3. Assurez-vous d'utiliser `credentials: "include"` dans fetch
 4. Vérifiez que les cookies sont acceptés par le navigateur
 
+

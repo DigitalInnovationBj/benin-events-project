@@ -7,6 +7,14 @@ import { isValidSlug } from "@/validators/valid-slug";
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
     try {
+        const user = await CheckUserRole(request, Role.ADMIN);
+        if (user.state === false) {
+            return ApiResponse({
+                success: false,
+                error: user.error || "Unauthorized",
+                statusCode: 401,
+            });
+        }
         const { slug } = await params; // Await params to resolve the object
         if (!slug) {
             return ApiResponse({
@@ -49,7 +57,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-    const user = await CheckUserRole(request, Role.USER);
+    const user = await CheckUserRole(request, Role.ADMIN);
     if (user.state === false) {
         return ApiResponse({
             success: false,
@@ -84,13 +92,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
                 statusCode: 404,
             });
         }
-        if (existingEvent.organizerId !== user.user?.id) {
-            return ApiResponse({
-                success: false,
-                error: "You are not the organizer of this event",
-                statusCode: 403,
-            });
-        }
         const body = await request.json();
         const validateData = eventSchema.partial().safeParse(body);
         if (!validateData.success) {
@@ -107,6 +108,49 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
         return ApiResponse({
             success: true,
             data: updatedEvent,
+            statusCode: 200,
+        });
+    } catch (error) {
+        return ApiResponse({
+            success: false,
+            error: (error as Error).message,
+            statusCode: 500,
+        });
+    }
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+    try {
+        const user = await CheckUserRole(request, Role.ADMIN);
+        if (user.state === false) {
+            return ApiResponse({
+                success: false,
+                error: user.error || "Unauthorized",
+                statusCode: 401,
+            });
+        }
+        const { slug } = await params;
+        if (!slug) {
+            return ApiResponse({
+                success: false,
+                error: "Slug parameter is required",
+                statusCode: 400,
+            });
+        }
+        const event = await prisma.event.findUnique({ where: { slug } });
+        if (!event) {
+            return ApiResponse({
+                success: false,
+                error: "Event not found",
+                statusCode: 404,
+            });
+        }
+        await prisma.event.delete({
+            where: { slug },
+        });
+        return ApiResponse({
+            success: true,
+            data: { message: "Event deleted successfully" },
             statusCode: 200,
         });
     } catch (error) {
