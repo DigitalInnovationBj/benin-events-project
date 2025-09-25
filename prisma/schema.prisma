@@ -7,73 +7,246 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url  	    = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // =============================
 // MODELS
 // =============================
-
 enum Role {
   USER
   ADMIN
 }
 
-enum TicketStatus {
-  RESERVED
-  PAID
+enum EVENTSTATUS {
+  PENDING
+  APPROVED
+  REJECTED
   CANCELLED
 }
 
-model User {
-  id              String    @id               // UID Firebase
-  name            String
-  email           String    @unique
-  role            Role      @default(USER)
-  emailVerified   Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  tickets         Ticket[]
-  organizedEvents Event[]   @relation("OrganizerEvents")
+enum EVENT_TYPE {
+  FREE
+  FREE_WITH_REGISTRATION
+  PAID
 }
 
-model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  events    Event[]
+enum RECCURENCE_TYPE {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum PURCHASE_STATUT {
+  PENDING
+  CANCELLED
+  CONFIRMED
+}
+
+model User {
+  id            String         @id
+  name          String
+  email         String
+  role          Role           @default(USER)
+  emailVerified Boolean        @default(false)
+  image         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @default(now()) @updatedAt
+  events        Event[]        @relation("EventOrganizer")
+  sessions      Session[]
+  accounts      Account[]
+  paiements     Purchase[]
+  favorites     Favorite[]
+  notifications Notification[]
+  feedbacks     Feedback[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("verification")
 }
 
 model Event {
-  id            String     @id @default(cuid())
-  title         String
-  description   String
-  address       String
-  city          String
-  country       String
-  date          DateTime
-  price         Float
-  imageUrl      String?
-  slug          String?    @unique
-  organizer     User       @relation("OrganizerEvents", fields: [organizerId], references: [id])
-  organizerId   String
-  category      Category?  @relation(fields: [categoryId], references: [id])
-  categoryId    String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  tickets       Ticket[]
+  id                 String              @id @default(cuid())
+  title              String
+  slug               String              @unique
+  description        String
+  location           String
+  type               EVENT_TYPE
+  status             EVENTSTATUS         @default(PENDING)
+  price              Float?
+  image              String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  dates              EventDate[]
+  tickets            Ticket[]
+  paiements          Purchase[]
+  favorites          Favorite[]
+  feedbacks          Feedback[]
+  organizerId        String?
+  organizer          User?               @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  recommendations    Recommendation[]
+  marketingCampaigns MarketingCampaign[]
+  categoryId         String?
+  categories         Category?           @relation("EventCategories", fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+}
+
+model EventDate {
+  id             String          @id @default(cuid())
+  eventId        String
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  startDateTime  DateTime
+  endDateTime    DateTime?
+  isAllDay       Boolean         @default(false)
+  reccurenceType RECCURENCE_TYPE @default(NONE)
+  reccurenceEnd  DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  Purchase       Purchase[]
 }
 
 model Ticket {
-  id          String       @id @default(cuid())
-  event       Event        @relation(fields: [eventId], references: [id])
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  price     Float
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Purchase {
+  id           String          @id @default(cuid())
+  eventId      String
+  event        Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventDateId  String
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrcode       String          @unique
+  code         String          @unique
+  statut       PURCHASE_STATUT @default(PENDING)
+  purchaseDate DateTime        @default(now())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now()) @updatedAt
+  eventDate    EventDate       @relation(fields: [eventDateId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, eventId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("notification")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  name      String
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  eventId   String
+  score     Float
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  message   String?
+  createdAt DateTime @default(now())
+}
+
+model MarketingCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String
   eventId     String
-  user        User         @relation(fields: [userId], references: [id])
-  userId      String
-  quantity    Int
-  total       Float
-  status      TicketStatus @default(PAID)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  unitPrice   Float
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  events      Event[]  @relation("EventCategories")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 }

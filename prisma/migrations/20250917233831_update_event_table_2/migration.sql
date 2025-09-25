@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "public"."Event" ALTER COLUMN "categoryId" DROP NOT NULL,
+ALTER COLUMN "categoryId" DROP DEFAULT,
+ALTER COLUMN "organizerId" DROP NOT NULL,
+ALTER COLUMN "organizerId" DROP DEFAULT;

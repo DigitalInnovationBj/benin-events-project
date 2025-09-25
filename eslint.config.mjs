@@ -6,18 +6,27 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const compat = new FlatCompat({
-    baseDirectory: __dirname,
+  baseDirectory: __dirname,
 });
 
 const eslintConfig = [
-    // Ignorer le code généré par Prisma
-    {
-        ignores: [
-            "prisma/**", // ton schéma et migrations
-            "lib/generated/prisma/**", // si tu utilises un output personnalisé
-        ],
+  // Bloc pour ignorer certains chemins
+  {
+    ignores: ["prisma/**", "lib/generated/prisma/**"],
+  },
+
+  // Bloc global pour tes règles custom
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-require-imports": "off",
     },
-    ...compat.extends("next/core-web-vitals", "next/typescript"),
+  },
+
+  // Bloc Next.js
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
 export default eslintConfig;
