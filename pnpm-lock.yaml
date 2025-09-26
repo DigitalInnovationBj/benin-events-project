@@ -215,6 +215,9 @@ importers:
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      style.css:
+        specifier: link:@feexpay/react-sdk/style.css
+        version: link:@feexpay/react-sdk/style.css
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -264,6 +267,9 @@ importers:
       jsdom:
         specifier: ^27.0.0
         version: 27.0.0(postcss@8.5.6)
+      react-sdk:
+        specifier: link:@types/feexpay/react-sdk
+        version: link:@types/feexpay/react-sdk
       tailwindcss:
         specifier: ^4
         version: 4.1.13
