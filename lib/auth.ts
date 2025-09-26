@@ -14,6 +14,15 @@ export const auth = betterAuth({
     secret:
         process.env.BETTER_AUTH_SECRET || "dev-secret-key-change-in-production",
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3001",
+    user: {
+        additionalFields: {
+            role: {
+                type: "string",
+                required: true,
+                defaultValue: "USER",
+            },
+        },
+    },
     /*socialProviders: {
         google: {
             enabled: !!process.env.GOOGLE_CLIENT_ID,
