@@ -6,7 +6,21 @@ import { Event, eventSchema } from "@/validators/eventSchema";
 
 export async function GET() {
     try {
-        const events:Event[] = await prisma.event.findMany();
+        const events:Event[] = await prisma.event.findMany(
+            {
+                include : {
+                    categories : true,
+                    tickets : true,
+                    feedbacks : true,
+                    _count : {
+                        select : {
+                            favorites : true
+                        }
+                    },
+                    dates : true
+                }
+            }
+        );
         return ApiResponse({
             success: true,
             data: events,
