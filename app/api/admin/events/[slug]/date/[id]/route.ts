@@ -1,10 +1,13 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 import { eventDateSchema } from "@/validators/eventDateSchema";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ slug: string, id: string }> }) {
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ slug: string; id: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {
@@ -27,7 +30,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ slug
         if (!validatedData.success) {
             return ApiResponse({
                 success: false,
-                error: validatedData.error.issues.map(issue => issue.message).join(", "),
+                error: validatedData.error.issues
+                    .map((issue) => issue.message)
+                    .join(", "),
                 statusCode: 400,
             });
         }
@@ -65,8 +70,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ slug
     }
 }
 
-
-export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string, id: string }> }) {
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ slug: string; id: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {

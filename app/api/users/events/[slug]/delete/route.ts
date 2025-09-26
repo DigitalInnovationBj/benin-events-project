@@ -1,10 +1,13 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { EVENTSTATUS, Role } from "@/lib/generated/prisma";
+import { EVENTSTATUS, Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 import { isValidSlug } from "@/validators/valid-slug";
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     const user = await CheckUserRole(request, Role.USER);
     if (user.state === false) {
         return ApiResponse({

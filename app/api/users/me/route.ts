@@ -1,9 +1,9 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 
-export async function GET( request: Request) {
+export async function GET(request: Request) {
     try {
         const user = await CheckUserRole(request, Role.USER);
         if (user.state === false) {

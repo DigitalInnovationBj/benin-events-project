@@ -1,10 +1,13 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 import { eventDateSchema } from "@/validators/eventDateSchema";
 
-export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.USER);
         if (user.state === false) {
@@ -49,7 +52,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     }
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function POST(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.USER);
         if (user.state === false) {
@@ -75,21 +81,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
                 statusCode: 404,
             });
         }
-        const data = await request.json()
+        const data = await request.json();
         const validateData = eventDateSchema.safeParse(data);
         if (!validateData.success) {
             return ApiResponse({
                 success: false,
-                error: validateData.error.issues.map(issue => issue.message).join(", "),
+                error: validateData.error.issues
+                    .map((issue) => issue.message)
+                    .join(", "),
                 statusCode: 400,
             });
         }
         const date = await prisma.eventDate.create({
             data: {
                 eventId: event.id,
-                ...validateData.data
-            }
-        })
+                ...validateData.data,
+            },
+        });
         return ApiResponse({
             success: true,
             data: date,

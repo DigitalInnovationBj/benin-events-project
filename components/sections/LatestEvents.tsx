@@ -9,7 +9,7 @@ type Event = {
     id: string;
     title: string;
     slug: string;
-    date: string;
+    startDateTime: string;
     city: string;
     imageUrl?: string | null;
     description?: string | null;
@@ -24,13 +24,22 @@ export function LatestEvents() {
     React.useEffect(() => {
         async function fetchEvents() {
             try {
-                const res = await fetch("/api/events");
+                const res = await fetch("/api/users/events");
+
                 if (!res.ok)
                     throw new Error(
                         "Erreur lors de la récupération des événements"
                     );
-                const data: Event[] = await res.json();
-                setEvents(data);
+
+                const json = await res.json();
+                console.log("API response ===>", json);
+
+                // Vérifie si json.data est bien un tableau
+                if (Array.isArray(json.data)) {
+                    setEvents(json.data);
+                } else {
+                    throw new Error("Format de données inattendu");
+                }
             } catch (err) {
                 setError(
                     err instanceof Error ? err.message : "Erreur inconnue"
@@ -46,7 +55,11 @@ export function LatestEvents() {
     // Sélection des 4 derniers événements triés par date décroissante
     const latest = events
         .slice()
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort(
+            (a, b) =>
+                new Date(b.startDateTime).getTime() -
+                new Date(a.startDateTime).getTime()
+        )
         .slice(0, 4);
 
     return (
@@ -104,7 +117,13 @@ export function LatestEvents() {
                                                     />
                                                 ) : (
                                                     <div className="w-full h-36 md:h-full bg-gray-200 flex items-center justify-center text-gray-500 rounded-xl">
-                                                        Pas d’image
+                                                        <Image
+                                                            src="/weloveya.jpg"
+                                                            alt={event.title}
+                                                            width={300}
+                                                            height={250}
+                                                            className="w-full h-36 md:h-full object-cover rounded-xl"
+                                                        />
                                                     </div>
                                                 )}
 
@@ -152,7 +171,7 @@ export function LatestEvents() {
                                                     </h3>
                                                     <p className="text-sm text-gray-300 mb-1">
                                                         {new Date(
-                                                            event.date
+                                                            event.startDateTime
                                                         ).toLocaleDateString(
                                                             "fr-FR",
                                                             {
@@ -203,8 +222,14 @@ export function LatestEvents() {
                                                 className="w-full h-52 object-cover rounded-xl"
                                             />
                                         ) : (
-                                            <div className="w-full h-36 bg-gray-200 flex items-center justify-center text-gray-500 rounded-xl">
-                                                Pas d’image
+                                            <div className="w-full h-36 md:h-full bg-gray-200 flex items-center justify-center text-gray-500 rounded-xl">
+                                                <Image
+                                                    src="/weloveya.jpg"
+                                                    alt={event.title}
+                                                    width={300}
+                                                    height={250}
+                                                    className="w-full h-36 md:h-full object-cover rounded-xl"
+                                                />
                                             </div>
                                         )}
 
@@ -244,7 +269,7 @@ export function LatestEvents() {
                                         <div className="w-1/3 border-r border-primary p-2">
                                             <p className="text-2xl text-center font-semibold font-unbounded text-gray-300 mb-2">
                                                 {new Date(
-                                                    event.date
+                                                    event.startDateTime
                                                 ).toLocaleDateString("en-EN", {
                                                     month: "short",
                                                     day: "numeric",

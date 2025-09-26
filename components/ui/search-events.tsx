@@ -35,10 +35,15 @@ export function SearchEvents() {
     React.useEffect(() => {
         if (open && events.length === 0) {
             setLoading(true);
-            fetch("/api/events") // adapte l'URL à ton API réelle
+            fetch("/api/users/events")
                 .then((res) => res.json())
-                .then((data: Event[]) => {
-                    setEvents(data);
+                .then((json) => {
+                    // Vérifie si json.data est bien un tableau
+                    if (Array.isArray(json.data)) {
+                        setEvents(json.data);
+                    } else {
+                        setEvents([]);
+                    }
                 })
                 .catch(() => {
                     setEvents([]);

@@ -1,6 +1,6 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 import { eventSchema } from "@/validators/eventSchema";
 
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
                 success: false,
                 error: user.error || "Unauthorized",
                 statusCode: 401,
-                data: null
+                data: null,
             });
         }
 
@@ -22,7 +22,6 @@ export async function GET(request: Request) {
             data: events,
             statusCode: 200,
         });
-
     } catch (error) {
         return ApiResponse({
             success: false,
@@ -42,19 +41,21 @@ export async function POST(request: Request) {
                 success: false,
                 error: user.error || "Unauthorized",
                 statusCode: 401,
-                data: null
+                data: null,
             });
         }
         if (!validatedData.success) {
             return ApiResponse({
                 success: false,
-                error: validatedData.error.issues.map(issue => issue.message).join(", "),
+                error: validatedData.error.issues
+                    .map((issue) => issue.message)
+                    .join(", "),
                 statusCode: 400,
             });
         }
 
         const newEvent = await prisma.event.create({
-            data: validatedData.data
+            data: validatedData.data,
         });
 
         return ApiResponse({

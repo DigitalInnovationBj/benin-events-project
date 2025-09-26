@@ -1,21 +1,21 @@
-import { NextRequest } from 'next/server';
-import { prisma } from '@/functions/prisma';
-import { ApiResponse } from '@/utils/format-api-response';
-import { createClient } from 'redis';
-import { dot, norm } from 'mathjs';
-import { Matrix } from 'ml-matrix';
-import { CheckUserRole } from '@/functions/checkUserRole';
-import { Role } from '@/lib/generated/prisma';
-import { Event } from '@/validators/eventSchema';
+import { NextRequest } from "next/server";
+import { prisma } from "@/functions/prisma";
+import { ApiResponse } from "@/utils/format-api-response";
+import { createClient } from "redis";
+import { dot, norm } from "mathjs";
+import { Matrix } from "ml-matrix";
+import { CheckUserRole } from "@/functions/checkUserRole";
+import { Role } from "@prisma/client";
+import { Event } from "@/validators/eventSchema";
 
 // Redis client setup
 const redis = createClient({
     url: process.env.REDIS_URL,
     socket: {
-        reconnectStrategy: retries => Math.min(retries * 100, 3000), // Reconnect with exponential backoff
+        reconnectStrategy: (retries) => Math.min(retries * 100, 3000), // Reconnect with exponential backoff
     },
 });
-redis.on('error', err => console.error('Redis Client Error', err));
+redis.on("error", (err) => console.error("Redis Client Error", err));
 
 // Connect to Redis lazily
 let redisConnected = false;
@@ -39,7 +39,9 @@ async function buildUserVector(userId: string): Promise<number[]> {
     const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-            favorites: { include: { event: { include: { categories: true } } } },
+            favorites: {
+                include: { event: { include: { categories: true } } },
+            },
             feedbacks: { select: { eventId: true, rating: true } },
         },
     });
@@ -52,12 +54,12 @@ async function buildUserVector(userId: string): Promise<number[]> {
     const vector: number[] = new Array(categories.length).fill(0);
 
     // Weight categories based on favorites and tickets
-    user.favorites.forEach(fav => {
+    user.favorites.forEach((fav) => {
         if (fav.event.categoryId && categoryMap.has(fav.event.categoryId)) {
             vector[categoryMap.get(fav.event.categoryId)!] += 1;
         }
     });
-    user.feedbacks.forEach(fb => {
+    user.feedbacks.forEach((fb) => {
         if (fb.rating >= 4 && categoryMap.has(fb.eventId)) {
             vector[categoryMap.get(fb.eventId)!] += fb.rating / 5; // Weight by rating
         }
@@ -66,7 +68,10 @@ async function buildUserVector(userId: string): Promise<number[]> {
     return vector;
 }
 
-async function buildEventVector(event: Event, categoryMap: Map<string, number>): Promise<number[]> {
+async function buildEventVector(
+    event: Event,
+    categoryMap: Map<string, number>
+): Promise<number[]> {
     const vector: number[] = new Array(categoryMap.size).fill(0);
     if (event.categoryId && categoryMap.has(event.categoryId)) {
         vector[categoryMap.get(event.categoryId)!] = 1;
@@ -75,18 +80,27 @@ async function buildEventVector(event: Event, categoryMap: Map<string, number>):
 }
 
 // Collaborative filtering using k-NN
-async function getCollaborativeScores(userId: string, events: Event[]): Promise<Map<string, number>> {
+async function getCollaborativeScores(
+    userId: string,
+    events: Event[]
+): Promise<Map<string, number>> {
     const users = await prisma.user.findMany({ select: { id: true } });
-    const favorites = await prisma.favorite.findMany({ select: { userId: true, eventId: true } });
+    const favorites = await prisma.favorite.findMany({
+        select: { userId: true, eventId: true },
+    });
 
     // Build user-event matrix
     const matrix = Matrix.zeros(users.length, events.length);
     const userIndex = new Map(users.map((u, i) => [u.id, i]));
     const eventIndex = new Map(events.map((e, i) => [e.id, i]));
 
-    favorites.forEach(fav => {
+    favorites.forEach((fav) => {
         if (userIndex.has(fav.userId) && eventIndex.has(fav.eventId)) {
-            matrix.set(userIndex.get(fav.userId)!, eventIndex.get(fav.eventId)!, 1);
+            matrix.set(
+                userIndex.get(fav.userId)!,
+                eventIndex.get(fav.eventId)!,
+                1
+            );
         }
     });
 
@@ -102,16 +116,22 @@ async function getCollaborativeScores(userId: string, events: Event[]): Promise<
     });
 
     // Get top 5 similar users
-    const topSimilar = similarities.sort((a, b) => b.score - a.score).slice(0, 5);
+    const topSimilar = similarities
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
     const eventScores = new Map<string, number>();
-    events.forEach(event => eventScores.set(event.id, 0));
+    events.forEach((event) => eventScores.set(event.id, 0));
 
     // Aggregate scores from similar users
-    topSimilar.forEach(sim => {
+    topSimilar.forEach((sim) => {
         const userIdx = userIndex.get(sim.userId)!;
         events.forEach((event, i) => {
             if (matrix.get(userIdx, i) > 0) {
-                eventScores.set(event.id, eventScores.get(event.id)! + sim.score * matrix.get(userIdx, i));
+                eventScores.set(
+                    event.id,
+                    eventScores.get(event.id)! +
+                        sim.score * matrix.get(userIdx, i)
+                );
             }
         });
     });
@@ -129,13 +149,17 @@ export async function GET(request: NextRequest) {
         if (userCheck.state === false) {
             return ApiResponse({
                 success: false,
-                error: userCheck.error || 'Unauthorized',
+                error: userCheck.error || "Unauthorized",
                 statusCode: 401,
             });
         }
         const userId = userCheck.user?.id;
         if (!userId) {
-            return ApiResponse({ success: false, error: 'User ID missing', statusCode: 400 });
+            return ApiResponse({
+                success: false,
+                error: "User ID missing",
+                statusCode: 400,
+            });
         }
 
         // Check Redis cache
@@ -155,29 +179,38 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, email: true },
         });
         if (!user) {
-            return ApiResponse({ success: false, error: 'User not found', statusCode: 404 });
+            return ApiResponse({
+                success: false,
+                error: "User not found",
+                statusCode: 404,
+            });
         }
 
         // Fetch upcoming events
         const events = await prisma.event.findMany({
             where: {
                 dates: { some: { startDateTime: { gt: new Date() } } },
-                status: 'APPROVED',
+                status: "APPROVED",
             },
             include: { categories: true },
         });
 
         // Build vectors
-        const categories = await prisma.category.findMany({ select: { id: true } });
+        const categories = await prisma.category.findMany({
+            select: { id: true },
+        });
         const categoryMap = new Map(categories.map((c, i) => [c.id, i]));
         const userVector = await buildUserVector(userId);
 
         // Compute content-based scores
         const contentScores = await Promise.all(
-            events.map(async event => ({
+            events.map(async (event) => ({
                 event,
-                score: cosineSimilarity(userVector, await buildEventVector(event, categoryMap)),
-            })),
+                score: cosineSimilarity(
+                    userVector,
+                    await buildEventVector(event, categoryMap)
+                ),
+            }))
         );
 
         // Compute collaborative scores
@@ -194,21 +227,27 @@ export async function GET(request: NextRequest) {
 
         // Store in Recommendation table
         await prisma.recommendation.createMany({
-            data: recommendations.map(r => ({
+            data: recommendations.map((r) => ({
                 name: user.name,
                 email: user.email,
                 eventId: r.event.id,
                 score: r.score,
-                message: `Recommended based on your interest in ${r.event.categories?.name || 'events'}`,
+                message: `Recommended based on your interest in ${
+                    r.event.categories?.name || "events"
+                }`,
             })),
         });
 
         // Cache results in Redis (1-hour TTL)
-        await redis.setEx(cacheKey, 3600, JSON.stringify(recommendations.map(r => r.event)));
+        await redis.setEx(
+            cacheKey,
+            3600,
+            JSON.stringify(recommendations.map((r) => r.event))
+        );
 
         return ApiResponse({
             success: true,
-            data: recommendations.map(r => r.event),
+            data: recommendations.map((r) => r.event),
             statusCode: 200,
         });
     } catch (error) {

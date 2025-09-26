@@ -1,11 +1,14 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
-import {  eventSchema } from "@/validators/eventSchema";
+import { eventSchema } from "@/validators/eventSchema";
 import { isValidSlug } from "@/validators/valid-slug";
 
-export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {
@@ -55,8 +58,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     }
 }
 
-
-export async function PATCH(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     const user = await CheckUserRole(request, Role.ADMIN);
     if (user.state === false) {
         return ApiResponse({
@@ -97,7 +102,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
         if (!validateData.success) {
             return ApiResponse({
                 success: false,
-                error: validateData.error.issues.map(issue => issue.message).join(", "),
+                error: validateData.error.issues
+                    .map((issue) => issue.message)
+                    .join(", "),
                 statusCode: 400,
             });
         }
@@ -119,7 +126,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ sl
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {

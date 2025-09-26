@@ -1,9 +1,12 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { EVENTSTATUS, Role } from "@/lib/generated/prisma";
+import { EVENTSTATUS, Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const user = await CheckUserRole(request, Role.ADMIN);
         if (user.state === false) {

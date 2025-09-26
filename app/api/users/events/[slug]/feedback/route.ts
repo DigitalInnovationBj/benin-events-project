@@ -1,11 +1,14 @@
 import { CheckUserRole } from "@/functions/checkUserRole";
 import { prisma } from "@/functions/prisma";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 import { feedbackSchema } from "@/validators/feedbackSchema";
 import { isValidSlug } from "@/validators/valid-slug";
 
-export async function GET( _request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(
+    _request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     try {
         const { slug } = await params; // Await params to resolve the object
         if (!slug) {
@@ -60,7 +63,10 @@ export async function GET( _request: Request, { params }: { params: Promise<{ sl
     }
 }
 
-export async function POST( request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function POST(
+    request: Request,
+    { params }: { params: Promise<{ slug: string }> }
+) {
     const user = await CheckUserRole(request, Role.USER);
     if (user.state === false) {
         return ApiResponse({
@@ -101,7 +107,9 @@ export async function POST( request: Request, { params }: { params: Promise<{ sl
         if (!validatedData.success) {
             return ApiResponse({
                 success: false,
-                error: validatedData.error.issues.map(issue => issue.message).join(", "),
+                error: validatedData.error.issues
+                    .map((issue) => issue.message)
+                    .join(", "),
                 statusCode: 400,
             });
         }

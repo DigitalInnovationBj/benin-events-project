@@ -43,18 +43,18 @@ export default function EventsPage() {
     const [dateFilter, setDateFilter] = React.useState<string>("all"); // ex: 'future', 'past', 'all'
     const [searchTerm, setSearchTerm] = React.useState<string>("");
 
-    // Charger les événements au montage
     React.useEffect(() => {
         async function fetchEvents() {
             try {
-                const res = await fetch("/api/events");
+                const res = await fetch("/api/users/events");
                 if (!res.ok)
                     throw new Error(
                         "Erreur lors de la récupération des événements"
                     );
-                const data: Event[] = await res.json();
-                setEvents(data);
-                setFilteredEvents(data);
+
+                const json = await res.json();
+                setEvents(json.data); // ← le tableau est ici
+                setFilteredEvents(json.data);
             } catch (e) {
                 setError(e instanceof Error ? e.message : "Erreur inconnue");
             } finally {
