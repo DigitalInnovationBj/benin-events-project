@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { CheckUserRole } from "./checkUserRole";
-import { Role } from "@/lib/generated/prisma";
+import { Role } from "@prisma/client";
 import { ApiResponse } from "@/utils/format-api-response";
 /**
  * Middleware pour protéger les routes admin
@@ -9,21 +9,25 @@ import { ApiResponse } from "@/utils/format-api-response";
  * @returns Response avec gestion d'erreur automatique
  */
 export async function withAdminAuth(
-    request: Request, 
-    handler: (user: any) => Promise<NextResponse> | NextResponse | typeof ApiResponse
+    request: Request,
+    handler: (
+        user: any
+    ) => Promise<NextResponse> | NextResponse | typeof ApiResponse
 ) {
     try {
         const checkRole = await CheckUserRole(request, Role.ADMIN);
-        
+
         if (!checkRole.state) {
-            const statusCode = checkRole.error === "No active session" ? 401 : 403;
+            const statusCode =
+                checkRole.error === "No active session" ? 401 : 403;
             return NextResponse.json(
-                { 
-                    message: checkRole.error === "No active session" 
-                        ? "Authentication required" 
-                        : "Access denied",
-                    error: checkRole.error 
-                }, 
+                {
+                    message:
+                        checkRole.error === "No active session"
+                            ? "Authentication required"
+                            : "Access denied",
+                    error: checkRole.error,
+                },
                 { status: statusCode }
             );
         }
@@ -33,7 +37,7 @@ export async function withAdminAuth(
     } catch (error) {
         console.error("Admin middleware error:", error);
         return NextResponse.json(
-            { message: "Internal server error" }, 
+            { message: "Internal server error" },
             { status: 500 }
         );
     }
@@ -47,18 +51,21 @@ export async function withAdminAuth(
  * @returns NextResponse standardisée
  */
 export function createAdminResponse(
-    user: any, 
-    data: any = null, 
+    user: any,
+    data: any = null,
     message: string = "Success"
 ) {
-    return NextResponse.json({
-        message,
-        user: {
-            id: user?.id,
-            name: user?.name,
-            email: user?.email,
-            role: user?.role
+    return NextResponse.json(
+        {
+            message,
+            user: {
+                id: user?.id,
+                name: user?.name,
+                email: user?.email,
+                role: user?.role,
+            },
+            ...(data && { data }),
         },
-        ...(data && { data })
-    }, { status: 200 });
+        { status: 200 }
+    );
 }
