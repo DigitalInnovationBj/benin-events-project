@@ -54,7 +54,7 @@ async function main() {
   users.push(igorUser);
 
   // Créer des utilisateurs normaux
-  for (let i = 0; i < 49; i++) { // Réduit à 49 pour maintenir un total de 51 utilisateurs
+  for (let i = 0; i < 49; i++) {
     const user = await prisma.user.create({
       data: {
         id: faker.string.uuid(),
@@ -87,7 +87,9 @@ async function main() {
 
   // Sessions pour autres utilisateurs
   for (let i = 0; i < 29; i++) {
-    const user = faker.helpers.arrayElement(users.filter(u => u.id !== igorUser.id));
+    const user = faker.helpers.arrayElement(
+      users.filter((u) => u.id !== igorUser.id)
+    );
     await prisma.session.create({
       data: {
         id: faker.string.uuid(),
@@ -147,8 +149,15 @@ async function main() {
         location: `${faker.location.city()}, ${faker.location.country()}`,
         type: eventType,
         status: faker.helpers.arrayElement(eventStatuses),
-        price: eventType === "PAID" ? faker.number.float({ min: 1000, max: 50000, precision: 0 }) : null,
-        image: faker.image.urlLoremFlickr({ width: 800, height: 600, category: "event" }),
+        price:
+          eventType === "PAID"
+            ? faker.number.float({ min: 1000, max: 50000, fractionDigits: 0 })
+            : null,
+        image: faker.image.urlLoremFlickr({
+          width: 800,
+          height: 600,
+          category: "event",
+        }),
         organizer: { connect: { id: organizer.id } },
         categories: { connect: { id: category.id } },
       },
@@ -166,7 +175,9 @@ async function main() {
 
     for (let i = 0; i < numDates; i++) {
       const startDate = faker.date.future();
-      const endDate = new Date(startDate.getTime() + faker.number.int({ min: 3600000, max: 86400000 }));
+      const endDate = new Date(
+        startDate.getTime() + faker.number.int({ min: 3600000, max: 86400000 })
+      );
       const recurrenceType = faker.helpers.arrayElement(recurrenceTypes);
 
       const eventDate = await prisma.eventDate.create({
@@ -177,7 +188,10 @@ async function main() {
           endDateTime: endDate,
           isAllDay: faker.datatype.boolean({ probability: 0.3 }),
           reccurenceType: recurrenceType,
-          reccurenceEnd: recurrenceType !== "NONE" ? faker.date.future({ refDate: endDate }) : null,
+          reccurenceEnd:
+            recurrenceType !== "NONE"
+              ? faker.date.future({ refDate: endDate })
+              : null,
         },
       });
       eventDates.push(eventDate);
@@ -195,7 +209,10 @@ async function main() {
           id: faker.string.uuid(),
           eventId: event.id,
           name: `${faker.lorem.word()} Ticket`,
-          price: event.type === "PAID" ? faker.number.float({ min: 1000, max: 50000, precision: 0 }) : 0,
+          price:
+            event.type === "PAID"
+              ? faker.number.float({ min: 1000, max: 50000, fractionDigits: 0 })
+              : 0,
           quantity: faker.number.int({ min: 10, max: 500 }),
         },
       });
@@ -210,7 +227,7 @@ async function main() {
   const purchaseStatuses = ["PENDING", "CANCELLED", "CONFIRMED"];
 
   // Achats pour Igor
-  const igorEvents = events.filter(e => e.status === "APPROVED").slice(0, 3); // 3 événements approuvés pour Igor
+  const igorEvents = events.filter((e) => e.status === "APPROVED").slice(0, 3); // 3 événements approuvés pour Igor
   for (const event of igorEvents) {
     const eventDate = eventDates.find((ed) => ed.eventId === event.id);
     if (eventDate) {
@@ -224,6 +241,7 @@ async function main() {
           eventDateId: eventDate.id,
           userId: igorUser.id,
           qrcode: faker.string.alphanumeric(32),
+          reference: `ref_${faker.string.alphanumeric(20)}_REACT`, // Mimic FeexPay reference format
           code: faker.string.alphanumeric(8).toUpperCase(),
           statut: faker.helpers.arrayElement(["PENDING", "CONFIRMED"]),
         },
@@ -233,8 +251,10 @@ async function main() {
   }
 
   // Achats pour autres utilisateurs
-  for (let i = 0; i < 197; i++) { // Réduit pour maintenir ~200 achats
-    const user = faker.helpers.arrayElement(users.filter(u => u.id !== igorUser.id));
+  for (let i = 0; i < 197; i++) {
+    const user = faker.helpers.arrayElement(
+      users.filter((u) => u.id !== igorUser.id)
+    );
     const event = faker.helpers.arrayElement(events);
     const eventDate = eventDates.find((ed) => ed.eventId === event.id);
 
@@ -250,6 +270,7 @@ async function main() {
           eventDateId: eventDate.id,
           userId: user.id,
           qrcode: faker.string.alphanumeric(32),
+          reference: `ref_${faker.string.alphanumeric(20)}_REACT`, // Mimic FeexPay reference format
           code: faker.string.alphanumeric(8).toUpperCase(),
           statut: faker.helpers.arrayElement(purchaseStatuses),
         },
@@ -263,7 +284,13 @@ async function main() {
   let favoriteCount = 0;
 
   // Favoris pour Igor
-  const igorFavoriteEvents = events.filter(e => ["Concerts", "Festivals", "Conférences"].includes(categories.find(c => c.id === e.categoryId)?.name || "")).slice(0, 5); // 5 favoris dans Concerts, Festivals, Conférences
+  const igorFavoriteEvents = events
+    .filter((e) =>
+      ["Concerts", "Festivals", "Conférences"].includes(
+        categories.find((c) => c.id === e.categoryId)?.name || ""
+      )
+    )
+    .slice(0, 5);
   for (const event of igorFavoriteEvents) {
     const existingFavorite = await prisma.favorite.findUnique({
       where: {
@@ -287,8 +314,10 @@ async function main() {
   }
 
   // Favoris pour autres utilisateurs
-  for (let i = 0; i < 145; i++) { // Réduit pour maintenir ~150 favoris
-    const user = faker.helpers.arrayElement(users.filter(u => u.id !== igorUser.id));
+  for (let i = 0; i < 145; i++) {
+    const user = faker.helpers.arrayElement(
+      users.filter((u) => u.id !== igorUser.id)
+    );
     const event = faker.helpers.arrayElement(events);
 
     const existingFavorite = await prisma.favorite.findUnique({
@@ -322,7 +351,8 @@ async function main() {
       id: faker.string.uuid(),
       userId: igorUser.id,
       subject: "Bienvenue sur Benin Events !",
-      content: "Merci de vous être inscrit. Découvrez nos événements recommandés !",
+      content:
+        "Merci de vous être inscrit. Découvrez nos événements recommandés !",
       isRead: false,
     },
   });
@@ -341,7 +371,9 @@ async function main() {
 
   // Notifications pour autres utilisateurs
   for (let i = 0; i < 98; i++) {
-    const user = faker.helpers.arrayElement(users.filter(u => u.id !== igorUser.id));
+    const user = faker.helpers.arrayElement(
+      users.filter((u) => u.id !== igorUser.id)
+    );
     await prisma.notification.create({
       data: {
         id: faker.string.uuid(),
@@ -367,7 +399,7 @@ async function main() {
         eventId: event.id,
         userId: igorUser.id,
         email: igorUser.email,
-        rating: faker.number.int({ min: 3, max: 5 }), // Feedback positif
+        rating: faker.number.int({ min: 3, max: 5 }),
         comment: faker.lorem.paragraph(),
       },
     });
@@ -375,9 +407,11 @@ async function main() {
   }
 
   // Feedbacks pour autres utilisateurs
-  for (let i = 0; i < 77; i++) { // Réduit pour maintenir ~80 feedbacks
+  for (let i = 0; i < 77; i++) {
     const event = faker.helpers.arrayElement(events);
-    const user = faker.datatype.boolean({ probability: 0.7 }) ? faker.helpers.arrayElement(users.filter(u => u.id !== igorUser.id)) : null;
+    const user = faker.datatype.boolean({ probability: 0.7 })
+      ? faker.helpers.arrayElement(users.filter((u) => u.id !== igorUser.id))
+      : null;
 
     await prisma.feedback.create({
       data: {

@@ -172,6 +172,7 @@ model Purchase {
   userId       String
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   qrcode       String          @unique
+  reference    String          @unique
   code         String          @unique
   statut       PURCHASE_STATUT @default(PENDING)
   purchaseDate DateTime        @default(now())
