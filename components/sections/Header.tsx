@@ -46,7 +46,7 @@ export function Header() {
                     <SearchEvents />
                     <Link
                         className="p-2 rounded-full bg-primary hover:bg-purple-600 hover:cursor-pointer transition"
-                        href="/account"
+                        href="/auth"
                     >
                         <User className="w-4 h-4 text-white" />
                     </Link>
