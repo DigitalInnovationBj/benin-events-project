@@ -67,7 +67,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md mx-auto">
                 <div className="bg-primary rounded-[2rem] p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
                     <div className="text-center mb-10">
-                        <div className="bg-secondary rounded-xl px-5 pb-5 pt-2 w-fit mx-auto flex items-center justify-center">
+                        <div className="bg-secondary rounded-xl p-5 w-fit mx-auto flex items-center justify-center">
                             <span className="text-4xl font-bold font-afo text-primary">
                                 BE
                             </span>
@@ -76,7 +76,8 @@ export default function LoginPage() {
                             Bon Retour
                         </h1>
                         <p className="text-sm">
-                            Connectez-vous pour accéder à vos évènements et billets
+                            Connectez-vous pour accéder à vos évènements et
+                            billets
                         </p>
                     </div>
 
@@ -135,7 +136,7 @@ export default function LoginPage() {
                         </p>
                     </div>
                 </div>
-                
+
                 <div className="mt-8 text-center">
                     <Link
                         href="/"

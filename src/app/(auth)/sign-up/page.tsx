@@ -67,7 +67,7 @@ export default function SignUpPage() {
             <div className="w-full max-w-md mx-auto">
                 <div className="bg-primary rounded-[2rem] p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
                     <div className="text-center mb-10">
-                        <div className="bg-secondary rounded-xl px-5 pb-5 pt-2 w-fit mx-auto flex items-center justify-center">
+                        <div className="bg-secondary rounded-xl p-5 w-fit mx-auto flex items-center justify-center">
                             <span className="text-4xl font-bold font-afo text-primary">
                                 BE
                             </span>
