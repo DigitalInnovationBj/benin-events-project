@@ -5,28 +5,18 @@ import { useSignUp, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import {
     IconBrandGoogleFilled,
     IconBrandAppleFilled,
-    IconMail,
-    IconLock,
-    IconFingerprint,
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
 export default function SignUpPage() {
-    const { isLoaded, signUp, setActive } = useSignUp();
+    const { isLoaded, signUp } = useSignUp();
     const { isSignedIn, isLoaded: userLoaded } = useUser();
     const router = useRouter();
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [pendingVerification, setPendingVerification] = useState(false);
-    const [code, setCode] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
     const [isSocialLoading, setIsSocialLoading] = useState<
         "google" | "apple" | null
     >(null);
@@ -35,67 +25,9 @@ export default function SignUpPage() {
     // Redirect if user is already signed in
     useEffect(() => {
         if (userLoaded && isSignedIn) {
-            router.push("/dashboard/profile");
+            router.push("/dashboard");
         }
     }, [userLoaded, isSignedIn, router]);
-
-    const handleEmailSignUp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!isLoaded || !signUp) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            await signUp.create({
-                emailAddress: email,
-                password,
-            });
-
-            await signUp.prepareEmailAddressVerification({
-                strategy: "email_code",
-            });
-            setPendingVerification(true);
-            toast.info("Un code de vérification a été envoyé !");
-        } catch (err: any) {
-            const errorMessage =
-                err?.errors?.[0]?.message || "Erreur lors de l'inscription";
-            setError(errorMessage);
-            toast.error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleVerification = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!isLoaded || !signUp) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const completeSignUp = await signUp.attemptEmailAddressVerification(
-                {
-                    code,
-                },
-            );
-
-            if (completeSignUp.status === "complete") {
-                await setActive({ session: completeSignUp.createdSessionId });
-                router.push("/dashboard/profile");
-                toast.success("Compte créé avec succès !");
-            } else {
-                toast.error("Vérification incomplète. Veuillez réessayer.");
-            }
-        } catch (err: any) {
-            const errorMessage = err?.errors?.[0]?.message || "Code invalide";
-            setError(errorMessage);
-            toast.error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleSocialSignUp = async (
         strategy: "oauth_google" | "oauth_apple",
@@ -109,7 +41,7 @@ export default function SignUpPage() {
             await signUp.authenticateWithRedirect({
                 strategy,
                 redirectUrl: "/sso-callback",
-                redirectUrlComplete: "/dashboard/profile",
+                redirectUrlComplete: "/dashboard",
             });
         } catch (err: any) {
             const errorMessage =
@@ -122,98 +54,34 @@ export default function SignUpPage() {
 
     if (!userLoaded) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-950">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="min-h-screen flex items-center justify-center bg-black">
+                <Loader2 className="h-8 w-8 animate-spin text-secondary" />
             </div>
         );
     }
 
     if (isSignedIn) return null;
 
-    if (pendingVerification) {
-        return (
-            <div className="min-h-screen relative flex items-center justify-center bg-background px-4 overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-20 animate-pulse -z-10" />
-                <div className="bg-white/5 dark:bg-slate-950/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                            <IconFingerprint className="w-8 h-8 text-primary" />
-                        </div>
-                        <h2 className="text-2xl font-bold mb-2">
-                            Vérifiez votre email
-                        </h2>
-                        <p className="text-muted-foreground text-sm">
-                            Nous avons envoyé un code à{" "}
-                            <span className="text-primary font-medium">
-                                {email}
-                            </span>
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleVerification} className="space-y-6">
-                        <div className="space-y-2 text-center">
-                            <Label
-                                htmlFor="code"
-                                className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-                            >
-                                Code à 6 chiffres
-                            </Label>
-                            <Input
-                                id="code"
-                                type="text"
-                                placeholder="000000"
-                                maxLength={6}
-                                value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                className="h-14 bg-white/5 border-white/10 rounded-xl text-center text-2xl font-bold tracking-[0.5em] focus:ring-primary/50 transition-all"
-                                required
-                            />
-                        </div>
-                        <Button
-                            type="submit"
-                            className="w-full h-12 rounded-xl text-lg font-bold shadow-lg shadow-primary/20"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                                "Vérifier le compte"
-                            )}
-                        </Button>
-                    </form>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-background py-12 px-4">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-20 animate-pulse -z-10" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl opacity-20 animate-pulse -z-10" />
-
-            <div className="relative z-10 w-full max-w-md mx-auto">
-                <div className="bg-white/5 dark:bg-slate-950/40 backdrop-blur-xl backdrop-saturate-150 border border-white/10 dark:border-slate-800/30 rounded-3xl p-8 sm:p-10 shadow-2xl">
-                    <div className="text-center mb-8">
-                        <Link
-                            href="/"
-                            className="flex items-center justify-center mb-6 group"
-                        >
-                            <div className="relative w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-primary/20 transition-transform group-hover:scale-110">
-                                <span className="text-2xl font-bold text-primary">
-                                    S
-                                </span>
-                            </div>
-                        </Link>
-                        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <section className="min-h-screen flex items-center justify-center overflow-hidden bg-background py-8 px-4">
+            <div className="w-full max-w-md mx-auto">
+                <div className="bg-primary rounded-[2rem] p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
+                    <div className="text-center mb-10">
+                        <div className="bg-secondary rounded-xl px-5 pb-5 pt-2 w-fit mx-auto flex items-center justify-center">
+                            <span className="text-4xl font-bold font-afo text-primary">
+                                BE
+                            </span>
+                        </div>
+                        <h1 className="text-4xl font-bold mb-3 font-afo text-secondary">
                             Créer un compte
                         </h1>
-                        <p className="text-muted-foreground text-sm">
-                            Rejoignez l'aventure en quelques secondes
+                        <p className="text-sm">
+                            Rejoignez l'expérience Benin Events dès aujourd'hui
                         </p>
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-2xl flex items-start gap-3">
+                        <div className="mb-8 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                             <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                             <p className="text-sm text-destructive font-medium">
                                 {error}
@@ -221,113 +89,62 @@ export default function SignUpPage() {
                         </div>
                     )}
 
-                    <div className="space-y-4 mb-8">
+                    <div className="space-y-4 mb-10">
                         <Button
                             onClick={() => handleSocialSignUp("oauth_google")}
-                            disabled={isSocialLoading !== null || isLoading}
+                            disabled={isSocialLoading !== null}
                             variant="outline"
-                            className="w-full border-white/10 hover:bg-white/5 h-12 rounded-xl text-base font-medium transition-all"
+                            className="w-full  overflow-hidden group border-white/10 dark:hover:bg-white/5 hover:border-primary/50 h-14 rounded-xl text-base font-medium transition-all duration-300"
                         >
                             {isSocialLoading === "google" ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
                                 <>
-                                    <IconBrandGoogleFilled className="mr-2 h-5 w-5" />{" "}
-                                    Continuer avec Google
+                                    <IconBrandGoogleFilled className="mr-3 h-6 w-6" />{" "}
+                                    S'inscrire avec Google
                                 </>
                             )}
                         </Button>
 
                         <Button
                             onClick={() => handleSocialSignUp("oauth_apple")}
-                            disabled={isSocialLoading !== null || isLoading}
+                            disabled={isSocialLoading !== null}
                             variant="outline"
-                            className="w-full border-white/10 hover:bg-white/5 h-12 rounded-xl text-base font-medium transition-all"
+                            className="w-full  overflow-hidden group border-white/10 dark:hover:bg-white/5 hover:border-primary/50 h-14 rounded-xl text-base font-medium transition-all duration-300"
                         >
                             {isSocialLoading === "apple" ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             ) : (
                                 <>
-                                    <IconBrandAppleFilled className="mr-2 h-5 w-5" />{" "}
-                                    Continuer avec Apple
+                                    <IconBrandAppleFilled className="mr-3 h-6 w-6" />{" "}
+                                    S'inscrire avec Apple
                                 </>
                             )}
                         </Button>
                     </div>
 
-                    <div className="relative mb-8 text-center">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-white/10" />
-                        </div>
-                        <span className="relative bg-background px-4 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                            Ou par email
-                        </span>
-                    </div>
-
-                    <form onSubmit={handleEmailSignUp} className="space-y-5">
-                        <div className="space-y-2">
-                            <Label
-                                htmlFor="email"
-                                className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 px-1"
-                            >
-                                <IconMail className="w-3.5 h-3.5" /> Adresse
-                                email
-                            </Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                placeholder="name@company.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="h-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary/50 transition-all"
-                                required
-                                disabled={isLoading || isSocialLoading !== null}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label
-                                htmlFor="password"
-                                className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 px-1"
-                            >
-                                <IconLock className="w-3.5 h-3.5" /> Mot de
-                                passe
-                            </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="h-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary/50 transition-all"
-                                required
-                                disabled={isLoading || isSocialLoading !== null}
-                            />
-                        </div>
-                        <Button
-                            type="submit"
-                            className="w-full h-12 rounded-xl text-lg font-bold shadow-lg shadow-primary/20 mt-4 active:scale-[0.98] transition-transform"
-                            disabled={isLoading || isSocialLoading !== null}
-                        >
-                            {isLoading ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                            ) : (
-                                "S'inscrire"
-                            )}
-                        </Button>
-                    </form>
-
-                    <div className="mt-10 pt-6 border-t border-white/10 text-center">
+                    <div className="pt-6 border-t border-white/10 text-center">
                         <p className="text-sm text-muted-foreground">
-                            Déjà un compte ?{" "}
+                            Vous avez déjà un compte ?{" "}
                             <Link
                                 href="/sign-in"
-                                className="text-primary font-bold hover:underline"
+                                className="text-secondary font-bold hover:text-secondary/80 transition-colors underline decoration-2 underline-offset-4"
                             >
                                 Se connecter
                             </Link>
                         </p>
                     </div>
                 </div>
+
+                <div className="mt-8 text-center">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center text-sm text-muted-foreground/60 hover:text-foreground transition-colors font-medium hover:tracking-wide duration-300"
+                    >
+                        ← Retour à l'accueil
+                    </Link>
+                </div>
             </div>
-        </div>
+        </section>
     );
 }

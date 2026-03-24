@@ -6,14 +6,28 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
-  id            String    @id @default(cuid())
-  clerkId       String    @unique
-  email         String    @unique
-  name          String?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String             @id @default(cuid())
+  clerkId           String             @unique
+  email             String             @unique
+  name              String?
+  image             String?
+  role              Role               @default(USER)
+  organizerRequests OrganizerRequest[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([clerkId])
 }
@@ -25,4 +39,19 @@ model ContactMessage {
   subject   String
   message   String
   createdAt DateTime @default(now())
+}
+
+model OrganizerRequest {
+  id            String        @id @default(cuid())
+  organizerName String
+  phoneNumber   String
+  address       String
+  description   String?
+  status        RequestStatus @default(PENDING)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
