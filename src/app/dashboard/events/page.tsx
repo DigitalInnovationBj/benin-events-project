@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, MapPin, Archive } from "lucide-react";
+import { Plus, Calendar, MapPin, ExternalLink } from "lucide-react";
 import Image from "next/image";
 
 export default async function EventsListPage() {
@@ -31,8 +31,12 @@ export default async function EventsListPage() {
         <div className="max-w-5xl mx-auto w-full pb-10">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-afo text-foreground">Mes Évènements</h1>
-                    <p className="text-muted-foreground mt-1">Gérez vos évènements et votre billetterie</p>
+                    <h1 className="text-3xl font-afo text-foreground">
+                        Mes Évènements
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        Gérez vos évènements et votre billetterie
+                    </p>
                 </div>
                 <Link href="/dashboard/events/new">
                     <Button className="gap-2 shadow-sm">
@@ -48,7 +52,8 @@ export default async function EventsListPage() {
                     </div>
                     <h2 className="text-xl font-bold mb-2">Aucun évènement</h2>
                     <p className="text-muted-foreground max-w-sm mb-6">
-                        Vous n'avez pas encore créé d'évènement. Lancez-vous dès maintenant !
+                        Vous n'avez pas encore créé d'évènement. Lancez-vous dès
+                        maintenant !
                     </p>
                     <Link href="/dashboard/events/new">
                         <Button>Créer mon premier évènement</Button>
@@ -57,7 +62,10 @@ export default async function EventsListPage() {
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {events.map((event) => (
-                        <div key={event.id} className="bg-card border rounded-2xl overflow-hidden shadow-sm flex flex-col transition-all hover:shadow-md group">
+                        <div
+                            key={event.id}
+                            className="bg-card border rounded-2xl overflow-hidden shadow-sm flex flex-col transition-all hover:shadow-md group"
+                        >
                             <div className="relative h-48 bg-muted w-full overflow-hidden">
                                 {event.imageUrl ? (
                                     <Image
@@ -73,26 +81,53 @@ export default async function EventsListPage() {
                                 )}
                             </div>
                             <div className="p-5 flex-1 flex flex-col">
-                                <h3 className="font-bold text-lg mb-2 line-clamp-1" title={event.title}>{event.title}</h3>
-                                
+                                <h3
+                                    className="font-bold text-lg mb-2 line-clamp-1"
+                                    title={event.title}
+                                >
+                                    {event.title}
+                                </h3>
+
                                 <div className="space-y-2 mt-auto text-sm text-muted-foreground mb-6">
                                     <div className="flex items-center gap-2">
                                         <Calendar className="w-4 h-4 shrink-0" />
-                                        <span>{new Date(event.startDate).toLocaleDateString("fr-FR")}</span>
+                                        <span>
+                                            {new Date(
+                                                event.startDate,
+                                            ).toLocaleDateString("fr-FR")}
+                                        </span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <MapPin className="w-4 h-4 shrink-0" />
-                                        <span className="line-clamp-1">{event.location}</span>
+                                        <span className="line-clamp-1">
+                                            {event.location}
+                                        </span>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-2 mt-auto">
-                                    <Link href={`/dashboard/events/${event.id}`} className="flex-1">
-                                        <Button variant="secondary" className="w-full">Gérer</Button>
+                                    <Link
+                                        href={`/dashboard/events/${event.id}`}
+                                        className="flex-1"
+                                    >
+                                        <Button
+                                            variant="secondary"
+                                            className="w-full"
+                                        >
+                                            Gérer
+                                        </Button>
                                     </Link>
-                                    <Link href={`/events/${event.slug}`} target="_blank">
-                                        <Button variant="outline" size="icon" title="Voir la page publique">
-                                            <Archive className="w-4 h-4" /> {/* Remplacer par ExternalLink si on a icon */}
+                                    <Link
+                                        href={`/events/${event.slug}`}
+                                        target="_blank"
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            title="Voir la page publique"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />{" "}
+                                            {/* Remplacer par ExternalLink si on a icon */}
                                         </Button>
                                     </Link>
                                 </div>
