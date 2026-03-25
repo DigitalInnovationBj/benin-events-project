@@ -59,9 +59,12 @@ export function DashboardSidebar({ role }: { role: Role }) {
     ];
 
     return (
-        <Sidebar variant="inset">
+        <Sidebar>
             <SidebarHeader className="h-16 flex items-center justify-center border-b border-border/50">
-                <Link href="/dashboard" className="flex items-center gap-2 mt-2 group">
+                <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 mt-2 group"
+                >
                     <span className="font-afo text-3xl text-secondary transition-transform group-hover:scale-110">
                         BE
                     </span>
@@ -74,7 +77,11 @@ export function DashboardSidebar({ role }: { role: Role }) {
                         <SidebarMenu>
                             {mainNav.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild isActive={pathname === item.url} tooltip={item.title}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname === item.url}
+                                        tooltip={item.title}
+                                    >
                                         <Link href={item.url}>
                                             <item.icon />
                                             <span>{item.title}</span>
@@ -84,7 +91,14 @@ export function DashboardSidebar({ role }: { role: Role }) {
                             ))}
                             {role === "USER" && (
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={pathname === "/dashboard/demande-organisateur"} tooltip="Devenir Organisateur">
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={
+                                            pathname ===
+                                            "/dashboard/demande-organisateur"
+                                        }
+                                        tooltip="Devenir Organisateur"
+                                    >
                                         <Link href="/dashboard/demande-organisateur">
                                             <PenTool />
                                             <span>Devenir Organisateur</span>
@@ -98,12 +112,20 @@ export function DashboardSidebar({ role }: { role: Role }) {
 
                 {(role === "ORGANIZER" || role === "ADMIN") && (
                     <SidebarGroup>
-                        <SidebarGroupLabel>Espace Organisateur</SidebarGroupLabel>
+                        <SidebarGroupLabel>
+                            Espace Organisateur
+                        </SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 {organizerNav.map((item) => (
                                     <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)} tooltip={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith(
+                                                item.url,
+                                            )}
+                                            tooltip={item.title}
+                                        >
                                             <Link href={item.url}>
                                                 <item.icon />
                                                 <span>{item.title}</span>
@@ -123,7 +145,13 @@ export function DashboardSidebar({ role }: { role: Role }) {
                             <SidebarMenu>
                                 {adminNav.map((item) => (
                                     <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild isActive={pathname.startsWith("/admin")} tooltip={item.title}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith(
+                                                "/admin",
+                                            )}
+                                            tooltip={item.title}
+                                        >
                                             <Link href={item.url}>
                                                 <item.icon />
                                                 <span>{item.title}</span>
@@ -136,8 +164,12 @@ export function DashboardSidebar({ role }: { role: Role }) {
                     </SidebarGroup>
                 )}
             </SidebarContent>
-            <SidebarFooter className="border-t border-border/50 p-4">
-                <LogoutButton className="w-full justify-start" />
+            <SidebarFooter className="border-t border-border/50 p-2">
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <LogoutButton />
+                    </SidebarMenuItem>
+                </SidebarMenu>
             </SidebarFooter>
         </Sidebar>
     );

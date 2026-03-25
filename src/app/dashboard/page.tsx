@@ -13,9 +13,14 @@ export default async function DashboardPage() {
     });
 
     return (
-        <div className="max-w-5xl mx-auto w-full">
+        <div className="max-w-6xl mx-auto w-full">
             <h1 className="text-3xl font-afo mb-2">
-                Bonjour, {dbUser?.name || user.firstName || user.emailAddresses?.[0]?.emailAddress?.split('@')[0] || "Utilisateur"} 👋
+                Bonjour,{" "}
+                {dbUser?.name ||
+                    user.firstName ||
+                    user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+                    "Utilisateur"}{" "}
+                👋
             </h1>
             <p className="text-muted-foreground mb-8">
                 Bienvenue sur votre tableau de bord Benin Events.
