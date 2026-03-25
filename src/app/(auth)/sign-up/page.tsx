@@ -65,7 +65,7 @@ export default function SignUpPage() {
     return (
         <section className="min-h-screen flex items-center justify-center overflow-hidden bg-background py-8 px-4">
             <div className="w-full max-w-md mx-auto">
-                <div className="bg-primary rounded-[2rem] p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
+                <div className="bg-primary rounded-4xl p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
                     <div className="text-center mb-10">
                         <div className="bg-secondary rounded-xl px-5 py-4 w-fit mx-auto flex items-center justify-center">
                             <span className="text-4xl font-bold font-afo text-primary">
