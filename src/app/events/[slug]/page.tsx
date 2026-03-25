@@ -67,7 +67,7 @@ export default async function PublicEventPage({ params }: Props) {
                         Aucune image fournie
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent" />
                 
                 <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-6xl mx-auto">
                     <h1 className="text-4xl md:text-6xl font-bold font-afo text-foreground mb-4 drop-shadow-lg">

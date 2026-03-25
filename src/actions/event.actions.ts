@@ -61,7 +61,8 @@ export async function createEvent(formData: FormData) {
         });
 
         if (!parsedData.success) {
-            return { error: parsedData.error.errors[0].message };
+            const errorMessage = parsedData.error.issues?.[0]?.message || "Données invalides";
+            return { error: errorMessage };
         }
 
         const data = parsedData.data;
