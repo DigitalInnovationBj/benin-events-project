@@ -75,7 +75,7 @@ export default async function EventDetailsPage({
                             )}
                         </div>
                         <div className="p-6 md:p-8">
-                            <h1 className="text-3xl font-bold font-afo mb-4">{event.title}</h1>
+                            <h1 className="text-3xl font-afo mb-4">{event.title}</h1>
                             
                             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-6">
                                 <div className="flex items-center gap-2 bg-secondary/10 px-3 py-1.5 rounded-full text-secondary font-medium">
@@ -102,7 +102,7 @@ export default async function EventDetailsPage({
                 <div className="space-y-6">
                     <div className="bg-card border rounded-3xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold font-afo flex items-center gap-2">
+                            <h2 className="text-xl font-afo flex items-center gap-2">
                                 <TicketIcon className="w-5 h-5 text-primary" /> Billetterie
                             </h2>
                         </div>

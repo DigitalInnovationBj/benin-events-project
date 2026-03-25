@@ -70,7 +70,7 @@ export default async function PublicEventPage({ params }: Props) {
                 <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent" />
                 
                 <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-6xl mx-auto">
-                    <h1 className="text-4xl md:text-6xl font-bold font-afo text-foreground mb-4 drop-shadow-lg">
+                    <h1 className="text-4xl md:text-6xl font-afo text-foreground mb-4 drop-shadow-lg">
                         {event.title}
                     </h1>
                     <div className="flex flex-wrap gap-4 text-sm md:text-base font-medium">
@@ -90,7 +90,7 @@ export default async function PublicEventPage({ params }: Props) {
             <div className="max-w-6xl mx-auto p-6 md:p-12 grid lg:grid-cols-[1fr_400px] gap-12">
                 <div className="space-y-10">
                     <section>
-                        <h2 className="text-2xl font-bold font-afo mb-4">À propos de cet évènement</h2>
+                        <h2 className="text-2xl font-afo mb-4">À propos de cet évènement</h2>
                         <div className="prose prose-lg dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground">
                             {event.description}
                         </div>
@@ -114,7 +114,7 @@ export default async function PublicEventPage({ params }: Props) {
                 <div className="relative">
                     <div className="sticky top-24 space-y-6">
                         <div className="bg-card border rounded-3xl p-6 md:p-8 shadow-xl">
-                            <h3 className="text-2xl font-bold font-afo mb-6 flex items-center gap-2">
+                            <h3 className="text-2xl font-afo mb-6 flex items-center gap-2">
                                 <TicketIcon className="w-6 h-6 text-primary" /> Billetterie
                             </h3>
                             

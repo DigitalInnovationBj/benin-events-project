@@ -62,7 +62,7 @@ export function DashboardSidebar({ role }: { role: Role }) {
         <Sidebar variant="inset">
             <SidebarHeader className="h-16 flex items-center justify-center border-b border-border/50">
                 <Link href="/dashboard" className="flex items-center gap-2 mt-2 group">
-                    <span className="font-afo text-3xl font-bold text-primary transition-transform group-hover:scale-110">
+                    <span className="font-afo text-3xl text-secondary transition-transform group-hover:scale-110">
                         BE
                     </span>
                 </Link>

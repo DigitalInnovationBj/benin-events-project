@@ -12,9 +12,7 @@ export default async function AdminRequestsPage() {
 
     return (
         <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl font-bold font-afo mb-6">
-                Demandes Organisateurs
-            </h1>
+            <h1 className="text-3xl font-afo mb-6">Demandes Organisateurs</h1>
 
             <div className="space-y-8">
                 <section>
@@ -80,7 +78,7 @@ export default async function AdminRequestsPage() {
                                 </div>
                                 <div>
                                     <span
-                                        className={`px-2 py-1 rounded text-xs px-3 font-semibold ${req.status === "APPROVED" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                                        className={`py-1 rounded text-xs px-3 font-semibold ${req.status === "APPROVED" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                                     >
                                         {req.status === "APPROVED"
                                             ? "Approuvée"

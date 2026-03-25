@@ -31,7 +31,7 @@ export default async function EventsListPage() {
         <div className="max-w-5xl mx-auto w-full pb-10">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold font-afo text-foreground">Mes Évènements</h1>
+                    <h1 className="text-3xl font-afo text-foreground">Mes Évènements</h1>
                     <p className="text-muted-foreground mt-1">Gérez vos évènements et votre billetterie</p>
                 </div>
                 <Link href="/dashboard/events/new">

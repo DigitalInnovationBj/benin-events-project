@@ -68,11 +68,11 @@ export default function LoginPage() {
                 <div className="bg-primary rounded-4xl p-8 sm:p-10 shadow-2xl transition-all hover:shadow-primary/5">
                     <div className="text-center mb-10">
                         <div className="bg-secondary rounded-xl px-5 py-4 w-fit mx-auto flex items-center justify-center">
-                            <span className="text-4xl font-bold font-afo text-primary">
+                            <span className="text-4xl font-afo text-primary">
                                 BE
                             </span>
                         </div>
-                        <h1 className="text-4xl font-bold mb-3 font-afo text-secondary">
+                        <h1 className="text-4xl mb-3 font-afo text-secondary">
                             Bon Retour
                         </h1>
                         <p className="text-sm">

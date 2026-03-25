@@ -51,7 +51,7 @@ export default function NewEventPage() {
 
             <div className="bg-card border rounded-2xl p-6 md:p-8 shadow-sm">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold font-afo text-foreground mb-2">Créer un nouvel évènement</h1>
+                    <h1 className="text-3xl font-afo text-foreground mb-2">Créer un nouvel évènement</h1>
                     <p className="text-muted-foreground">Remplissez les informations ci-dessous. Vous pourrez ajouter des billets par la suite.</p>
                 </div>
 
