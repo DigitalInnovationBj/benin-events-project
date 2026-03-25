@@ -20,7 +20,7 @@ export async function syncUser() {
                 data: {
                     clerkId: user.id,
                     email: user.emailAddresses[0].emailAddress,
-                    name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+                    name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.emailAddresses[0].emailAddress.split("@")[0],
                     image: user.imageUrl,
                     role: "USER",
                 },

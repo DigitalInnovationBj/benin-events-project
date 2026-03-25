@@ -21,7 +21,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Loader2 } from "lucide-react";
+import { LogOut, Loader2, User } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
@@ -42,7 +42,11 @@ export function UserProfileMenu({ name, email, imageUrl }: Props) {
         await signOut(() => router.push("/"));
     };
 
-    const initials = name.substring(0, 2).toUpperCase();
+    // Utilisation de la partie locale de l'email si aucun nom n'est fourni
+    const emailPrefix = email.split('@')[0];
+    const hasRealName = name && name.toLowerCase() !== "utilisateur" && name.trim() !== "";
+    const finalName = hasRealName ? name : emailPrefix;
+    const initials = finalName.substring(0, 2).toUpperCase();
 
     return (
         <>
@@ -50,16 +54,18 @@ export function UserProfileMenu({ name, email, imageUrl }: Props) {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 flex items-center gap-2 pl-2 pr-4 rounded-full bg-secondary/10 hover:bg-secondary/20">
                         <Avatar className="h-8 w-8 border border-secondary/20">
-                            <AvatarImage src={imageUrl} alt={name} />
-                            <AvatarFallback className="bg-secondary text-primary font-bold text-xs">{initials}</AvatarFallback>
+                            {imageUrl && <AvatarImage src={imageUrl} alt={finalName} />}
+                            <AvatarFallback className="bg-secondary text-primary font-bold text-xs">
+                                {initials}
+                            </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm font-medium text-foreground hidden sm:block">{name}</span>
+                        <span className="text-sm font-medium text-foreground hidden sm:block">{finalName}</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none">{name}</p>
+                            <p className="text-sm font-medium leading-none">{finalName}</p>
                             <p className="text-xs leading-none text-muted-foreground line-clamp-1">{email}</p>
                         </div>
                     </DropdownMenuLabel>
