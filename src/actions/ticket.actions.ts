@@ -73,6 +73,10 @@ export async function createTicket(formData: FormData) {
 
         // Gérer l'upload de l'image du ticket
         const imageFile = formData.get("image") as File | null;
+        if (imageFile && imageFile.size > 1024 * 1024) {
+            return { error: "L'image du billet dépasse 1 Mo." };
+        }
+
         let imageUrl: string | null = null;
         if (imageFile && imageFile.size > 0) {
             const blob = await put(

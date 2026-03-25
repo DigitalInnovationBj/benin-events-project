@@ -11,6 +11,22 @@ import { createTicket } from "@/actions/ticket.actions";
 
 export function TicketForm({ eventId }: { eventId: string }) {
     const [isLoading, setIsLoading] = useState(false);
+    const [ticketImagePreview, setTicketImagePreview] = useState<string | null>(null);
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+            setTicketImagePreview(null);
+            return;
+        }
+        if (file.size > 1024 * 1024) {
+            toast.error("L'image dépasse la limite de 1 Mo.");
+            e.target.value = "";
+            setTicketImagePreview(null);
+            return;
+        }
+        setTicketImagePreview(URL.createObjectURL(file));
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -30,6 +46,7 @@ export function TicketForm({ eventId }: { eventId: string }) {
 
             toast.success("Billet ajouté avec succès !");
             (e.target as HTMLFormElement).reset();
+            setTicketImagePreview(null);
         } catch (err) {
             toast.error("Erreur inattendue");
         } finally {
@@ -60,12 +77,18 @@ export function TicketForm({ eventId }: { eventId: string }) {
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="ticketImage" className="mb-1">Image illustrative (Optionnel)</Label>
-                <div className="border border-muted-foreground/25 rounded-xl p-3 text-center bg-muted/20">
-                    <Input id="ticketImage" name="image" type="file" accept="image/*" className="hidden" />
-                    <Label htmlFor="ticketImage" className="cursor-pointer flex items-center justify-center gap-2 py-2">
-                        <ImagePlus className="w-5 h-5 text-muted-foreground" />
-                        <span className="text-xs font-medium">Ajouter une image</span>
+                <Label htmlFor="ticketImage" className="mb-1">Image illustrative (Max 1 Mo)</Label>
+                <div className="border border-muted-foreground/25 rounded-xl text-center bg-muted/20 overflow-hidden relative">
+                    <Input id="ticketImage" name="image" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                    <Label htmlFor="ticketImage" className={`cursor-pointer flex items-center justify-center gap-2 ${ticketImagePreview ? 'p-0 h-32' : 'py-3'}`}>
+                        {ticketImagePreview ? (
+                            <img src={ticketImagePreview} alt="Aperçu du billet" className="w-full h-full object-cover" />
+                        ) : (
+                            <>
+                                <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                                <span className="text-xs font-medium">Ajouter une image</span>
+                            </>
+                        )}
                     </Label>
                 </div>
             </div>

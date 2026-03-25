@@ -77,6 +77,10 @@ export async function createEvent(formData: FormData) {
 
         // Gérer l'upload de l'image (Event Image)
         const imageFile = formData.get("image") as File | null;
+        if (imageFile && imageFile.size > 1024 * 1024) {
+            return { error: "L'image de l'évènement dépasse 1 Mo." };
+        }
+        
         let imageUrl: string | null = null;
         if (imageFile && imageFile.size > 0) {
             const blob = await put(
@@ -91,6 +95,10 @@ export async function createEvent(formData: FormData) {
 
         // Gérer l'upload de l'image OG (si fournie, sinon on utilise l'image principale)
         const ogImageFile = formData.get("ogImage") as File | null;
+        if (ogImageFile && ogImageFile.size > 1024 * 1024) {
+            return { error: "L'image de partage dépasse 1 Mo." };
+        }
+
         let ogImageUrl: string | null = imageUrl;
         if (ogImageFile && ogImageFile.size > 0) {
             const blob = await put(

@@ -14,6 +14,26 @@ import { createEvent } from "@/actions/event.actions";
 export default function NewEventPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
+
+    const handleImageChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        setPreview: (val: string | null) => void
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+            setPreview(null);
+            return;
+        }
+        if (file.size > 1024 * 1024) {
+            toast.error("L'image dépasse la limite de 1 Mo.");
+            e.target.value = "";
+            setPreview(null);
+            return;
+        }
+        setPreview(URL.createObjectURL(file));
+    };
 
     // Fonction de soumission du formulaire
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -93,23 +113,35 @@ export default function NewEventPage() {
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-2">
-                                <Label htmlFor="image" className="mb-2">Image de l'évènement *</Label>
-                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl p-4 text-center hover:bg-muted/50 transition-colors">
-                                    <Input id="image" name="image" type="file" accept="image/*" className="hidden" required />
-                                    <Label htmlFor="image" className="cursor-pointer flex flex-col items-center justify-center gap-2 py-4">
-                                        <ImagePlus className="w-8 h-8 text-muted-foreground" />
-                                        <span className="text-sm font-medium">Cliquez pour ajouter une image</span>
+                                <Label htmlFor="image" className="mb-2">Image de l'évènement (Max 1 Mo) *</Label>
+                                <div className="border-2 border-dashed border-muted-foreground/25 rounded-xl text-center hover:bg-muted/50 transition-colors overflow-hidden relative">
+                                    <Input id="image" name="image" type="file" accept="image/*" className="hidden" required onChange={(e) => handleImageChange(e, setImagePreview)} />
+                                    <Label htmlFor="image" className={`cursor-pointer flex flex-col items-center justify-center gap-2 ${imagePreview ? 'p-0 h-48' : 'py-10'}`}>
+                                        {imagePreview ? (
+                                            <img src={imagePreview} alt="Aperçu évènement" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <>
+                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <span className="text-sm font-medium">Cliquez pour ajouter une image</span>
+                                            </>
+                                        )}
                                     </Label>
                                 </div>
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="ogImage" className="mb-2">Image de Partage (Optionnel)</Label>
-                                <div className="border border-muted-foreground/25 rounded-xl p-4 text-center bg-muted/20">
-                                    <Input id="ogImage" name="ogImage" type="file" accept="image/*" className="hidden" />
-                                    <Label htmlFor="ogImage" className="cursor-pointer flex flex-col items-center justify-center gap-2 py-4">
-                                        <ImagePlus className="w-8 h-8 text-muted-foreground" />
-                                        <span className="text-sm font-medium">Image pour Facebook/WhatsApp...</span>
+                                <Label htmlFor="ogImage" className="mb-2">Image de Partage (Max 1 Mo)</Label>
+                                <div className="border border-muted-foreground/25 rounded-xl text-center bg-muted/20 overflow-hidden relative">
+                                    <Input id="ogImage" name="ogImage" type="file" accept="image/*" className="hidden" onChange={(e) => handleImageChange(e, setOgImagePreview)} />
+                                    <Label htmlFor="ogImage" className={`cursor-pointer flex flex-col items-center justify-center gap-2 ${ogImagePreview ? 'p-0 h-48' : 'py-10'}`}>
+                                        {ogImagePreview ? (
+                                            <img src={ogImagePreview} alt="Aperçu partage" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <>
+                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <span className="text-sm font-medium">Image pour Facebook/WhatsApp...</span>
+                                            </>
+                                        )}
                                     </Label>
                                 </div>
                             </div>
