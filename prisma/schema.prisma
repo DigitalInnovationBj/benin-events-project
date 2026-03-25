@@ -26,6 +26,7 @@ model User {
   image             String?
   role              Role               @default(USER)
   organizerRequests OrganizerRequest[]
+  events            Event[]
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -54,4 +55,48 @@ model OrganizerRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @db.Text
+  location    String
+  startDate   DateTime
+  endDate     DateTime
+
+  // Images (Vercel Blob)
+  imageUrl    String?
+
+  // SEO & Social Media (OG Tags)
+  ogTitle     String?
+  ogImage     String?
+
+  // Relations
+  organizerId String
+  organizer   User     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  tickets     Ticket[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  imageUrl    String?
+
+  // Options de stock
+  totalStock  Int?
+
+  // Relations
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
