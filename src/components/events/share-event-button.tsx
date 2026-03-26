@@ -31,7 +31,7 @@ export default function ShareEventButton({
             minute: "2-digit",
             timeZone: "Africa/Porto-Novo",
         });
-        const shareText = `🎉 Participe avec moi à cet évènement !\n📅 ${dateLabel}\n🕒 ${timeLabel}\n📍 ${location}`;
+        const shareText = `🎉 Participe avec moi à cet évènement !\n📅 ${dateLabel}\n🕒 ${timeLabel}\n📍 ${location}\n Infos & billetterie:`;
 
         try {
             if (navigator.share) {
