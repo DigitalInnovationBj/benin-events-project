@@ -123,6 +123,12 @@ export default async function PublicEventPage({ params }: Props) {
                     </div>
                 )}
                 <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent" />
+                <ShareEventButton
+                    title={event.title}
+                    startDate={event.startDate.toISOString()}
+                    location={event.location}
+                    className="absolute top-6 right-6 md:top-10 md:right-10 z-20 rounded-full bg-primary text-secondary hover:bg-primary/90"
+                />
                 <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-6xl mx-auto">
                     <h1 className="text-6xl font-afo text-foreground mb-4 drop-shadow-lg">
                         {event.title}
@@ -199,10 +205,6 @@ export default async function PublicEventPage({ params }: Props) {
                                 {organizerPhone}
                             </p>
                         </div>
-                        <ShareEventButton
-                            title={event.title}
-                            className="ml-auto rounded-full"
-                        />
                     </section>
                 </div>
 
