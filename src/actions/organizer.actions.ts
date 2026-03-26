@@ -36,6 +36,7 @@ export async function createOrganizerRequest(formData: FormData) {
         }
 
         const organizerName = formData.get("organizerName") as string;
+        const organizerEmail = (formData.get("organizerEmail") as string) || null;
         const phoneNumber = formData.get("phoneNumber") as string;
         const address = formData.get("address") as string;
         const description = formData.get("description") as string;
@@ -44,9 +45,17 @@ export async function createOrganizerRequest(formData: FormData) {
             data: {
                 userId: dbUser.id,
                 organizerName,
+                organizerEmail,
                 phoneNumber,
                 address,
                 description,
+            } as {
+                userId: string;
+                organizerName: string;
+                organizerEmail: string | null;
+                phoneNumber: string;
+                address: string;
+                description: string;
             },
         });
 
@@ -75,6 +84,7 @@ export async function createOrganizerRequest(formData: FormData) {
                             <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
                                 <p style="margin: 5px 0;"><strong>Demandeur :</strong> ${dbUser.name || 'Non renseigné'} (${dbUser.email})</p>
                                 <p style="margin: 5px 0;"><strong>Nom d'organisateur :</strong> ${organizerName}</p>
+                                <p style="margin: 5px 0;"><strong>Email organisateur :</strong> ${organizerEmail || dbUser.email}</p>
                                 <p style="margin: 5px 0;"><strong>Téléphone :</strong> ${phoneNumber}</p>
                                 <p style="margin: 5px 0;"><strong>Adresse :</strong> ${address}</p>
                                 <p style="margin: 5px 0;"><strong>Description :</strong> ${description}</p>

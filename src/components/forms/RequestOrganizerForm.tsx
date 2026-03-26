@@ -20,6 +20,7 @@ export function RequestOrganizerForm() {
         resolver: zodResolver(organizerValidation),
         defaultValues: {
             organizerName: "",
+            organizerEmail: "",
             phoneNumber: "",
             address: "",
             description: "",
@@ -30,6 +31,9 @@ export function RequestOrganizerForm() {
         setIsSubmitting(true);
         const formData = new FormData();
         formData.append("organizerName", data.organizerName);
+        if (data.organizerEmail) {
+            formData.append("organizerEmail", data.organizerEmail);
+        }
         formData.append("phoneNumber", data.phoneNumber);
         formData.append("address", data.address);
         if (data.description) formData.append("description", data.description);
@@ -65,6 +69,17 @@ export function RequestOrganizerForm() {
                     placeholder="Ex: +229 90000000"
                 />
                 {errors.phoneNumber && <p className="text-destructive text-sm mt-1">{errors.phoneNumber.message}</p>}
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium mb-1">Email organisateur (Optionnel)</label>
+                <input
+                    type="email"
+                    {...register("organizerEmail")}
+                    className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Ex: contact@monorga.com"
+                />
+                {errors.organizerEmail && <p className="text-destructive text-sm mt-1">{errors.organizerEmail.message}</p>}
             </div>
 
             <div>

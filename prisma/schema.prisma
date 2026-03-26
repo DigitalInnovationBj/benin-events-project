@@ -45,6 +45,7 @@ model ContactMessage {
 model OrganizerRequest {
   id            String        @id @default(cuid())
   organizerName String
+  organizerEmail String?
   phoneNumber   String
   address       String
   description   String?

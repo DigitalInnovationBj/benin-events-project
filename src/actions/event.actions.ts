@@ -16,6 +16,12 @@ function generateSlug(title: string) {
         .replace(/(^-|-$)+/g, "");
 }
 
+// Le champ datetime-local ne transporte pas de fuseau horaire.
+// On interprète explicitement la saisie comme heure locale du Bénin (UTC+1).
+function parseBeninLocalDate(dateTimeLocal: string): Date {
+    return new Date(`${dateTimeLocal}:00+01:00`);
+}
+
 const createEventSchema = z.object({
     title: z.string().min(3, "Le titre est trop court"),
     description: z.string().min(10, "La description est trop courte"),
@@ -118,8 +124,8 @@ export async function createEvent(formData: FormData) {
                 slug,
                 description: data.description,
                 location: data.location,
-                startDate: new Date(data.startDate),
-                endDate: new Date(data.endDate),
+                startDate: parseBeninLocalDate(data.startDate),
+                endDate: parseBeninLocalDate(data.endDate),
                 imageUrl,
                 ogTitle: data.ogTitle || data.title,
                 ogImage: ogImageUrl,

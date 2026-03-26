@@ -42,6 +42,10 @@ export default async function AdminRequestsPage() {
                                             Tél: {req.phoneNumber} | Adresse:{" "}
                                             {req.address}
                                         </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Email orga:{" "}
+                                            {req.organizerEmail || req.user.email}
+                                        </p>
                                         {req.description && (
                                             <p className="text-sm mt-2 italic text-muted-foreground">
                                                 "{req.description}"
