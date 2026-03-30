@@ -38,7 +38,7 @@ export default function EventCountdown({ startDate }: EventCountdownProps) {
 
     if (!remaining) {
         return (
-            <div className="rounded-2xl border border-secondary/30 bg-background/85 backdrop-blur-md shadow-xl px-5 py-4 min-w-[250px]">
+            <div className="rounded-2xl border border-secondary/30 bg-background/85 backdrop-blur-md shadow-xl px-5 py-4 min-w-62.5">
                 <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
                     Compteur
                 </p>

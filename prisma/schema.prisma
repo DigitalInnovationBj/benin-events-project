@@ -6,6 +6,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
 enum Role {
   USER
   ORGANIZER
@@ -18,6 +22,15 @@ enum RequestStatus {
   REJECTED
 }
 
+enum EventType {
+  IN_PERSON
+  ONLINE
+}
+
+// ─────────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────────
+
 model User {
   id                String             @id @default(cuid())
   clerkId           String             @unique
@@ -25,8 +38,12 @@ model User {
   name              String?
   image             String?
   role              Role               @default(USER)
+
   organizerRequests OrganizerRequest[]
   events            Event[]
+  likes             Like[]
+  favorites         Favorite[]
+
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -43,13 +60,13 @@ model ContactMessage {
 }
 
 model OrganizerRequest {
-  id            String        @id @default(cuid())
-  organizerName String
+  id             String        @id @default(cuid())
+  organizerName  String
   organizerEmail String?
-  phoneNumber   String
-  address       String
-  description   String?
-  status        RequestStatus @default(PENDING)
+  phoneNumber    String
+  address        String
+  description    String?
+  status         RequestStatus @default(PENDING)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -58,14 +75,59 @@ model OrganizerRequest {
   updatedAt DateTime @updatedAt
 }
 
+// ─────────────────────────────────────────────
+// Catégories
+// ─────────────────────────────────────────────
+
+model Category {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  events EventCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Table de jointure Event <-> Category (many-to-many)
+model EventCategory {
+  eventId    String
+  categoryId String
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, categoryId])
+}
+
+// ─────────────────────────────────────────────
+// Événement
+// ─────────────────────────────────────────────
+
 model Event {
   id          String   @id @default(cuid())
   slug        String   @unique
   title       String
   description String   @db.Text
-  location    String
+
+  // Type d'évènement
+  eventType   EventType @default(IN_PERSON)
+
+  /// Obligatoire pour les événements en présentiel
+  location    String?
+
+  /// Obligatoire pour les événements en ligne (validé côté applicatif)
+  onlineUrl   String?
+
   startDate   DateTime
   endDate     DateTime
+
+  // Mise en vedette (décidé par l'admin)
+  isFeatured  Boolean  @default(false)
+
+  // Interactions — compteur de partages (likes & favoris via relations dédiées)
+  shareCount  Int      @default(0)
 
   // Images (Vercel Blob)
   imageUrl    String?
@@ -76,16 +138,56 @@ model Event {
 
   // Relations
   organizerId String
-  organizer   User     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizer   User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
   tickets     Ticket[]
+  categories  EventCategory[]
+  likes       Like[]
+  favorites   Favorite[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+// ─────────────────────────────────────────────
+// Interactions utilisateur
+// ─────────────────────────────────────────────
+
+/// Un utilisateur ne peut liker un événement qu'une seule fois
+model Like {
+  userId  String
+  eventId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@index([eventId])
+}
+
+/// Un utilisateur ne peut mettre en favori un événement qu'une seule fois
+model Favorite {
+  userId  String
+  eventId String
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+}
+
+// ─────────────────────────────────────────────
+// Tickets
+// ─────────────────────────────────────────────
+
 model Ticket {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   title       String
   description String?
   price       Float
@@ -95,9 +197,9 @@ model Ticket {
   totalStock  Int?
 
   // Relations
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

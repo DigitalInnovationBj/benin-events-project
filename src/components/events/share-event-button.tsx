@@ -7,7 +7,8 @@ import { toast } from "sonner";
 interface ShareEventButtonProps {
     title: string;
     startDate: string;
-    location: string;
+    location?: string | null;
+    eventType?: "IN_PERSON" | "ONLINE";
     className?: string;
 }
 
@@ -15,6 +16,7 @@ export default function ShareEventButton({
     title,
     startDate,
     location,
+    eventType = "IN_PERSON",
     className,
 }: ShareEventButtonProps) {
     const handleShare = async () => {
@@ -31,7 +33,11 @@ export default function ShareEventButton({
             minute: "2-digit",
             timeZone: "Africa/Porto-Novo",
         });
-        const shareText = `🎉 Participe avec moi à cet évènement !\n📅 ${dateLabel}\n🕒 ${timeLabel}\n📍 ${location}\n Infos & billetterie:`;
+        const locationLine =
+            eventType === "ONLINE"
+                ? `🌐 En ligne`
+                : `📍 ${location ?? "Lieu à confirmer"}`;
+        const shareText = `🎉 Participe avec moi à cet évènement !\n📅 ${dateLabel}\n🕒 ${timeLabel}\n${locationLine}\n🎟 Infos & billetterie :`;
 
         try {
             if (navigator.share) {

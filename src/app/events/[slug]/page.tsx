@@ -3,50 +3,71 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, Ticket as TicketIcon } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import {
+    Calendar,
+    Ticket as TicketIcon,
+    MapPin,
+    MonitorPlay,
+    Star,
+    ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
-import ShareEventButton from "@/components/events/share-event-button";
+import EventInteractions from "@/components/events/event-interactions";
 
 interface Props {
     params: Promise<{ slug: string }>;
 }
+
+// ─────────────────────────────────────────────
+// Metadata dynamique (OG / Twitter)
+// ─────────────────────────────────────────────
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
 
     const event = await prisma.event.findUnique({
         where: { slug },
+        select: {
+            title: true,
+            ogTitle: true,
+            description: true,
+            ogImage: true,
+            imageUrl: true,
+        },
     });
 
     if (!event) return { title: "Évènement introuvable" };
 
+    const ogImageUrl = event.ogImage || event.imageUrl;
+
     return {
         title: `${event.ogTitle || event.title} | Benin Events`,
-        description: event.description.substring(0, 160) + "...",
+        description: event.description.substring(0, 160) + "…",
         openGraph: {
             title: event.ogTitle || event.title,
-            description: event.description.substring(0, 160) + "...",
-            images:
-                event.ogImage || event.imageUrl
-                    ? [event.ogImage || (event.imageUrl as string)]
-                    : [],
+            description: event.description.substring(0, 160) + "…",
+            images: ogImageUrl ? [ogImageUrl] : [],
         },
         twitter: {
             card: "summary_large_image",
             title: event.ogTitle || event.title,
-            description: event.description.substring(0, 160) + "...",
-            images:
-                event.ogImage || event.imageUrl
-                    ? [event.ogImage || (event.imageUrl as string)]
-                    : [],
+            description: event.description.substring(0, 160) + "…",
+            images: ogImageUrl ? [ogImageUrl] : [],
         },
     };
 }
 
+// ─────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────
+
 export default async function PublicEventPage({ params }: Props) {
     const { slug } = await params;
+    const { userId } = await auth();
 
+    // ── Fetch event ────────────────────────────────────────────────────────
     const event = await prisma.event.findUnique({
         where: { slug },
         include: {
@@ -60,13 +81,57 @@ export default async function PublicEventPage({ params }: Props) {
                 },
             },
             tickets: true,
+            categories: {
+                include: { category: true },
+            },
+            _count: {
+                select: {
+                    likes: true,
+                    favorites: true,
+                },
+            },
         },
     });
 
-    if (!event) {
-        notFound();
+    if (!event) notFound();
+
+    // ── Statut like / favori de l'utilisateur courant ──────────────────────
+    let isLiked = false;
+    let isFavorited = false;
+    let isLoggedIn = false;
+
+    if (userId) {
+        isLoggedIn = true;
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId },
+            select: { id: true },
+        });
+
+        if (dbUser) {
+            const [like, favorite] = await Promise.all([
+                prisma.like.findUnique({
+                    where: {
+                        userId_eventId: {
+                            userId: dbUser.id,
+                            eventId: event.id,
+                        },
+                    },
+                }),
+                prisma.favorite.findUnique({
+                    where: {
+                        userId_eventId: {
+                            userId: dbUser.id,
+                            eventId: event.id,
+                        },
+                    },
+                }),
+            ]);
+            isLiked = !!like;
+            isFavorited = !!favorite;
+        }
     }
 
+    // ── Données organisateur ───────────────────────────────────────────────
     const organizerDisplayName =
         event.organizer.organizerRequests[0]?.organizerName ||
         event.organizer.name ||
@@ -74,15 +139,18 @@ export default async function PublicEventPage({ params }: Props) {
     const organizerPhone =
         event.organizer.organizerRequests[0]?.phoneNumber || "Non renseigné";
     const organizerEmail =
-        (event.organizer.organizerRequests[0] as { organizerEmail?: string })
-            ?.organizerEmail ||
+        (
+            event.organizer.organizerRequests[0] as {
+                organizerEmail?: string;
+            } | null
+        )?.organizerEmail ||
         event.organizer.email ||
         "Non renseigné";
-    const encodedLocation = encodeURIComponent(event.location);
-    const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodedLocation}&output=embed`;
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
-    const isSameStartEndDay =
+
+    // ── Dates ──────────────────────────────────────────────────────────────
+    const isSameDay =
         event.startDate.toDateString() === event.endDate.toDateString();
+
     const startLabel = new Date(event.startDate).toLocaleDateString("fr-FR", {
         weekday: "long",
         day: "numeric",
@@ -99,16 +167,23 @@ export default async function PublicEventPage({ params }: Props) {
         minute: "2-digit",
         timeZone: "Africa/Porto-Novo",
     });
-    const endTimeLabel = new Date(event.endDate).toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        timeZone: "Africa/Porto-Novo",
-    });
+
+    // ── Google Maps (présentiel uniquement) ───────────────────────────────
+    const encodedLocation = encodeURIComponent(event.location ?? "");
+    const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodedLocation}&output=embed`;
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedLocation}`;
+
+    // ──────────────────────────────────────────────────────────────────────
+    // Render
+    // ──────────────────────────────────────────────────────────────────────
 
     return (
         <main className="min-h-screen bg-background">
-            {/* Héro Section */}
-            <div className="relative w-full h-[40vh] md:h-[60vh] bg-muted">
+            {/* ══════════════════════════════════════════════════════════════
+                Héro
+            ══════════════════════════════════════════════════════════════ */}
+            <div className="relative w-full h-[50vh] md:h-[65vh] bg-muted">
+                {/* Image de couverture */}
                 {event.imageUrl ? (
                     <Image
                         src={event.imageUrl}
@@ -122,83 +197,177 @@ export default async function PublicEventPage({ params }: Props) {
                         Aucune image fournie
                     </div>
                 )}
-                <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent" />
-                <ShareEventButton
-                    title={event.title}
-                    startDate={event.startDate.toISOString()}
-                    location={event.location}
-                    className="absolute top-6 right-6 md:top-10 md:right-10 z-20 rounded-full bg-primary text-secondary hover:bg-primary/90"
-                />
-                <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 max-w-6xl mx-auto">
-                    <h1 className="text-6xl font-afo text-foreground mb-4 drop-shadow-lg">
+
+                {/* Dégradé bas */}
+                <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-transparent" />
+
+                {/* ── Badges haut gauche ─────────────────────────────── */}
+                <div className="absolute top-5 left-5 md:top-8 md:left-10 z-20 flex flex-wrap gap-2">
+                    {/* Vedette */}
+                    {event.isFeatured && (
+                        <span className="flex items-center gap-1.5 bg-yellow-400/90 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                            <Star className="w-3.5 h-3.5 fill-yellow-900" />
+                            Évènement vedette
+                        </span>
+                    )}
+
+                    {/* Type */}
+                    {event.eventType === "ONLINE" ? (
+                        <span className="flex items-center gap-1.5 bg-blue-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                            <MonitorPlay className="w-3.5 h-3.5" />
+                            En ligne
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1.5 bg-emerald-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
+                            <MapPin className="w-3.5 h-3.5" />
+                            Présentiel
+                        </span>
+                    )}
+                </div>
+
+                {/* ── Contenu bas ───────────────────────────────────── */}
+                <div className="absolute bottom-0 left-0 w-full px-5 pb-6 md:px-12 md:pb-10 max-w-6xl mx-auto">
+                    {/* Catégories */}
+                    {event.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {event.categories.map(({ category }) => (
+                                <span
+                                    key={category.id}
+                                    className="text-xs bg-background/70 backdrop-blur-sm border border-border text-foreground font-medium px-3 py-1 rounded-full"
+                                >
+                                    {category.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Titre */}
+                    <h1 className="text-4xl md:text-6xl font-afo text-foreground mb-5 drop-shadow-lg leading-tight">
                         {event.title}
                     </h1>
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
+
+                    {/* Countdown + Interactions */}
+                    <div className="flex flex-wrap items-center gap-3">
                         <EventCountdown
                             startDate={event.startDate.toISOString()}
                         />
+                        <EventInteractions
+                            eventId={event.id}
+                            initialLikeCount={event._count.likes}
+                            initialFavoriteCount={event._count.favorites}
+                            initialShareCount={event.shareCount}
+                            initialIsLiked={isLiked}
+                            initialIsFavorited={isFavorited}
+                            isLoggedIn={isLoggedIn}
+                            title={event.title}
+                            startDate={event.startDate.toISOString()}
+                            eventType={event.eventType}
+                            location={event.location}
+                            onlineUrl={event.onlineUrl}
+                        />
                     </div>
-                    <div className="flex flex-wrap gap-4 text-sm md:text-base font-medium"></div>
                 </div>
             </div>
 
-            {/* Contenu */}
-            <div className="max-w-6xl mx-auto p-6 md:p-12 grid lg:grid-cols-[1fr_400px] gap-12">
+            {/* ══════════════════════════════════════════════════════════════
+                Corps — grille 2 colonnes
+            ══════════════════════════════════════════════════════════════ */}
+            <div className="max-w-6xl mx-auto px-5 py-10 md:px-12 md:py-14 grid lg:grid-cols-[1fr_400px] gap-12">
+                {/* ── Colonne gauche ───────────────────────────────────── */}
                 <div className="space-y-10">
+                    {/* À propos */}
                     <section>
-                        <h2 className="text-4xl font-afo mb-4">
+                        <h2 className="text-4xl font-afo mb-5">
                             À propos de cet évènement
                         </h2>
-                        <div className="mb-4 inline-flex items-start gap-2 bg-muted/40 border rounded-2xl px-4 py-3 text-sm md:text-base font-medium">
-                            <Calendar className="w-5 h-5 text-secondary" />
-                            <span className="flex flex-col gap-1 leading-tight">
-                                <span>Début: {startLabel}</span>
-                                {!isSameStartEndDay && <span>Fin: {endLabel}</span>}
+
+                        {/* Date / heure */}
+                        <div className="mb-5 inline-flex items-start gap-2 bg-muted/40 border rounded-2xl px-4 py-3 text-sm md:text-base font-medium">
+                            <Calendar className="w-5 h-5 text-secondary mt-0.5 shrink-0" />
+                            <span className="flex flex-col gap-1 leading-snug">
+                                <span>Début : {startLabel}</span>
+                                {!isSameDay && <span>Fin : {endLabel}</span>}
                             </span>
                         </div>
-                        <div className="prose prose-lg dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground">
+
+                        {/* Description */}
+                        <div className="prose prose-lg dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground leading-relaxed">
                             {event.description}
                         </div>
                     </section>
 
-                    <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between gap-4">
-                            <h2 className="text-3xl font-afo">Localisation</h2>
-                            <a
-                                href={googleMapsUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm font-medium text-secondary hover:underline"
-                            >
-                                Ouvrir sur Google Maps
-                            </a>
-                        </div>
-                        <p className="text-muted-foreground">
-                            {event.location}
-                        </p>
-                        <div className="overflow-hidden rounded-xl border">
-                            <iframe
-                                title={`Carte de ${event.location}`}
-                                src={googleMapsEmbedUrl}
-                                className="w-full h-[320px] md:h-[380px]"
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                            />
-                        </div>
-                    </section>
+                    {/* ── Localisation (présentiel) OU Lien (en ligne) ─── */}
+                    {event.eventType === "IN_PERSON" && event.location ? (
+                        <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <h2 className="text-3xl font-afo flex items-center gap-3">
+                                    <MapPin className="w-7 h-7 text-emerald-500" />
+                                    Localisation
+                                </h2>
+                                <a
+                                    href={googleMapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium text-secondary hover:underline"
+                                >
+                                    Ouvrir sur Google Maps
+                                </a>
+                            </div>
+                            <p className="text-muted-foreground">
+                                {event.location}
+                            </p>
+                            <div className="overflow-hidden rounded-xl border">
+                                <iframe
+                                    title={`Carte de ${event.location}`}
+                                    src={googleMapsEmbedUrl}
+                                    className="w-full h-80 md:h-95"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                />
+                            </div>
+                        </section>
+                    ) : event.eventType === "ONLINE" ? (
+                        <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-5">
+                            <h2 className="text-3xl font-afo flex items-center gap-3">
+                                <MonitorPlay className="w-7 h-7 text-blue-500" />
+                                Accès en ligne
+                            </h2>
+                            <p className="text-muted-foreground leading-relaxed">
+                                Cet évènement se déroule entièrement en ligne.
+                                Rejoignez-le depuis n&apos;importe où via le
+                                lien ci-dessous.
+                            </p>
+                            {event.onlineUrl && (
+                                <a
+                                    href={event.onlineUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-500 font-semibold px-5 py-3.5 rounded-xl transition-colors"
+                                >
+                                    <ExternalLink className="w-5 h-5 shrink-0" />
+                                    Accéder à l&apos;évènement
+                                </a>
+                            )}
+                            <p className="text-xs text-muted-foreground pt-1">
+                                Plateforme : Zoom, Google Meet, YouTube Live,
+                                Twitch, etc.
+                            </p>
+                        </section>
+                    ) : null}
 
-                    <section className="bg-card border rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-secondary font-bold text-xl">
-                            {organizerDisplayName[0] || "O"}
+                    {/* Organisateur */}
+                    <section className="bg-card border rounded-2xl p-6 shadow-sm flex items-center gap-5">
+                        <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-secondary font-bold text-2xl shrink-0">
+                            {organizerDisplayName[0]?.toUpperCase() || "O"}
                         </div>
-                        <div>
-                            <p className="text-sm text-muted-foreground">
+                        <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
                                 Organisé par
                             </p>
-                            <p className="font-bold text-lg">
+                            <p className="font-bold text-lg truncate">
                                 {organizerDisplayName}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground truncate">
                                 {organizerEmail}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -208,7 +377,7 @@ export default async function PublicEventPage({ params }: Props) {
                     </section>
                 </div>
 
-                {/* Billetterie Sticky Sidebar */}
+                {/* ── Colonne droite : Billetterie sticky ──────────────── */}
                 <div className="relative">
                     <div className="sticky top-24 space-y-6">
                         <div className="bg-card border rounded-3xl p-6 md:p-8 shadow-xl">
@@ -217,7 +386,7 @@ export default async function PublicEventPage({ params }: Props) {
                             </h3>
 
                             {event.tickets.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-4 bg-muted/30 rounded-xl border border-dashed">
+                                <p className="text-muted-foreground text-center py-6 bg-muted/30 rounded-xl border border-dashed text-sm">
                                     Aucun billet en vente pour le moment.
                                 </p>
                             ) : (
@@ -225,7 +394,7 @@ export default async function PublicEventPage({ params }: Props) {
                                     {event.tickets.map((ticket) => (
                                         <div
                                             key={ticket.id}
-                                            className="border border-secondary/20 rounded-2xl p-5 hover:border-secondary/40 transition-colors"
+                                            className="border border-secondary/20 rounded-2xl p-5 hover:border-secondary/50 transition-colors"
                                         >
                                             {ticket.imageUrl && (
                                                 <div className="relative w-full h-44 mb-4 overflow-hidden rounded-xl bg-muted">
@@ -238,27 +407,29 @@ export default async function PublicEventPage({ params }: Props) {
                                                 </div>
                                             )}
                                             <h4 className="font-bold text-lg flex items-center gap-2">
-                                                <TicketIcon className="w-6 h-6 text-secondary" />
+                                                <TicketIcon className="w-5 h-5 text-secondary shrink-0" />
                                                 {ticket.title}
                                             </h4>
                                             {ticket.description && (
-                                                <p className="text-sm text-muted-foreground mt-1 mb-3">
+                                                <p className="text-sm text-muted-foreground mt-1 mb-3 leading-relaxed">
                                                     {ticket.description}
                                                 </p>
                                             )}
-                                            <div className="flex items-center justify-between mt-4">
+                                            <div className="flex items-center justify-between mt-4 gap-3">
                                                 <span className="font-bold text-xl text-secondary">
                                                     {ticket.price === 0
                                                         ? "Gratuit"
-                                                        : `${ticket.price} FCFA`}
+                                                        : `${ticket.price.toLocaleString("fr-FR")} FCFA`}
                                                 </span>
                                                 <Button>Acheter</Button>
                                             </div>
-                                            {ticket.totalStock && (
+                                            {ticket.totalStock != null && (
                                                 <p className="text-xs text-muted-foreground mt-3 text-right">
-                                                    Restant :{" "}
-                                                    <span className="font-medium text-foreground">
-                                                        {ticket.totalStock}
+                                                    Places restantes :{" "}
+                                                    <span className="font-semibold text-foreground">
+                                                        {ticket.totalStock.toLocaleString(
+                                                            "fr-FR",
+                                                        )}
                                                     </span>
                                                 </p>
                                             )}
@@ -270,12 +441,16 @@ export default async function PublicEventPage({ params }: Props) {
                     </div>
                 </div>
             </div>
-            <section className="max-w-6xl mx-auto px-6 pb-12 md:px-12 md:pb-16">
+
+            {/* ══════════════════════════════════════════════════════════════
+                CTA bas de page
+            ══════════════════════════════════════════════════════════════ */}
+            <section className="max-w-6xl mx-auto px-5 pb-12 md:px-12 md:pb-16">
                 <div className="bg-card border rounded-3xl p-8 md:p-10 shadow-sm text-center">
                     <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">
                         Découvrir plus
                     </p>
-                    <h3 className="text-4xl md:text-4xl font-afo mb-4">
+                    <h3 className="text-3xl md:text-4xl font-afo mb-4">
                         Tu veux voir d&apos;autres évènements ?
                     </h3>
                     <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
