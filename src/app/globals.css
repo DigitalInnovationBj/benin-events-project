@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -175,4 +176,58 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* ─────────────────────────────────────────────
+   Scrollbar utility
+───────────────────────────────────────────── */
+
+.scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
+/* ─────────────────────────────────────────────
+   Featured Events Slider — Swiper overrides
+───────────────────────────────────────────── */
+
+/* Position pagination bottom-left inside the slider */
+.featured-swiper .swiper-pagination {
+    bottom: 1.5rem !important;
+    left: 1.5rem !important;
+    right: auto !important;
+    text-align: left !important;
+    width: auto !important;
+}
+
+@media (min-width: 768px) {
+    .featured-swiper .swiper-pagination {
+        left: 3rem !important;
+    }
+}
+
+/* Inactive bullet */
+.featured-swiper .swiper-pagination-bullet {
+    background: white;
+    opacity: 0.35;
+    width: 8px;
+    height: 8px;
+    margin: 0 3px !important;
+    border-radius: 999px;
+    transition:
+        width 0.35s ease,
+        opacity 0.35s ease,
+        background 0.35s ease;
+}
+
+/* Active bullet — stretches into a pill using the secondary color */
+.featured-swiper .swiper-pagination-bullet-active {
+    background: var(--secondary);
+    opacity: 1;
+    width: 28px;
+    border-radius: 4px;
 }

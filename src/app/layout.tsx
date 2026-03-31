@@ -5,6 +5,7 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import CookieBanner from "@/components/CookieBanner";
 
 const spaceGrotesk = Space_Grotesk({
     variable: "--font-space-grotesk",
@@ -28,7 +29,7 @@ export default function RootLayout({
 }>) {
     return (
         <ClerkProvider>
-            <html lang="fr" suppressHydrationWarning>
+            <html lang="fr" suppressHydrationWarning className="scroll-smooth">
                 <body
                     className={`${spaceGrotesk.variable} ${afolkalips.variable} font-sans antialiased`}
                 >
@@ -40,6 +41,7 @@ export default function RootLayout({
                     >
                         {children}
                         <Toaster position="top-center" />
+                        <CookieBanner />
                     </ThemeProvider>
                 </body>
             </html>
