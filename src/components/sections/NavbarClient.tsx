@@ -4,14 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-    Menu,
     X,
-    CalendarDays,
     LayoutDashboard,
     LogIn,
     UserRoundPlus,
     Search,
     LayoutPanelTop,
+    Home,
+    CalendarRange,
+    HelpCircle,
+    Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,10 +55,10 @@ interface NavbarClientProps {
 // ─────────────────────────────────────────────
 
 const NAV_LINKS = [
-    { href: "/", label: "Accueil", exact: true },
-    { href: "/events", label: "Évènements", exact: false },
-    { href: "/faq", label: "FAQ", exact: false },
-    { href: "/contact", label: "Contact", exact: false },
+    { href: "/", label: "Accueil", icon: Home, exact: true },
+    { href: "/events", label: "Évènements", icon: CalendarRange, exact: false },
+    { href: "/faq", label: "FAQ", icon: HelpCircle, exact: false },
+    { href: "/contact", label: "Contact", icon: Mail, exact: false },
 ];
 
 // ─────────────────────────────────────────────
@@ -279,29 +281,39 @@ export default function NavbarClient({ user }: NavbarClientProps) {
 
                                 {/* Liens principaux */}
                                 <nav className="flex flex-col gap-1 mb-4">
-                                    {NAV_LINKS.map(({ href, label, exact }) => (
-                                        <DrawerClose key={href} asChild>
-                                            <Link
-                                                href={href}
-                                                className={cn(
-                                                    "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
-                                                    isActive(href, exact)
-                                                        ? "bg-secondary/10 text-secondary"
-                                                        : "text-foreground hover:bg-muted/50",
-                                                )}
-                                            >
-                                                <CalendarDays
+                                    {NAV_LINKS.map(
+                                        ({
+                                            href,
+                                            label,
+                                            icon: Icon,
+                                            exact,
+                                        }) => (
+                                            <DrawerClose key={href} asChild>
+                                                <Link
+                                                    href={href}
                                                     className={cn(
-                                                        "w-4 h-4 shrink-0",
+                                                        "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
                                                         isActive(href, exact)
-                                                            ? "text-secondary"
-                                                            : "text-muted-foreground",
+                                                            ? "bg-secondary/10 text-secondary"
+                                                            : "text-foreground hover:bg-muted/50",
                                                     )}
-                                                />
-                                                {label}
-                                            </Link>
-                                        </DrawerClose>
-                                    ))}
+                                                >
+                                                    <Icon
+                                                        className={cn(
+                                                            "w-4 h-4 shrink-0",
+                                                            isActive(
+                                                                href,
+                                                                exact,
+                                                            )
+                                                                ? "text-secondary"
+                                                                : "text-muted-foreground",
+                                                        )}
+                                                    />
+                                                    {label}
+                                                </Link>
+                                            </DrawerClose>
+                                        ),
+                                    )}
 
                                     {user && (
                                         <DrawerClose asChild>
