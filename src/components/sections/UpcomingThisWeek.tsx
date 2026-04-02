@@ -9,6 +9,7 @@ export default async function UpcomingThisWeek() {
     const events = await prisma.event.findMany({
         where: {
             startDate: { gte: now, lte: nextWeek },
+            isDeleted: false,
         },
         orderBy: { startDate: "asc" },
         take: 10,

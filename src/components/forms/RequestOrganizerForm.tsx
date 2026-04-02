@@ -1,19 +1,30 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { organizerValidation, OrganizerFormData } from "@/lib/validations/organizer";
+import {
+    organizerValidation,
+    type OrganizerFormData,
+} from "@/lib/validations/organizer";
 import { createOrganizerRequest } from "@/actions/organizer.actions";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Loader2, Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function RequestOrganizerForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
-    
+
     const {
         register,
+        control,
         handleSubmit,
         formState: { errors },
     } = useForm<OrganizerFormData>({
@@ -24,90 +35,202 @@ export function RequestOrganizerForm() {
             phoneNumber: "",
             address: "",
             description: "",
+            acceptCgu: false,
         },
     });
 
     const onSubmit = async (data: OrganizerFormData) => {
         setIsSubmitting(true);
+
         const formData = new FormData();
         formData.append("organizerName", data.organizerName);
-        if (data.organizerEmail) {
+        if (data.organizerEmail)
             formData.append("organizerEmail", data.organizerEmail);
-        }
         formData.append("phoneNumber", data.phoneNumber);
         formData.append("address", data.address);
         if (data.description) formData.append("description", data.description);
+        // acceptCgu est une validation côté client uniquement
 
         const result = await createOrganizerRequest(formData);
 
         if (result?.error) {
             toast.error(result.error);
         } else {
-            toast.success(result?.message || "Demande envoyée");
+            toast.success(result?.message || "Demande envoyée avec succès !");
             router.push("/dashboard");
         }
+
         setIsSubmitting(false);
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-card p-6 rounded-lg shadow-sm border">
-            <div>
-                <label className="block text-sm font-medium mb-1">Nom de l'organisation *</label>
-                <input
+        <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6 bg-card p-6 md:p-8 rounded-3xl border shadow-sm"
+        >
+            {/* Nom de l'organisation */}
+            <div className="space-y-2">
+                <Label htmlFor="organizerName">
+                    Nom de l&apos;organisation{" "}
+                    <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                    id="organizerName"
                     {...register("organizerName")}
-                    className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Ex: Benin Events Corp"
+                    placeholder="Ex : Benin Events Corp"
                 />
-                {errors.organizerName && <p className="text-destructive text-sm mt-1">{errors.organizerName.message}</p>}
+                {errors.organizerName && (
+                    <p className="text-destructive text-xs">
+                        {errors.organizerName.message}
+                    </p>
+                )}
             </div>
 
-            <div>
-                <label className="block text-sm font-medium mb-1">Numéro de téléphone *</label>
-                <input
+            {/* Téléphone */}
+            <div className="space-y-2">
+                <Label htmlFor="phoneNumber">
+                    Numéro de téléphone{" "}
+                    <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                    id="phoneNumber"
                     {...register("phoneNumber")}
-                    className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Ex: +229 90000000"
+                    placeholder="Ex : +229 90 00 00 00"
                 />
-                {errors.phoneNumber && <p className="text-destructive text-sm mt-1">{errors.phoneNumber.message}</p>}
+                {errors.phoneNumber && (
+                    <p className="text-destructive text-xs">
+                        {errors.phoneNumber.message}
+                    </p>
+                )}
             </div>
 
-            <div>
-                <label className="block text-sm font-medium mb-1">Email organisateur (Optionnel)</label>
-                <input
+            {/* Email organisateur */}
+            <div className="space-y-2">
+                <Label htmlFor="organizerEmail">
+                    E-mail organisateur{" "}
+                    <span className="text-muted-foreground text-xs font-normal">
+                        (optionnel)
+                    </span>
+                </Label>
+                <Input
+                    id="organizerEmail"
                     type="email"
                     {...register("organizerEmail")}
-                    className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Ex: contact@monorga.com"
+                    placeholder="Ex : contact@monorganisation.com"
                 />
-                {errors.organizerEmail && <p className="text-destructive text-sm mt-1">{errors.organizerEmail.message}</p>}
+                {errors.organizerEmail && (
+                    <p className="text-destructive text-xs">
+                        {errors.organizerEmail.message}
+                    </p>
+                )}
             </div>
 
-            <div>
-                <label className="block text-sm font-medium mb-1">Adresse *</label>
-                <input
+            {/* Adresse */}
+            <div className="space-y-2">
+                <Label htmlFor="address">
+                    Adresse <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                    id="address"
                     {...register("address")}
-                    className="w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Ex: Cotonou, Haie Vive"
+                    placeholder="Ex : Cotonou, Haie Vive"
                 />
-                {errors.address && <p className="text-destructive text-sm mt-1">{errors.address.message}</p>}
+                {errors.address && (
+                    <p className="text-destructive text-xs">
+                        {errors.address.message}
+                    </p>
+                )}
             </div>
 
-            <div>
-                <label className="block text-sm font-medium mb-1">Description (Optionnel)</label>
-                <textarea
+            {/* Description */}
+            <div className="space-y-2">
+                <Label htmlFor="description">
+                    Description{" "}
+                    <span className="text-muted-foreground text-xs font-normal">
+                        (optionnel)
+                    </span>
+                </Label>
+                <Textarea
+                    id="description"
                     {...register("description")}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Parlez-nous un peu de vos évènements..."
+                    rows={4}
+                    className="resize-none"
+                    placeholder="Décrivez brièvement vos activités et le type d'évènements que vous organisez…"
                 />
             </div>
 
-            <button
+            {/* Séparateur */}
+            <div className="border-t" />
+
+            {/* Acceptation CGU */}
+            <Controller
+                control={control}
+                name="acceptCgu"
+                render={({ field }) => (
+                    <div className="space-y-2">
+                        <div className="flex items-start gap-3">
+                            <Checkbox
+                                id="acceptCgu"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                className={
+                                    errors.acceptCgu
+                                        ? "border-destructive mt-0.5"
+                                        : "mt-0.5"
+                                }
+                            />
+                            <Label
+                                htmlFor="acceptCgu"
+                                className="text-sm text-muted-foreground leading-relaxed cursor-pointer font-normal"
+                            >
+                                J&apos;ai lu et j&apos;accepte les{" "}
+                                <Link
+                                    href="/cgu"
+                                    target="_blank"
+                                    className="text-secondary font-medium hover:underline"
+                                >
+                                    Conditions Générales d&apos;Utilisation
+                                </Link>{" "}
+                                ainsi que la{" "}
+                                <Link
+                                    href="/confidentialite"
+                                    target="_blank"
+                                    className="text-secondary font-medium hover:underline"
+                                >
+                                    Politique de confidentialité
+                                </Link>{" "}
+                                de Benin Events.{" "}
+                                <span className="text-destructive">*</span>
+                            </Label>
+                        </div>
+                        {errors.acceptCgu && (
+                            <p className="text-destructive text-xs pl-7">
+                                {errors.acceptCgu.message}
+                            </p>
+                        )}
+                    </div>
+                )}
+            />
+
+            {/* Bouton de soumission */}
+            <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+                size="lg"
+                className="w-full rounded-2xl gap-2"
             >
-                {isSubmitting ? "Soumission..." : "Envoyer ma demande"}
-            </button>
+                {isSubmitting ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Envoi en cours…
+                    </>
+                ) : (
+                    <>
+                        <Send className="w-4 h-4" />
+                        Envoyer ma demande
+                    </>
+                )}
+            </Button>
         </form>
     );
 }

@@ -482,3 +482,60 @@ export async function incrementShareCount(eventId: string) {
         return { error: "Erreur interne." };
     }
 }
+
+// ─────────────────────────────────────────────
+// deleteEvent (soft delete)
+// ─────────────────────────────────────────────
+
+export async function deleteEvent(eventId: string) {
+    const { userId } = await auth();
+
+    if (!userId) return { error: "Non authentifié" };
+
+    try {
+        const dbUser = await prisma.user.findUnique({
+            where: { clerkId: userId },
+        });
+
+        if (!dbUser) return { error: "Utilisateur introuvable" };
+
+        if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
+            return {
+                error: "Vous n'avez pas la permission de supprimer un évènement",
+            };
+        }
+
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: { organizerId: true, isDeleted: true, title: true },
+        });
+
+        if (!event) return { error: "Évènement introuvable" };
+        if (event.isDeleted)
+            return { error: "Cet évènement est déjà supprimé" };
+
+        // Seul l'organisateur propriétaire ou un admin peut supprimer
+        if (dbUser.role !== "ADMIN" && event.organizerId !== dbUser.id) {
+            return {
+                error: "Vous n'êtes pas autorisé à supprimer cet évènement",
+            };
+        }
+
+        await prisma.event.update({
+            where: { id: eventId },
+            data: {
+                isDeleted: true,
+                deletedAt: new Date(),
+            },
+        });
+
+        revalidatePath("/dashboard/events");
+        revalidatePath("/events");
+        revalidatePath("/");
+
+        return { success: true };
+    } catch (error) {
+        console.error("Erreur deleteEvent:", error);
+        return { error: "Une erreur est survenue lors de la suppression" };
+    }
+}

@@ -11,6 +11,7 @@ import {
     MonitorPlay,
     Star,
     ExternalLink,
+    ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
@@ -93,7 +94,7 @@ export default async function PublicEventPage({ params }: Props) {
         },
     });
 
-    if (!event) notFound();
+    if (!event || event.isDeleted) notFound();
 
     // ── Statut like / favori de l'utilisateur courant ──────────────────────
     let isLiked = false;
@@ -201,8 +202,17 @@ export default async function PublicEventPage({ params }: Props) {
                 {/* Dégradé bas */}
                 <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-transparent" />
 
-                {/* ── Badges haut gauche ─────────────────────────────── */}
-                <div className="absolute top-5 left-5 md:top-8 md:left-10 z-20 flex flex-wrap gap-2">
+                {/* ── Retour + Badges haut gauche ───────────────────── */}
+                <div className="absolute top-5 left-5 md:top-8 md:left-10 z-20 flex items-center flex-wrap gap-2">
+                    {/* Bouton retour */}
+                    <Link
+                        href="/events"
+                        aria-label="Retour aux évènements"
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 transition-colors shrink-0 shadow-md"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </Link>
+
                     {/* Vedette */}
                     {event.isFeatured && (
                         <span className="flex items-center gap-1.5 bg-yellow-400/90 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">

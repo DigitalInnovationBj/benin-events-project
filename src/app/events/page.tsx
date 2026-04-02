@@ -6,7 +6,9 @@ import { Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import EventsFilters from "./events-filters";
 import EventCard, { type EventForCard } from "./event-card";
+import Image from "next/image";
 import Header from "@/components/sections/Header";
+import Footer from "@/components/sections/Footer";
 
 // ─────────────────────────────────────────────
 // Metadata statique
@@ -52,6 +54,7 @@ export default async function EventsPage({
     const where: Prisma.EventWhereInput = {
         // Uniquement les événements dont la date de début est dans le futur
         startDate: { gte: new Date() },
+        isDeleted: false,
     };
 
     // Recherche full-text sur le titre et la description
@@ -145,14 +148,27 @@ export default async function EventsPage({
         <main className="min-h-screen bg-background">
             <Header />
             {/* ══════════════════════════════════════════════════════════════
-                En-tête
+                En-tête hero
             ══════════════════════════════════════════════════════════════ */}
-            <div className="border-b bg-card">
-                <div className="max-w-6xl mx-auto px-6 py-8 md:px-12">
-                    <h1 className="text-5xl md:text-6xl font-afo mb-1">
+            <div className="relative border-b overflow-hidden h-52 md:h-72">
+                {/* Image de fond */}
+                <Image
+                    src="/hero.jpg"
+                    alt="Évènements au Bénin"
+                    fill
+                    priority
+                    className="object-cover object-center"
+                    sizes="100vw"
+                />
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-linear-to-b from-black/55 via-black/50 to-black/75" />
+
+                {/* Contenu */}
+                <div className="relative z-10 h-full flex flex-col justify-end max-w-6xl mx-auto px-6 pb-6 md:px-12 md:pb-8">
+                    <h1 className="text-5xl md:text-6xl font-afo text-white mb-1">
                         Évènements
                     </h1>
-                    <p className="text-muted-foreground">{countLabel}</p>
+                    <p className="text-white/65 text-sm">{countLabel}</p>
                 </div>
             </div>
 
@@ -227,6 +243,8 @@ export default async function EventsPage({
                     </div>
                 )}
             </div>
+
+            <Footer />
         </main>
     );
 }

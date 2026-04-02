@@ -126,6 +126,10 @@ model Event {
   // Mise en vedette (décidé par l'admin)
   isFeatured  Boolean  @default(false)
 
+  // Suppression douce (soft delete)
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+
   // Interactions — compteur de partages (likes & favoris via relations dédiées)
   shareCount  Int      @default(0)
 

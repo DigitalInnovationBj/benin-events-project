@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
+import DashboardNavClient from "@/components/sections/DashboardNavClient";
 
 export default async function AdminLayout({
     children,
@@ -22,28 +23,27 @@ export default async function AdminLayout({
         redirect("/dashboard");
     }
 
+    const displayName =
+        dbUser?.name ||
+        user.firstName ||
+        user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
+        "Administrateur";
+
+    const email = dbUser?.email || user.emailAddresses?.[0]?.emailAddress || "";
+
+    const imageUrl = dbUser?.image || user.imageUrl || undefined;
+
     return (
-        <div className="flex min-h-screen flex-col bg-muted/20">
-            <header className="bg-card shadow-sm border-b px-6 py-4 flex items-center justify-between">
-                <h1 className="text-xl font-bold font-afo">
-                    Benin Events - Admin
-                </h1>
-                <nav className="flex gap-4 text-sm font-medium">
-                    <a
-                        href="/admin/requests"
-                        className="text-primary hover:underline"
-                    >
-                        Demandes Organisateurs
-                    </a>
-                    <a
-                        href="/dashboard"
-                        className="text-muted-foreground hover:text-foreground"
-                    >
-                        Retour au Dashboard
-                    </a>
-                </nav>
-            </header>
-            <main className="flex-1 p-6 md:p-8">{children}</main>
+        <div className="min-h-screen bg-background">
+            <DashboardNavClient
+                user={{
+                    name: displayName,
+                    email,
+                    imageUrl,
+                    role: "ADMIN",
+                }}
+            />
+            <main className="p-4 md:p-8">{children}</main>
         </div>
     );
 }

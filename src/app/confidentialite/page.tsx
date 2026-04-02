@@ -20,25 +20,33 @@ export default function ConfidentialitePage() {
             badge="Confidentialité"
             title="Politique de confidentialité"
             subtitle="Comment nous collectons, utilisons et protégeons vos données personnelles"
-            updatedAt="Juillet 2025"
+            updatedAt="Avril 2026"
         >
             <LegalSection title="1. Responsable du traitement">
                 <p>
-                    Le responsable du traitement des données personnelles collectées via la
-                    plateforme Benin Events est :
+                    Le responsable du traitement des données personnelles
+                    collectées via la plateforme Benin Events est :
                 </p>
                 <LegalHighlight>
-                    <strong>Benin Events</strong><br />
-                    Cotonou, République du Bénin<br />
-                    E-mail : <a href="mailto:contact@beninevents.com" className="text-secondary hover:underline">contact@beninevents.com</a>
+                    <strong>Benin Events</strong>
+                    <br />
+                    Cotonou, République du Bénin
+                    <br />
+                    E-mail :{" "}
+                    <a
+                        href="mailto:contact@beninevents.com"
+                        className="text-secondary hover:underline"
+                    >
+                        contact@beninevents.com
+                    </a>
                 </LegalHighlight>
             </LegalSection>
 
             <LegalSection title="2. Données collectées">
                 <LegalSubSection title="Données de compte">
                     <p>
-                        Lors de la création d&apos;un compte, nous collectons via notre prestataire
-                        d&apos;authentification Clerk :
+                        Lors de la création d&apos;un compte, nous collectons
+                        via notre prestataire d&apos;authentification Clerk :
                     </p>
                     <LegalList
                         items={[
@@ -116,8 +124,8 @@ export default function ConfidentialitePage() {
 
             <LegalSection title="5. Destinataires des données">
                 <p>
-                    Vos données peuvent être transmises aux sous-traitants suivants dans le cadre
-                    strict de leurs missions :
+                    Vos données peuvent être transmises aux sous-traitants
+                    suivants dans le cadre strict de leurs missions :
                 </p>
                 <LegalList
                     items={[
@@ -128,16 +136,17 @@ export default function ConfidentialitePage() {
                     ]}
                 />
                 <p>
-                    Aucune donnée personnelle n&apos;est vendue à des tiers ni utilisée à des fins
-                    commerciales non prévues dans la présente politique.
+                    Aucune donnée personnelle n&apos;est vendue à des tiers ni
+                    utilisée à des fins commerciales non prévues dans la
+                    présente politique.
                 </p>
             </LegalSection>
 
             <LegalSection title="6. Vos droits">
                 <p>
-                    Conformément au Règlement Général sur la Protection des Données (RGPD) et à
-                    la loi béninoise sur la protection des données personnelles, vous disposez des
-                    droits suivants :
+                    Conformément au Règlement Général sur la Protection des
+                    Données (RGPD) et à la loi béninoise sur la protection des
+                    données personnelles, vous disposez des droits suivants :
                 </p>
                 <LegalList
                     items={[
@@ -152,22 +161,27 @@ export default function ConfidentialitePage() {
                 />
                 <p>
                     Pour exercer ces droits, contactez-nous à{" "}
-                    <a href="mailto:contact@beninevents.com" className="text-secondary hover:underline">
+                    <a
+                        href="mailto:contact@beninevents.com"
+                        className="text-secondary hover:underline"
+                    >
                         contact@beninevents.com
                     </a>
                     . Nous répondrons dans un délai de 30 jours.
                 </p>
                 <p>
-                    Vous avez également le droit d&apos;introduire une réclamation auprès de l&apos;Autorité
-                    de Protection des Données Personnelles (APDP) de la République du Bénin.
+                    Vous avez également le droit d&apos;introduire une
+                    réclamation auprès de l&apos;Autorité de Protection des
+                    Données Personnelles (APDP) de la République du Bénin.
                 </p>
             </LegalSection>
 
             <LegalSection title="7. Sécurité des données">
                 <p>
-                    Benin Events met en œuvre toutes les mesures techniques et organisationnelles
-                    appropriées pour protéger vos données contre tout accès non autorisé, perte,
-                    destruction ou divulgation :
+                    Benin Events met en œuvre toutes les mesures techniques et
+                    organisationnelles appropriées pour protéger vos données
+                    contre tout accès non autorisé, perte, destruction ou
+                    divulgation :
                 </p>
                 <LegalList
                     items={[
@@ -182,11 +196,13 @@ export default function ConfidentialitePage() {
 
             <LegalSection title="8. Modifications de la politique">
                 <p>
-                    Benin Events se réserve le droit de modifier la présente politique de
-                    confidentialité à tout moment pour l&apos;adapter aux évolutions légales ou
-                    aux changements de la plateforme. La date de la dernière mise à jour est
-                    indiquée en haut de cette page. En cas de modification substantielle, vous
-                    serez notifié par e-mail ou via une notification sur la plateforme.
+                    Benin Events se réserve le droit de modifier la présente
+                    politique de confidentialité à tout moment pour
+                    l&apos;adapter aux évolutions légales ou aux changements de
+                    la plateforme. La date de la dernière mise à jour est
+                    indiquée en haut de cette page. En cas de modification
+                    substantielle, vous serez notifié par e-mail ou via une
+                    notification sur la plateforme.
                 </p>
             </LegalSection>
         </LegalLayout>

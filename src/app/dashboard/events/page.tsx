@@ -23,7 +23,10 @@ export default async function EventsListPage() {
 
     // Récupérer les évènements
     const events = await prisma.event.findMany({
-        where: dbUser.role === "ADMIN" ? undefined : { organizerId: dbUser.id },
+        where:
+            dbUser.role === "ADMIN"
+                ? { isDeleted: false }
+                : { organizerId: dbUser.id, isDeleted: false },
         orderBy: { startDate: "desc" },
     });
 
@@ -100,7 +103,7 @@ export default async function EventsListPage() {
                                     <div className="flex items-center gap-2">
                                         <MapPin className="w-4 h-4 shrink-0" />
                                         <span className="line-clamp-1">
-                                            {event.location}
+                                            {event.location || "En ligne"}
                                         </span>
                                     </div>
                                 </div>

@@ -16,6 +16,7 @@ import {
 import Image from "next/image";
 import { TicketForm } from "./ticket-form";
 import { TicketEditDialog } from "./ticket-edit-dialog";
+import DeleteEventButton from "./DeleteEventButton";
 
 export default async function EventDetailsPage({
     params,
@@ -72,12 +73,18 @@ export default async function EventDetailsPage({
                     </Button>
                 </Link>
 
-                <Link href={`/dashboard/events/${event.id}/edit`}>
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <Pencil className="w-4 h-4" />
-                        Modifier l&apos;évènement
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <DeleteEventButton
+                        eventId={event.id}
+                        eventTitle={event.title}
+                    />
+                    <Link href={`/dashboard/events/${event.id}/edit`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Pencil className="w-4 h-4" />
+                            Modifier
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             <div className="grid lg:grid-cols-[1fr_400px] gap-8">

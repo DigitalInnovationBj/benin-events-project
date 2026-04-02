@@ -11,6 +11,7 @@ export default async function FeaturedEvents() {
     const events = await prisma.event.findMany({
         where: {
             isFeatured: true,
+            isDeleted: false,
             startDate: { gte: new Date() },
         },
         orderBy: { startDate: "asc" },
