@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyWebhookSignature } from "@/lib/geniuspay";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 const STATUS_MAP: Record<string, "FAILED" | "EXPIRED" | "CANCELLED"> = {
     "payment.failed": "FAILED",
@@ -92,6 +93,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, message: "Webhook processed successfully" });
 }
 
+async function sendConfirmationEmail(orderId: string) {
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+            user: { select: { email: true, name: true } },
+            event: {
+                select: {
+                    title: true,
+                    startDate: true,
+                    location: true,
+                    eventType: true,
+                },
+            },
+            items: {
+                include: { ticket: { select: { title: true } } },
+            },
+        },
+    });
+
+    if (!order) return;
+
+    await sendOrderConfirmationEmail({
+        to: order.user.email,
+        customerName: order.user.name ?? "Client",
+        eventTitle: order.event.title,
+        eventDate: new Date(order.event.startDate).toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Africa/Porto-Novo",
+        }),
+        eventLocation: order.event.location,
+        eventType: order.event.eventType,
+        orderReference: order.reference,
+        totalAmount: order.totalAmount,
+        items: order.items.map((item) => ({
+            id: item.id,
+            ticketTitle: item.ticket.title,
+            quantity: item.quantity,
+            price: item.price,
+        })),
+    });
+}
+
 async function processEvent(
     event: string,
     payload: { data?: { reference?: string; metadata?: Record<string, string> } },
@@ -100,22 +148,31 @@ async function processEvent(
     const orderId = payload.data?.metadata?.order_id;
 
     switch (event) {
-        case "payment.success":
-            if (orderId) {
-                await prisma.order.updateMany({
-                    where: { id: orderId, status: "PENDING" },
+        case "payment.success": {
+            const updatedOrder = orderId
+                ? await prisma.order.findFirst({
+                      where: { id: orderId, status: "PENDING" },
+                  })
+                : reference
+                  ? await prisma.order.findFirst({
+                        where: { reference, status: "PENDING" },
+                    })
+                  : null;
+
+            if (updatedOrder) {
+                await prisma.order.update({
+                    where: { id: updatedOrder.id },
                     data: {
                         status: "COMPLETED",
                         ...(reference ? { reference } : {}),
                     },
                 });
-            } else if (reference) {
-                await prisma.order.updateMany({
-                    where: { reference, status: "PENDING" },
-                    data: { status: "COMPLETED" },
-                });
+                await sendConfirmationEmail(updatedOrder.id).catch((err) =>
+                    console.error("Email confirmation error:", err),
+                );
             }
             break;
+        }
 
         case "payment.failed":
         case "payment.expired":

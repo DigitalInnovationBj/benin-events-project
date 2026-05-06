@@ -3,6 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/geniuspay";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 export async function initiateTicketPayment(formData: FormData) {
@@ -69,8 +70,50 @@ export async function initiateTicketPayment(formData: FormData) {
                     create: { quantity, price: 0, ticketId: ticket.id },
                 },
             },
+            include: {
+                items: true,
+                event: {
+                    select: {
+                        title: true,
+                        startDate: true,
+                        location: true,
+                        eventType: true,
+                        slug: true,
+                    },
+                },
+            },
         });
-        revalidatePath(`/events/${ticket.event.slug}`);
+
+        // Email de confirmation pour billet gratuit
+        sendOrderConfirmationEmail({
+            to: dbUser.email,
+            customerName: dbUser.name ?? "Client",
+            eventTitle: order.event.title,
+            eventDate: new Date(order.event.startDate).toLocaleDateString(
+                "fr-FR",
+                {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "Africa/Porto-Novo",
+                },
+            ),
+            eventLocation: order.event.location,
+            eventType: order.event.eventType,
+            orderReference: order.reference,
+            totalAmount: 0,
+            items: order.items.map((item) => ({
+                id: item.id,
+                ticketTitle: ticket.title,
+                quantity: item.quantity,
+                price: 0,
+            })),
+        }).catch((err) => console.error("Free ticket email error:", err));
+
+        revalidatePath(`/events/${order.event.slug}`);
         return {
             success: true,
             redirectUrl: `${appUrl}/checkout/success?orderId=${order.id}`,

@@ -1,0 +1,163 @@
+import { render } from "@react-email/components";
+import QRCode from "qrcode";
+import { resend } from "@/lib/resend";
+import { OrderConfirmationEmail } from "@/emails/order-confirmation";
+import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
+import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
+
+const FROM = "Benin Events <no-reply@beninevents.com>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+async function generateQRCode(content: string): Promise<string> {
+    return QRCode.toDataURL(content, {
+        errorCorrectionLevel: "H",
+        margin: 2,
+        color: { dark: "#000000", light: "#ffffff" },
+        width: 300,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendOrderConfirmationEmail
+// ─────────────────────────────────────────────
+
+export interface OrderItemForEmail {
+    id: string;
+    ticketTitle: string;
+    quantity: number;
+    price: number;
+}
+
+export interface SendOrderConfirmationParams {
+    to: string;
+    customerName: string;
+    eventTitle: string;
+    eventDate: string;
+    eventLocation: string | null;
+    eventType: "IN_PERSON" | "ONLINE";
+    orderReference: string;
+    totalAmount: number;
+    items: OrderItemForEmail[];
+}
+
+export async function sendOrderConfirmationEmail(
+    params: SendOrderConfirmationParams,
+) {
+    const {
+        to,
+        customerName,
+        eventTitle,
+        eventDate,
+        eventLocation,
+        eventType,
+        orderReference,
+        totalAmount,
+        items,
+    } = params;
+
+    // Génère un QR code par ligne de commande
+    // Le QR code encode l'URL de vérification de l'order item
+    const itemsWithQR = await Promise.all(
+        items.map(async (item) => {
+            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+            const qrCodeDataUrl = await generateQRCode(verifyUrl);
+            return { ...item, qrCodeDataUrl };
+        }),
+    );
+
+    const html = await render(
+        OrderConfirmationEmail({
+            customerName,
+            eventTitle,
+            eventDate,
+            eventLocation,
+            eventType,
+            orderReference,
+            totalAmount,
+            items: itemsWithQR,
+            appUrl: APP_URL,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM,
+        to,
+        subject: `✓ Vos billets pour ${eventTitle}`,
+        html,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendOrganizerRequestAdminEmail
+// ─────────────────────────────────────────────
+
+export interface SendOrganizerRequestAdminParams {
+    adminEmails: string[];
+    applicantName: string;
+    applicantEmail: string;
+    organizerName: string;
+    organizerEmail: string;
+    phoneNumber: string;
+    address: string;
+    description?: string;
+}
+
+export async function sendOrganizerRequestAdminEmail(
+    params: SendOrganizerRequestAdminParams,
+) {
+    const { adminEmails, ...rest } = params;
+
+    const html = await render(
+        OrganizerRequestAdminEmail({
+            ...rest,
+            adminPanelUrl: `${APP_URL}/admin/requests`,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM,
+        to: adminEmails,
+        subject: `🔔 Nouvelle demande d'organisateur — ${params.organizerName}`,
+        html,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendOrganizerRequestDecisionEmail
+// ─────────────────────────────────────────────
+
+export interface SendOrganizerRequestDecisionParams {
+    to: string;
+    applicantName: string;
+    status: "APPROVED" | "REJECTED";
+}
+
+export async function sendOrganizerRequestDecisionEmail(
+    params: SendOrganizerRequestDecisionParams,
+) {
+    const { to, applicantName, status } = params;
+
+    const html = await render(
+        OrganizerRequestDecisionEmail({
+            applicantName,
+            status,
+            appUrl: APP_URL,
+        }),
+    );
+
+    const subject =
+        status === "APPROVED"
+            ? "🎉 Votre demande d'organisateur a été approuvée !"
+            : "Votre demande d'organisateur — Décision";
+
+    await resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        html,
+    });
+}
