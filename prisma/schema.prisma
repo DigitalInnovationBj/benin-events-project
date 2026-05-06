@@ -27,6 +27,14 @@ enum EventType {
   ONLINE
 }
 
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -43,6 +51,7 @@ model User {
   events            Event[]
   likes             Like[]
   favorites         Favorite[]
+  orders            Order[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -148,6 +157,7 @@ model Event {
   categories  EventCategory[]
   likes       Like[]
   favorites   Favorite[]
+  orders      Order[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -201,9 +211,52 @@ model Ticket {
   totalStock  Int?
 
   // Relations
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId    String
+  event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Commandes & Paiements
+// ─────────────────────────────────────────────
+
+model Order {
+  id          String      @id @default(cuid())
+  reference   String      @unique
+  status      OrderStatus @default(PENDING)
+  totalAmount Float
+
+  geniuspayId Int?
+  checkoutUrl String?
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([eventId])
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  quantity Int
+  price    Float
+
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
 }

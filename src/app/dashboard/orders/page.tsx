@@ -1,0 +1,132 @@
+import { auth } from "@clerk/nextjs/server";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Ticket, Calendar } from "lucide-react";
+import type { OrderStatus } from "@prisma/client";
+
+const STATUS_CONFIG: Record<
+    OrderStatus,
+    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+    PENDING: { label: "En attente", variant: "secondary" },
+    COMPLETED: { label: "Confirmé", variant: "default" },
+    FAILED: { label: "Échoué", variant: "destructive" },
+    EXPIRED: { label: "Expiré", variant: "outline" },
+    CANCELLED: { label: "Annulé", variant: "outline" },
+};
+
+export default async function OrdersPage() {
+    const { userId } = await auth();
+    if (!userId) redirect("/sign-in");
+
+    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!dbUser) redirect("/sign-in");
+
+    const orders = await prisma.order.findMany({
+        where: { userId: dbUser.id },
+        include: {
+            event: {
+                select: {
+                    title: true,
+                    slug: true,
+                    startDate: true,
+                },
+            },
+            items: {
+                include: { ticket: { select: { title: true } } },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+
+    return (
+        <div className="max-w-3xl mx-auto w-full pb-20">
+            <h1 className="text-3xl font-afo mb-8">Mes commandes</h1>
+
+            {orders.length === 0 ? (
+                <div className="text-center py-20 border border-dashed rounded-2xl">
+                    <Ticket className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                        Aucune commande pour le moment.
+                    </p>
+                    <Button asChild variant="secondary">
+                        <Link href="/events">Parcourir les évènements</Link>
+                    </Button>
+                </div>
+            ) : (
+                <div className="space-y-4">
+                    {orders.map((order) => {
+                        const config =
+                            STATUS_CONFIG[order.status] ??
+                            STATUS_CONFIG.PENDING;
+
+                        return (
+                            <div
+                                key={order.id}
+                                className="bg-card border rounded-2xl p-5 space-y-4"
+                            >
+                                <div className="flex items-start justify-between gap-4 flex-wrap">
+                                    <div>
+                                        <Link
+                                            href={`/events/${order.event.slug}`}
+                                            className="font-bold text-lg hover:underline underline-offset-2"
+                                        >
+                                            {order.event.title}
+                                        </Link>
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            {new Date(
+                                                order.event.startDate,
+                                            ).toLocaleDateString("fr-FR", {
+                                                day: "numeric",
+                                                month: "long",
+                                                year: "numeric",
+                                            })}
+                                        </div>
+                                    </div>
+                                    <Badge variant={config.variant}>
+                                        {config.label}
+                                    </Badge>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    {order.items.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="flex justify-between text-sm"
+                                        >
+                                            <span className="flex items-center gap-1.5 text-muted-foreground">
+                                                <Ticket className="w-3.5 h-3.5" />
+                                                {item.ticket.title} ×{" "}
+                                                {item.quantity}
+                                            </span>
+                                            <span className="font-medium">
+                                                {item.price === 0
+                                                    ? "Gratuit"
+                                                    : `${(item.price * item.quantity).toLocaleString("fr-FR")} FCFA`}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="border-t pt-3 flex items-center justify-between gap-4 flex-wrap">
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                        {order.reference}
+                                    </span>
+                                    <span className="font-bold text-secondary">
+                                        {order.totalAmount === 0
+                                            ? "Gratuit"
+                                            : `${order.totalAmount.toLocaleString("fr-FR")} FCFA`}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}

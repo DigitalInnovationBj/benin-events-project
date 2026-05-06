@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
 import EventInteractions from "@/components/events/event-interactions";
+import { BuyTicketButton } from "@/components/events/buy-ticket-button";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -168,6 +169,35 @@ export default async function PublicEventPage({ params }: Props) {
         minute: "2-digit",
         timeZone: "Africa/Porto-Novo",
     });
+
+    // ── Stock restant par ticket ──────────────────────────────────────────
+    const ticketsWithStock = event.tickets.filter((t) => t.totalStock !== null);
+    const soldAgg =
+        ticketsWithStock.length > 0
+            ? await prisma.orderItem.groupBy({
+                  by: ["ticketId"],
+                  where: {
+                      ticketId: { in: ticketsWithStock.map((t) => t.id) },
+                      order: { status: { in: ["COMPLETED", "PENDING"] } },
+                  },
+                  _sum: { quantity: true },
+              })
+            : [];
+
+    const soldMap = new Map(
+        soldAgg.map((s) => [s.ticketId, s._sum.quantity ?? 0]),
+    );
+
+    const ticketsWithRemaining = event.tickets.map((ticket) => ({
+        ...ticket,
+        remainingStock:
+            ticket.totalStock !== null
+                ? Math.max(
+                      0,
+                      ticket.totalStock - (soldMap.get(ticket.id) ?? 0),
+                  )
+                : null,
+    }));
 
     // ── Google Maps (présentiel uniquement) ───────────────────────────────
     const encodedLocation = encodeURIComponent(event.location ?? "");
@@ -395,13 +425,13 @@ export default async function PublicEventPage({ params }: Props) {
                                 Billetterie
                             </h3>
 
-                            {event.tickets.length === 0 ? (
+                            {ticketsWithRemaining.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-6 bg-muted/30 rounded-xl border border-dashed text-sm">
                                     Aucun billet en vente pour le moment.
                                 </p>
                             ) : (
                                 <div className="space-y-4">
-                                    {event.tickets.map((ticket) => (
+                                    {ticketsWithRemaining.map((ticket) => (
                                         <div
                                             key={ticket.id}
                                             className="border border-secondary/20 rounded-2xl p-5 hover:border-secondary/50 transition-colors"
@@ -431,13 +461,19 @@ export default async function PublicEventPage({ params }: Props) {
                                                         ? "Gratuit"
                                                         : `${ticket.price.toLocaleString("fr-FR")} FCFA`}
                                                 </span>
-                                                <Button>Acheter</Button>
+                                                <BuyTicketButton
+                                                    ticket={ticket}
+                                                    isLoggedIn={isLoggedIn}
+                                                    remainingStock={
+                                                        ticket.remainingStock
+                                                    }
+                                                />
                                             </div>
-                                            {ticket.totalStock != null && (
+                                            {ticket.remainingStock !== null && (
                                                 <p className="text-xs text-muted-foreground mt-3 text-right">
                                                     Places restantes :{" "}
                                                     <span className="font-semibold text-foreground">
-                                                        {ticket.totalStock.toLocaleString(
+                                                        {ticket.remainingStock.toLocaleString(
                                                             "fr-FR",
                                                         )}
                                                     </span>

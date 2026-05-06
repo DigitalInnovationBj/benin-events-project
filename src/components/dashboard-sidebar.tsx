@@ -36,8 +36,8 @@ export function DashboardSidebar({ role }: { role: Role }) {
             icon: LayoutDashboard,
         },
         {
-            title: "Mes Billets",
-            url: "/dashboard/tickets",
+            title: "Mes Commandes",
+            url: "/dashboard/orders",
             icon: Ticket,
         },
     ];
@@ -79,7 +79,11 @@ export function DashboardSidebar({ role }: { role: Role }) {
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={pathname === item.url}
+                                        isActive={
+                                            item.url === "/dashboard"
+                                                ? pathname === "/dashboard"
+                                                : pathname.startsWith(item.url)
+                                        }
                                         tooltip={item.title}
                                     >
                                         <Link href={item.url}>
