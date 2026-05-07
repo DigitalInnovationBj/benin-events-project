@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CookieBanner from "@/components/CookieBanner";
+import { AskAIButton } from "@/components/ai/ask-ai-button";
 
 const spaceGrotesk = Space_Grotesk({
     variable: "--font-space-grotesk",
@@ -136,6 +137,7 @@ export default function RootLayout({
                         {children}
                         <Toaster position="top-center" />
                         <CookieBanner />
+                        <AskAIButton />
                     </ThemeProvider>
                 </body>
             </html>
