@@ -1,5 +1,4 @@
 import { render } from "@react-email/components";
-import QRCode from "qrcode";
 import { resend } from "@/lib/resend";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
@@ -18,13 +17,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 // Helpers
 // ─────────────────────────────────────────────
 
-async function generateQRCode(content: string): Promise<string> {
-    return QRCode.toDataURL(content, {
-        errorCorrectionLevel: "H",
-        margin: 2,
-        color: { dark: "#000000", light: "#ffffff" },
-        width: 300,
-    });
+// Retourne une URL publique vers un QR code PNG (compatible avec tous les clients email).
+// Les data URLs base64 sont bloquées par Gmail, Outlook et la plupart des webmails.
+function buildQrUrl(content: string): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(content)}&ecc=H&margin=2`;
 }
 
 // ─────────────────────────────────────────────
@@ -65,15 +61,10 @@ export async function sendOrderConfirmationEmail(
         items,
     } = params;
 
-    // Génère un QR code par ligne de commande
-    // Le QR code encode l'URL de vérification de l'order item
-    const itemsWithQR = await Promise.all(
-        items.map(async (item) => {
-            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
-            const qrCodeDataUrl = await generateQRCode(verifyUrl);
-            return { ...item, qrCodeDataUrl };
-        }),
-    );
+    const itemsWithQR = items.map((item) => {
+        const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+        return { ...item, qrCodeDataUrl: buildQrUrl(verifyUrl) };
+    });
 
     const html = await render(
         OrderConfirmationEmail({
