@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-    Ticket,
     CalendarDays,
     Heart,
     TrendingUp,
@@ -22,6 +21,14 @@ import { fr } from "date-fns/locale";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function fmt(amount: number) {
+    return amount >= 1_000_000
+        ? `${(amount / 1_000_000).toFixed(1)} M FCFA`
+        : amount >= 1_000
+          ? `${(amount / 1_000).toFixed(0)} k FCFA`
+          : `${amount} FCFA`;
+}
+
 function StatCard({
     label,
     value,
@@ -36,14 +43,26 @@ function StatCard({
     accent?: string;
 }) {
     return (
-        <div className="bg-card border rounded-2xl p-5 shadow-sm flex items-start gap-4">
-            <div className={`p-2.5 rounded-xl ${accent ?? "bg-secondary/10"}`}>
-                <Icon className={`w-5 h-5 ${accent ? "text-white" : "text-secondary"}`} />
+        <div className="bg-card border rounded-2xl p-4 shadow-sm flex items-center gap-3">
+            <div
+                className={`p-2.5 rounded-xl shrink-0 ${accent ?? "bg-secondary/10"}`}
+            >
+                <Icon
+                    className={`w-4 h-4 ${accent ? "text-white" : "text-secondary"}`}
+                />
             </div>
-            <div>
-                <p className="text-2xl font-bold leading-tight">{value}</p>
-                <p className="text-sm font-medium text-foreground">{label}</p>
-                {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+            <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight truncate">
+                    {value}
+                </p>
+                <p className="text-xs font-medium text-muted-foreground truncate">
+                    {label}
+                </p>
+                {sub && (
+                    <p className="text-xs text-muted-foreground/70 truncate">
+                        {sub}
+                    </p>
+                )}
             </div>
         </div>
     );
@@ -85,7 +104,7 @@ export default async function DashboardPage() {
 
     const role = dbUser.role;
 
-    // ── Données communes (USER) ──────────────────────────────────────────────
+    // ── Données communes ─────────────────────────────────────────────────────
     const [recentOrders, favoritesCount, agentEvents] = await Promise.all([
         prisma.order.findMany({
             where: { userId: dbUser.id },
@@ -190,24 +209,33 @@ export default async function DashboardPage() {
         };
     }
 
+    const upcomingEvents = recentOrders
+        .filter(
+            (o) =>
+                o.status === "COMPLETED" &&
+                new Date(o.event.startDate) > new Date(),
+        )
+        .slice(0, 3);
+
     return (
-        <div className="max-w-6xl mx-auto w-full space-y-8">
+        <div className="max-w-6xl mx-auto w-full space-y-5 pb-8">
+
             {/* ── Header ───────────────────────────────────────────────── */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 className="text-3xl font-afo mb-1">
+            <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-afo truncate">
                         Bonjour, {displayName} 👋
                     </h1>
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
                         {role === "ADMIN"
-                            ? "Vue administrateur — toutes les données de la plateforme"
+                            ? "Vue administrateur"
                             : role === "ORGANIZER"
                               ? "Tableau de bord organisateur"
-                              : "Votre espace personnel Benin Events"}
+                              : "Votre espace personnel"}
                     </p>
                 </div>
                 <span
-                    className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 ${
                         role === "ADMIN"
                             ? "bg-red-100 text-red-700"
                             : role === "ORGANIZER"
@@ -216,16 +244,16 @@ export default async function DashboardPage() {
                     }`}
                 >
                     {role === "ADMIN"
-                        ? "Administrateur"
+                        ? "Admin"
                         : role === "ORGANIZER"
                           ? "Organisateur"
                           : "Utilisateur"}
                 </span>
             </div>
 
-            {/* ── ADMIN : stats globales ────────────────────────────────── */}
+            {/* ── Stats globales ADMIN ──────────────────────────────────── */}
             {role === "ADMIN" && organizerData?.adminStats && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <StatCard
                         label="Utilisateurs"
                         value={organizerData.adminStats.totalUsers}
@@ -245,7 +273,7 @@ export default async function DashboardPage() {
                         accent="bg-emerald-500"
                     />
                     <StatCard
-                        label="Demandes en attente"
+                        label="Demandes"
                         value={organizerData.pendingRequests}
                         icon={AlertCircle}
                         accent={
@@ -257,40 +285,39 @@ export default async function DashboardPage() {
                 </div>
             )}
 
-            {/* ── ORGANIZER : stats ─────────────────────────────────────── */}
+            {/* ── Stats ORGANIZER ───────────────────────────────────────── */}
             {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                     <StatCard
-                        label="Évènements actifs"
-                        value={organizerData.events.filter((e) => !e.isDeleted).length}
+                        label="Évènements"
+                        value={organizerData.events.length}
                         icon={CalendarDays}
                     />
                     <StatCard
                         label="Billets vendus"
                         value={organizerData.totalTicketsSold}
-                        icon={Ticket}
+                        icon={ShoppingBag}
                     />
                     <StatCard
-                        label="Revenus totaux"
-                        value={`${organizerData.revenue.toLocaleString("fr-FR")} FCFA`}
+                        label="Revenus"
+                        value={fmt(organizerData.revenue)}
                         icon={TrendingUp}
                         accent="bg-secondary"
                     />
                 </div>
             )}
 
-            {/* ── USER : stats ──────────────────────────────────────────── */}
+            {/* ── Stats USER ────────────────────────────────────────────── */}
             {role === "USER" && (
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3">
                     <StatCard
                         label="Commandes"
                         value={completedOrders}
-                        sub={`${recentOrders.length} au total`}
                         icon={ShoppingBag}
                     />
                     <StatCard
-                        label="Total dépensé"
-                        value={`${totalSpent.toLocaleString("fr-FR")} FCFA`}
+                        label="Dépensé"
+                        value={fmt(totalSpent)}
                         icon={TrendingUp}
                         accent="bg-secondary"
                     />
@@ -302,240 +329,171 @@ export default async function DashboardPage() {
                 </div>
             )}
 
-            <div className="grid lg:grid-cols-3 gap-6">
-                {/* ── Colonne principale ───────────────────────────────── */}
-                <div className="lg:col-span-2 space-y-6">
+            {/* ── Corps principal ───────────────────────────────────────── */}
+            {/* Sur mobile : actions d'abord, puis contenu. Sur desktop : contenu | actions */}
+            <div className="grid lg:grid-cols-3 gap-5">
+
+                {/* Colonne principale — order-2 mobile, order-1 desktop */}
+                <div className="lg:col-span-2 space-y-5 order-2 lg:order-1">
 
                     {/* Commandes récentes (USER) */}
                     {role === "USER" && (
-                        <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                            <div className="flex items-center justify-between mb-5">
-                                <h2 className="font-bold text-lg">
-                                    Commandes récentes
-                                </h2>
+                        <Section
+                            title="Commandes récentes"
+                            action={
                                 <Link href="/dashboard/orders">
-                                    <Button variant="ghost" size="sm" className="gap-1 text-xs">
-                                        Tout voir <ArrowRight className="w-3.5 h-3.5" />
+                                    <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 px-2">
+                                        Tout voir <ArrowRight className="w-3 h-3" />
                                     </Button>
                                 </Link>
-                            </div>
-
+                            }
+                        >
                             {recentOrders.length === 0 ? (
-                                <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-xl">
-                                    Aucune commande pour le moment.
-                                </div>
+                                <Empty text="Aucune commande pour le moment." />
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {recentOrders.map((order) => (
                                         <div
                                             key={order.id}
-                                            className="flex items-center justify-between gap-4 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
+                                            className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
                                         >
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-semibold text-sm truncate">
                                                     {order.event.title}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground font-mono">
-                                                    #{order.reference}
+                                                    #{order.reference.slice(0, 12)}…
                                                 </p>
                                             </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <span
-                                                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${statusColor[order.status]}`}
-                                                >
+                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[order.status]}`}>
                                                     {statusLabel[order.status]}
                                                 </span>
-                                                <span className="text-sm font-bold">
-                                                    {order.totalAmount.toLocaleString("fr-FR")} F
+                                                <span className="text-xs font-bold">
+                                                    {fmt(order.totalAmount)}
                                                 </span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
-                        </section>
+                        </Section>
                     )}
 
                     {/* Ventes récentes (ORGANIZER / ADMIN) */}
-                    {(role === "ORGANIZER" || role === "ADMIN") &&
-                        organizerData && (
-                            <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-5">
-                                    <h2 className="font-bold text-lg">
-                                        Ventes récentes
-                                    </h2>
-                                </div>
-
-                                {organizerData.recentSales.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-xl">
-                                        Aucune vente pour le moment.
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {organizerData.recentSales.map(
-                                            (order) => (
-                                                <div
-                                                    key={order.id}
-                                                    className="flex items-center justify-between gap-4 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="font-semibold text-sm truncate">
-                                                            {order.event.title}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground truncate">
-                                                            {order.user.name ??
-                                                                order.user
-                                                                    .email}{" "}
-                                                            ·{" "}
-                                                            {format(
-                                                                new Date(
-                                                                    order.createdAt,
-                                                                ),
-                                                                "d MMM yyyy",
-                                                                { locale: fr },
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {order.items.reduce(
-                                                                (s, i) =>
-                                                                    s +
-                                                                    i.quantity,
-                                                                0,
-                                                            )}{" "}
-                                                            billet(s)
-                                                        </span>
-                                                        <span className="text-sm font-bold">
-                                                            {order.totalAmount.toLocaleString(
-                                                                "fr-FR",
-                                                            )}{" "}
-                                                            F
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
-                    {/* Évènements organisés (ORGANIZER / ADMIN) */}
-                    {(role === "ORGANIZER" || role === "ADMIN") &&
-                        organizerData && (
-                            <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-5">
-                                    <h2 className="font-bold text-lg">
-                                        {role === "ADMIN"
-                                            ? "Derniers évènements"
-                                            : "Mes évènements"}
-                                    </h2>
-                                    <Link href="/dashboard/events">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="gap-1 text-xs"
+                    {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
+                        <Section title="Ventes récentes">
+                            {organizerData.recentSales.length === 0 ? (
+                                <Empty text="Aucune vente pour le moment." />
+                            ) : (
+                                <div className="space-y-2">
+                                    {organizerData.recentSales.map((order) => (
+                                        <div
+                                            key={order.id}
+                                            className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
                                         >
-                                            Tout voir{" "}
-                                            <ArrowRight className="w-3.5 h-3.5" />
-                                        </Button>
-                                    </Link>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-sm truncate">
+                                                    {order.event.title}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {order.user.name ?? order.user.email}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                                <span className="text-xs font-bold">
+                                                    {fmt(order.totalAmount)}
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {order.items.reduce((s, i) => s + i.quantity, 0)} billet(s)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
+                            )}
+                        </Section>
+                    )}
 
-                                {organizerData.events.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-xl">
-                                        Aucun évènement créé.
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {organizerData.events.map((event) => {
-                                            const ticketsSold =
-                                                event.orders.reduce(
-                                                    (s, o) =>
-                                                        s +
-                                                        o.items.reduce(
-                                                            (q, i) =>
-                                                                q + i.quantity,
-                                                            0,
-                                                        ),
-                                                    0,
-                                                );
-                                            const revenue =
-                                                event.orders.reduce(
-                                                    (s, o) =>
-                                                        s + o.totalAmount,
-                                                    0,
-                                                );
-                                            return (
-                                                <div
-                                                    key={event.id}
-                                                    className="flex items-center justify-between gap-4 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
-                                                >
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2">
-                                                            <p className="font-semibold text-sm truncate">
-                                                                {event.title}
-                                                            </p>
-                                                            {event.isFeatured && (
-                                                                <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400 shrink-0" />
-                                                            )}
-                                                        </div>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {format(
-                                                                new Date(
-                                                                    event.startDate,
-                                                                ),
-                                                                "d MMM yyyy",
-                                                                { locale: fr },
-                                                            )}
+                    {/* Évènements (ORGANIZER / ADMIN) */}
+                    {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
+                        <Section
+                            title={role === "ADMIN" ? "Derniers évènements" : "Mes évènements"}
+                            action={
+                                <Link href="/dashboard/events">
+                                    <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 px-2">
+                                        Tout voir <ArrowRight className="w-3 h-3" />
+                                    </Button>
+                                </Link>
+                            }
+                        >
+                            {organizerData.events.length === 0 ? (
+                                <Empty text="Aucun évènement créé." />
+                            ) : (
+                                <div className="space-y-2">
+                                    {organizerData.events.map((event) => {
+                                        const ticketsSold = event.orders.reduce(
+                                            (s, o) => s + o.items.reduce((q, i) => q + i.quantity, 0), 0,
+                                        );
+                                        const revenue = event.orders.reduce((s, o) => s + o.totalAmount, 0);
+                                        return (
+                                            <div
+                                                key={event.id}
+                                                className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
+                                            >
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="font-semibold text-sm truncate">
+                                                            {event.title}
                                                         </p>
+                                                        {event.isFeatured && (
+                                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-400 shrink-0" />
+                                                        )}
                                                     </div>
-                                                    <div className="text-right shrink-0">
-                                                        <p className="text-sm font-bold">
-                                                            {revenue.toLocaleString(
-                                                                "fr-FR",
-                                                            )}{" "}
-                                                            F
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {ticketsSold} billet(s)
-                                                        </p>
-                                                    </div>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {format(new Date(event.startDate), "d MMM yyyy", { locale: fr })}
+                                                    </p>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </section>
-                        )}
+                                                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                                    <span className="text-xs font-bold">
+                                                        {fmt(revenue)}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {ticketsSold} billet(s)
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </Section>
+                    )}
                 </div>
 
-                {/* ── Colonne latérale ─────────────────────────────────── */}
-                <div className="space-y-6">
+                {/* Colonne latérale — order-1 mobile (en haut), order-2 desktop */}
+                <div className="space-y-5 order-1 lg:order-2">
+
                     {/* Actions rapides */}
-                    <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                        <h2 className="font-bold text-lg mb-4">
-                            Actions rapides
-                        </h2>
+                    <Section title="Actions rapides">
                         <div className="space-y-2">
                             <Link href="/dashboard/orders" className="block">
-                                <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                                    <ShoppingBag className="w-4 h-4" />
+                                <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                    <ShoppingBag className="w-4 h-4 shrink-0" />
                                     Mes commandes
                                 </Button>
                             </Link>
                             <Link href="/events" className="block">
-                                <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                                    <CalendarDays className="w-4 h-4" />
+                                <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                    <CalendarDays className="w-4 h-4 shrink-0" />
                                     Parcourir les évènements
                                 </Button>
                             </Link>
 
                             {role === "USER" && (
                                 <Link href="/dashboard/demande-organisateur" className="block">
-                                    <Button className="w-full justify-start gap-2 h-10 bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/30">
-                                        <PlusCircle className="w-4 h-4" />
+                                    <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/30">
+                                        <PlusCircle className="w-4 h-4 shrink-0" />
                                         Devenir organisateur
                                     </Button>
                                 </Link>
@@ -544,14 +502,14 @@ export default async function DashboardPage() {
                             {(role === "ORGANIZER" || role === "ADMIN") && (
                                 <>
                                     <Link href="/dashboard/events/new" className="block">
-                                        <Button className="w-full justify-start gap-2 h-10 bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                                            <PlusCircle className="w-4 h-4" />
+                                        <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary hover:bg-secondary/90 text-secondary-foreground">
+                                            <PlusCircle className="w-4 h-4 shrink-0" />
                                             Créer un évènement
                                         </Button>
                                     </Link>
                                     <Link href="/dashboard/events" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                                            <CalendarDays className="w-4 h-4" />
+                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                            <CalendarDays className="w-4 h-4 shrink-0" />
                                             Mes évènements
                                         </Button>
                                     </Link>
@@ -561,97 +519,106 @@ export default async function DashboardPage() {
                             {role === "ADMIN" && (
                                 <>
                                     <Link href="/admin/requests" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 border-orange-300 text-orange-700 hover:bg-orange-50">
-                                            <AlertCircle className="w-4 h-4" />
-                                            Demandes organisateur
-                                            {organizerData?.pendingRequests
-                                                ? ` (${organizerData.pendingRequests})`
-                                                : ""}
+                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm border-orange-300 text-orange-700 hover:bg-orange-50">
+                                            <AlertCircle className="w-4 h-4 shrink-0" />
+                                            <span className="truncate">
+                                                Demandes
+                                                {organizerData?.pendingRequests
+                                                    ? ` (${organizerData.pendingRequests})`
+                                                    : ""}
+                                            </span>
                                         </Button>
                                     </Link>
                                     <Link href="/admin" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10">
-                                            <Users className="w-4 h-4" />
+                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                            <Users className="w-4 h-4 shrink-0" />
                                             Panneau admin
                                         </Button>
                                     </Link>
                                 </>
                             )}
                         </div>
-                    </section>
+                    </Section>
 
                     {/* Missions agent confirmées */}
                     {agentEvents.length > 0 && (
-                        <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                            <h2 className="font-bold text-lg mb-4">
-                                Mes missions agent
-                            </h2>
-                            <div className="space-y-3">
+                        <Section title="Missions agent">
+                            <div className="space-y-2">
                                 {agentEvents.map((a) => (
                                     <Link
                                         key={a.id}
                                         href={`/agent/${a.eventId}/scan`}
-                                        className="flex items-center justify-between gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
+                                        className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
                                     >
                                         <div className="flex-1 min-w-0">
                                             <p className="font-semibold text-sm truncate">
                                                 {a.event.title}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {format(
-                                                    new Date(a.event.startDate),
-                                                    "d MMM yyyy",
-                                                    { locale: fr },
-                                                )}
+                                                {format(new Date(a.event.startDate), "d MMM yyyy", { locale: fr })}
                                             </p>
                                         </div>
                                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                                     </Link>
                                 ))}
                             </div>
-                        </section>
+                        </Section>
                     )}
 
-                    {/* Prochains événements (billets achetés) */}
-                    {role === "USER" && (() => {
-                        const upcoming = recentOrders
-                            .filter(
-                                (o) =>
-                                    o.status === "COMPLETED" &&
-                                    new Date(o.event.startDate) > new Date(),
-                            )
-                            .slice(0, 3);
-                        if (upcoming.length === 0) return null;
-                        return (
-                            <section className="bg-card border rounded-2xl p-6 shadow-sm">
-                                <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                    <Clock className="w-5 h-5 text-secondary" />
-                                    À venir
-                                </h2>
-                                <div className="space-y-3">
-                                    {upcoming.map((o) => (
-                                        <div
-                                            key={o.id}
-                                            className="p-3 rounded-xl border"
-                                        >
-                                            <p className="font-semibold text-sm">
-                                                {o.event.title}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground mt-0.5">
-                                                {format(
-                                                    new Date(o.event.startDate),
-                                                    "EEEE d MMMM yyyy",
-                                                    { locale: fr },
-                                                )}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        );
-                    })()}
+                    {/* Prochains événements (USER) */}
+                    {role === "USER" && upcomingEvents.length > 0 && (
+                        <Section title="À venir" icon={<Clock className="w-4 h-4 text-secondary" />}>
+                            <div className="space-y-2">
+                                {upcomingEvents.map((o) => (
+                                    <div key={o.id} className="p-3 rounded-xl border">
+                                        <p className="font-semibold text-sm truncate">
+                                            {o.event.title}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {format(new Date(o.event.startDate), "EEE d MMM yyyy", { locale: fr })}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </Section>
+                    )}
                 </div>
             </div>
+        </div>
+    );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Section({
+    title,
+    action,
+    icon,
+    children,
+}: {
+    title: string;
+    action?: React.ReactNode;
+    icon?: React.ReactNode;
+    children: React.ReactNode;
+}) {
+    return (
+        <section className="bg-card border rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4 gap-2">
+                <h2 className="font-bold text-base flex items-center gap-1.5">
+                    {icon}
+                    {title}
+                </h2>
+                {action}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function Empty({ text }: { text: string }) {
+    return (
+        <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-xl">
+            {text}
         </div>
     );
 }
