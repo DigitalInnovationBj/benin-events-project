@@ -62,7 +62,9 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
         });
     }
 
-    const totalPrice = ticket.price * quantity;
+    const basePrice = ticket.price * quantity;
+    const fees = basePrice > 0 ? Math.ceil(basePrice * 0.05) + 100 : 0;
+    const totalPrice = basePrice + fees;
 
     return (
         <>
@@ -123,17 +125,28 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                         )}
 
                         {/* Récapitulatif + bouton paiement */}
-                        <div className="border-t pt-5 flex items-center justify-between gap-4">
-                            <div>
-                                <p className="text-xs text-muted-foreground mb-0.5">
-                                    Total
-                                </p>
-                                <p className="text-2xl font-bold text-secondary">
-                                    {totalPrice === 0
-                                        ? "Gratuit"
-                                        : `${totalPrice.toLocaleString("fr-FR")} FCFA`}
-                                </p>
-                            </div>
+                        <div className="border-t pt-5 space-y-4">
+                            {fees > 0 && (
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Billets ({quantity})</span>
+                                        <span>{basePrice.toLocaleString("fr-FR")} FCFA</span>
+                                    </div>
+                                    <div className="flex justify-between text-muted-foreground">
+                                        <span>Frais de service</span>
+                                        <span>{fees.toLocaleString("fr-FR")} FCFA</span>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+                                    <p className="text-2xl font-bold text-secondary">
+                                        {totalPrice === 0
+                                            ? "Gratuit"
+                                            : `${totalPrice.toLocaleString("fr-FR")} FCFA`}
+                                    </p>
+                                </div>
                             <Button
                                 onClick={handleSubmit}
                                 disabled={isPending}
@@ -149,6 +162,7 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                                       ? "Réserver"
                                       : "Payer"}
                             </Button>
+                            </div>
                         </div>
                     </div>
                 </DialogContent>

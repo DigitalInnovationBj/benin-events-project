@@ -6,6 +6,14 @@ import { createPayment } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+// Frais de service facturés au client : 5 % du montant + 100 F fixe
+function computeFees(base: number): number {
+    if (base === 0) return 0;
+    return Math.ceil(base * 0.05) + 100;
+}
+
 export async function initiateTicketPayment(formData: FormData) {
     const { userId } = await auth();
     if (!userId) {
@@ -54,11 +62,12 @@ export async function initiateTicketPayment(formData: FormData) {
         }
     }
 
-    const totalAmount = ticket.price * quantity;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
+    const baseAmount = ticket.price * quantity;
+    const fees = computeFees(baseAmount);
+    const totalAmount = baseAmount + fees;
 
     // Billet gratuit → commande directe sans paiement
-    if (totalAmount === 0) {
+    if (baseAmount === 0) {
         const order = await prisma.order.create({
             data: {
                 reference: `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -116,7 +125,7 @@ export async function initiateTicketPayment(formData: FormData) {
         revalidatePath(`/events/${order.event.slug}`);
         return {
             success: true,
-            redirectUrl: `${appUrl}/checkout/success?orderId=${order.id}`,
+            redirectUrl: `${APP_URL}/checkout/success?orderId=${order.id}`,
         };
     }
 
@@ -142,8 +151,8 @@ export async function initiateTicketPayment(formData: FormData) {
                 name: dbUser.name ?? undefined,
                 email: dbUser.email,
             },
-            success_url: `${appUrl}/checkout/success?orderId=${order.id}`,
-            error_url: `${appUrl}/checkout/error?orderId=${order.id}`,
+            success_url: `${APP_URL}/checkout/success?orderId=${order.id}`,
+            error_url: `${APP_URL}/checkout/error?orderId=${order.id}`,
             metadata: {
                 order_id: order.id,
                 user_id: dbUser.id,
