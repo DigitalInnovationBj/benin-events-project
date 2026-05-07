@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
@@ -54,50 +52,62 @@ export async function POST(req: NextRequest) {
         };
     });
 
-    const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 512,
-        system: `Tu es un assistant de recommandation pour Benin Events, une plateforme d'évènements au Bénin (Afrique de l'Ouest).
-Tu reçois une liste d'évènements disponibles et une demande utilisateur.
-Tu dois sélectionner les évènements les plus pertinents (maximum 4) et expliquer brièvement pourquoi.
-Sois précis, chaleureux et en français.`,
-        messages: [
-            {
-                role: "user",
-                content: `Demande : "${query}"\n\nÉvènements disponibles :\n${JSON.stringify(eventsForAI, null, 2)}`,
-            },
-        ],
+    const model = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash",
         tools: [
             {
-                name: "recommend_events",
-                description: "Retourne les slugs des évènements correspondants et un message explicatif",
-                input_schema: {
-                    type: "object" as const,
-                    properties: {
-                        slugs: {
-                            type: "array",
-                            items: { type: "string" },
-                            description: "Slugs des évènements sélectionnés (max 4)",
-                        },
-                        message: {
-                            type: "string",
-                            description: "Réponse courte et naturelle en français (1-2 phrases)",
+                functionDeclarations: [
+                    {
+                        name: "recommend_events",
+                        description: "Retourne les slugs des évènements correspondants et un message explicatif",
+                        parameters: {
+                            type: SchemaType.OBJECT,
+                            properties: {
+                                slugs: {
+                                    type: SchemaType.ARRAY,
+                                    items: { type: SchemaType.STRING },
+                                    description: "Slugs des évènements sélectionnés (max 4)",
+                                },
+                                message: {
+                                    type: SchemaType.STRING,
+                                    description: "Réponse courte et naturelle en français (1-2 phrases)",
+                                },
+                            },
+                            required: ["slugs", "message"],
                         },
                     },
-                    required: ["slugs", "message"],
-                },
+                ],
             },
         ],
-        tool_choice: { type: "tool", name: "recommend_events" },
+        toolConfig: {
+            functionCallingConfig: {
+                mode: "ANY" as const,
+                allowedFunctionNames: ["recommend_events"],
+            },
+        },
     });
 
-    // Extract tool result
-    const toolUse = response.content.find((b) => b.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
-        throw new Error("No tool_use block in response");
+    const prompt = `Tu es un assistant de recommandation pour Benin Events, une plateforme d'évènements au Bénin (Afrique de l'Ouest).
+Tu reçois une liste d'évènements disponibles et une demande utilisateur.
+Tu dois sélectionner les évènements les plus pertinents (maximum 4) et expliquer brièvement pourquoi.
+Sois précis, chaleureux et en français.
+
+Demande : "${query}"
+
+Évènements disponibles :
+${JSON.stringify(eventsForAI, null, 2)}`;
+
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+
+    const functionCall = response.candidates?.[0]?.content?.parts
+        ?.find((p) => p.functionCall)?.functionCall;
+
+    if (!functionCall) {
+        throw new Error("No function call in Gemini response");
     }
 
-    const { slugs, message } = toolUse.input as { slugs: string[]; message: string };
+    const { slugs, message } = functionCall.args as { slugs: string[]; message: string };
 
     // Build result from matching slugs
     const matchingEvents = slugs

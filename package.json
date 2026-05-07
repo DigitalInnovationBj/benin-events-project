@@ -20,6 +20,7 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@emailjs/browser": "^4.4.1",
+        "@google/generative-ai": "^0.24.1",
         "@gsap/react": "^2.1.2",
         "@hookform/resolvers": "^5.2.2",
         "@lglab/react-qr-code": "^1.4.10",
