@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
     Loader2,
     ArrowLeft,
@@ -25,6 +25,7 @@ type EventType = "IN_PERSON" | "ONLINE";
 export default function NewEventPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [description, setDescription] = useState("");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
 
@@ -67,14 +68,18 @@ export default function NewEventPage() {
         setPreview(URL.createObjectURL(file));
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!description.trim()) {
+            toast.error("La description est obligatoire.");
+            return;
+        }
         setIsLoading(true);
 
         const formData = new FormData(e.currentTarget);
 
-        // Injecter les valeurs contrôlées par state
         formData.set("eventType", eventType);
+        formData.set("description", description);
         selectedCategories.forEach((id) => formData.append("categoryIds", id));
 
         try {
@@ -186,13 +191,9 @@ export default function NewEventPage() {
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="description">Description *</Label>
-                            <Textarea
-                                id="description"
-                                name="description"
-                                placeholder="Décrivez votre évènement en détail..."
-                                className="min-h-30"
-                                required
+                            <Label>Description *</Label>
+                            <RichTextEditor
+                                onChange={setDescription}
                             />
                         </div>
 

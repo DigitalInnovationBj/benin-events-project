@@ -44,18 +44,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const ogImageUrl = event.ogImage || event.imageUrl;
 
+    const plainDescription = event.description
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .substring(0, 160) + "…";
+
     return {
         title: `${event.ogTitle || event.title} | Benin Events`,
-        description: event.description.substring(0, 160) + "…",
+        description: plainDescription,
         openGraph: {
             title: event.ogTitle || event.title,
-            description: event.description.substring(0, 160) + "…",
+            description: plainDescription,
             images: ogImageUrl ? [ogImageUrl] : [],
         },
         twitter: {
             card: "summary_large_image",
             title: event.ogTitle || event.title,
-            description: event.description.substring(0, 160) + "…",
+            description: plainDescription,
             images: ogImageUrl ? [ogImageUrl] : [],
         },
     };
@@ -331,9 +337,10 @@ export default async function PublicEventPage({ params }: Props) {
                         </div>
 
                         {/* Description */}
-                        <div className="prose prose-lg dark:prose-invert max-w-none whitespace-pre-wrap text-muted-foreground leading-relaxed">
-                            {event.description}
-                        </div>
+                        <div
+                            className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: event.description }}
+                        />
                     </section>
 
                     {/* ── Localisation (présentiel) OU Lien (en ligne) ─── */}
