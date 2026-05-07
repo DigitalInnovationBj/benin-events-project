@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, FunctionCallingMode } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         ],
         toolConfig: {
             functionCallingConfig: {
-                mode: "ANY" as const,
+                mode: FunctionCallingMode.ANY,
                 allowedFunctionNames: ["recommend_events"],
             },
         },
