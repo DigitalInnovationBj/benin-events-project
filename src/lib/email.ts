@@ -4,6 +4,7 @@ import { resend } from "@/lib/resend";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
+import { AgentInvitationEmail } from "@/emails/agent-invitation";
 
 const FROM = "Benin Events <no-reply@beninevents.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -158,6 +159,57 @@ export async function sendOrganizerRequestDecisionEmail(
         from: FROM,
         to,
         subject,
+        html,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendAgentInvitationEmail
+// ─────────────────────────────────────────────
+
+export interface SendAgentInvitationParams {
+    to: string;
+    recipientName: string;
+    eventTitle: string;
+    eventDate: string;
+    eventLocation: string | null;
+    eventType: "IN_PERSON" | "ONLINE";
+    organizerName: string;
+    token: string;
+}
+
+export async function sendAgentInvitationEmail(
+    params: SendAgentInvitationParams,
+) {
+    const {
+        to,
+        recipientName,
+        eventTitle,
+        eventDate,
+        eventLocation,
+        eventType,
+        organizerName,
+        token,
+    } = params;
+
+    const confirmUrl = `${APP_URL}/agent/confirm/${token}`;
+
+    const html = await render(
+        AgentInvitationEmail({
+            recipientName,
+            eventTitle,
+            eventDate,
+            eventLocation,
+            eventType,
+            organizerName,
+            confirmUrl,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM,
+        to,
+        subject: `🎟️ Invitation agent — ${eventTitle}`,
         html,
     });
 }

@@ -35,6 +35,12 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum AgentStatus {
+  PENDING
+  CONFIRMED
+  REVOKED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -52,6 +58,7 @@ model User {
   likes             Like[]
   favorites         Favorite[]
   orders            Order[]
+  agentFor          EventAgent[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -158,6 +165,7 @@ model Event {
   likes       Like[]
   favorites   Favorite[]
   orders      Order[]
+  agents      EventAgent[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -248,9 +256,11 @@ model Order {
 }
 
 model OrderItem {
-  id       String @id @default(cuid())
-  quantity Int
-  price    Float
+  id           String    @id @default(cuid())
+  quantity     Int
+  price        Float
+  scannedCount Int       @default(0)
+  firstScannedAt DateTime?
 
   orderId  String
   order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -259,4 +269,26 @@ model OrderItem {
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Agents d'évènement
+// ─────────────────────────────────────────────
+
+model EventAgent {
+  id     String      @id @default(cuid())
+  token  String      @unique
+  status AgentStatus @default(PENDING)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([token])
 }

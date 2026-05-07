@@ -12,6 +12,7 @@ import {
     Pencil,
     Plus,
     Star,
+    Users,
 } from "lucide-react";
 import Image from "next/image";
 import { TicketForm } from "./ticket-form";
@@ -78,6 +79,12 @@ export default async function EventDetailsPage({
                         eventId={event.id}
                         eventTitle={event.title}
                     />
+                    <Link href={`/dashboard/events/${event.id}/agents`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Users className="w-4 h-4" />
+                            Agents
+                        </Button>
+                    </Link>
                     <Link href={`/dashboard/events/${event.id}/edit`}>
                         <Button variant="outline" size="sm" className="gap-2">
                             <Pencil className="w-4 h-4" />
