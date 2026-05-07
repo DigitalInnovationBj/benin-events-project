@@ -8,6 +8,8 @@ import {
     ContactNotificationEmail,
     ContactAutoReplyEmail,
 } from "@/emails/contact-notification";
+import { PayoutNotificationEmail, type PayoutNotifType } from "@/emails/payout-notification";
+import { PayoutRequestAdminEmail } from "@/emails/payout-request-admin";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -206,6 +208,87 @@ export async function sendAgentInvitationEmail(
         from: FROM_SUPPORT,
         to,
         subject: `🎟️ Invitation agent — ${eventTitle}`,
+        html,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendPayoutRequestAdminEmail
+// ─────────────────────────────────────────────
+
+export interface SendPayoutRequestAdminParams {
+    adminEmails: string[];
+    organizerName: string;
+    organizerEmail: string;
+    netAmount: number;
+    grossAmount: number;
+    commissionRate: number;
+    methodType: "MOBILE_MONEY" | "BANK_TRANSFER";
+    operator?: string;
+    phoneNumber?: string;
+    bankName?: string;
+    accountName?: string;
+    iban?: string;
+}
+
+export async function sendPayoutRequestAdminEmail(params: SendPayoutRequestAdminParams) {
+    const { adminEmails, ...rest } = params;
+
+    const html = await render(
+        PayoutRequestAdminEmail({
+            ...rest,
+            adminPanelUrl: `${APP_URL}/admin/payouts`,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to: adminEmails,
+        subject: `💰 Nouvelle demande de reversement — ${params.organizerName}`,
+        html,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendPayoutStatusEmail
+// ─────────────────────────────────────────────
+
+export interface SendPayoutStatusParams {
+    to: string;
+    organizerName: string;
+    type: PayoutNotifType;
+    netAmount: number;
+    grossAmount: number;
+    commissionRate: number;
+    adminNote?: string;
+}
+
+export async function sendPayoutStatusEmail(params: SendPayoutStatusParams) {
+    const { to, type, organizerName, netAmount, grossAmount, commissionRate, adminNote } = params;
+
+    const html = await render(
+        PayoutNotificationEmail({
+            organizerName,
+            type,
+            netAmount,
+            grossAmount,
+            commissionRate,
+            adminNote,
+            appUrl: APP_URL,
+        }),
+    );
+
+    const subjects: Record<PayoutNotifType, string> = {
+        REQUESTED:  "⏳ Votre demande de reversement a été reçue",
+        PROCESSING: "🔄 Votre reversement est en cours de traitement",
+        PAID:       "✅ Votre reversement a été effectué !",
+        REJECTED:   "Votre demande de reversement — Décision",
+    };
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to,
+        subject: subjects[type],
         html,
     });
 }

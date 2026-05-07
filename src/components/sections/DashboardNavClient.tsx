@@ -12,6 +12,8 @@ import {
     ArrowLeft,
     X,
     LayoutPanelTop,
+    Settings,
+    Banknote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +75,12 @@ function getNavItems(role: Role): NavItem[] {
             icon: CalendarRange,
             exact: false,
         });
+        items.push({
+            href: "/dashboard/payout",
+            label: "Reversements",
+            icon: Banknote,
+            exact: false,
+        });
     }
 
     if (role === "ADMIN") {
@@ -80,6 +88,18 @@ function getNavItems(role: Role): NavItem[] {
             href: "/admin/requests",
             label: "Administration",
             icon: ShieldCheck,
+            exact: false,
+        });
+        items.push({
+            href: "/admin/payouts",
+            label: "Reversements",
+            icon: Banknote,
+            exact: false,
+        });
+        items.push({
+            href: "/admin/settings",
+            label: "Paramètres",
+            icon: Settings,
             exact: false,
         });
     }

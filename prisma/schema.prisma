@@ -41,6 +41,23 @@ enum AgentStatus {
   REVOKED
 }
 
+enum PayoutMethodType {
+  MOBILE_MONEY
+  BANK_TRANSFER
+}
+
+enum MobileMoneyOperator {
+  MTN
+  MOOV
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -59,6 +76,8 @@ model User {
   favorites         Favorite[]
   orders            Order[]
   agentFor          EventAgent[]
+  payoutMethod      PayoutMethod?
+  payoutRequests    PayoutRequest[]    @relation("OrganizerPayouts")
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -269,6 +288,64 @@ model OrderItem {
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────
+// Reversements
+// ─────────────────────────────────────────────
+
+model PayoutMethod {
+  id          String               @id @default(cuid())
+  type        PayoutMethodType
+  operator    MobileMoneyOperator?
+  phoneNumber String?
+  bankName    String?
+  accountName String?
+  iban        String?
+
+  userId      String               @unique
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+model PayoutRequest {
+  id               String               @id @default(cuid())
+  grossAmount      Float
+  commissionRate   Float
+  commissionAmount Float
+  netAmount        Float
+  status           PayoutStatus         @default(PENDING)
+  adminNote        String?
+
+  // Snapshot des coordonnées au moment de la demande
+  methodType       PayoutMethodType
+  operator         MobileMoneyOperator?
+  phoneNumber      String?
+  bankName         String?
+  accountName      String?
+  iban             String?
+
+  organizerId      String
+  organizer        User                 @relation("OrganizerPayouts", fields: [organizerId], references: [id])
+
+  processedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// Paramètres plateforme
+// ─────────────────────────────────────────────
+
+model PlatformSettings {
+  id             String   @id @default("singleton")
+  commissionRate Float    @default(0)
+  updatedAt      DateTime @updatedAt
 }
 
 // ─────────────────────────────────────────────
