@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSignIn, useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
-export default function LoginPage() {
+function LoginContent() {
     const { isLoaded, signIn } = useSignIn();
     const { isSignedIn, isLoaded: userLoaded } = useUser();
     const router = useRouter();
@@ -24,7 +24,6 @@ export default function LoginPage() {
     >(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Redirect if user is already signed in
     useEffect(() => {
         if (userLoaded && isSignedIn) {
             router.push(redirectUrl);
@@ -149,5 +148,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </section>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense>
+            <LoginContent />
+        </Suspense>
     );
 }

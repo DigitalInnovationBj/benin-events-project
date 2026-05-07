@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSignUp, useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 
-export default function SignUpPage() {
+function SignUpContent() {
     const { isLoaded, signUp } = useSignUp();
     const { isSignedIn, isLoaded: userLoaded } = useUser();
     const router = useRouter();
@@ -148,5 +148,13 @@ export default function SignUpPage() {
                 </div>
             </div>
         </section>
+    );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense>
+            <SignUpContent />
+        </Suspense>
     );
 }

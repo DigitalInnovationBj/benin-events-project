@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { AuthenticateWithRedirectCallback } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 
-export default function SSOCallbackPage() {
+function SSOCallbackContent() {
     const searchParams = useSearchParams();
     const redirectUrl = searchParams.get("redirect_url") ?? "/dashboard";
 
@@ -12,5 +13,13 @@ export default function SSOCallbackPage() {
             signInForceRedirectUrl={redirectUrl}
             signUpForceRedirectUrl={redirectUrl}
         />
+    );
+}
+
+export default function SSOCallbackPage() {
+    return (
+        <Suspense>
+            <SSOCallbackContent />
+        </Suspense>
     );
 }
