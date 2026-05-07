@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSignIn, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -16,6 +16,8 @@ export default function LoginPage() {
     const { isLoaded, signIn } = useSignIn();
     const { isSignedIn, isLoaded: userLoaded } = useUser();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get("redirect_url") ?? "/dashboard";
 
     const [isSocialLoading, setIsSocialLoading] = useState<
         "google" | "apple" | null
@@ -25,9 +27,9 @@ export default function LoginPage() {
     // Redirect if user is already signed in
     useEffect(() => {
         if (userLoaded && isSignedIn) {
-            router.push("/dashboard");
+            router.push(redirectUrl);
         }
-    }, [userLoaded, isSignedIn, router]);
+    }, [userLoaded, isSignedIn, router, redirectUrl]);
 
     const handleSocialSignIn = async (
         strategy: "oauth_google" | "oauth_apple",
@@ -40,8 +42,8 @@ export default function LoginPage() {
         try {
             await signIn.authenticateWithRedirect({
                 strategy,
-                redirectUrl: "/sso-callback",
-                redirectUrlComplete: "/dashboard",
+                redirectUrl: `/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
+                redirectUrlComplete: redirectUrl,
             });
         } catch (err: any) {
             const errorMessage =
@@ -128,7 +130,7 @@ export default function LoginPage() {
                         <p className="text-sm text-muted-foreground">
                             Nouveau sur Benin Events ?{" "}
                             <Link
-                                href="/sign-up"
+                                href={`/sign-up${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
                                 className="text-secondary font-bold hover:text-secondary/80 transition-colors underline decoration-2 underline-offset-4"
                             >
                                 Créer un compte

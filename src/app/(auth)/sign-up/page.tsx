@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSignUp, useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -16,6 +16,8 @@ export default function SignUpPage() {
     const { isLoaded, signUp } = useSignUp();
     const { isSignedIn, isLoaded: userLoaded } = useUser();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectUrl = searchParams.get("redirect_url") ?? "/dashboard";
 
     const [isSocialLoading, setIsSocialLoading] = useState<
         "google" | "apple" | null
@@ -25,9 +27,9 @@ export default function SignUpPage() {
     // Redirect if user is already signed in
     useEffect(() => {
         if (userLoaded && isSignedIn) {
-            router.push("/dashboard");
+            router.push(redirectUrl);
         }
-    }, [userLoaded, isSignedIn, router]);
+    }, [userLoaded, isSignedIn, router, redirectUrl]);
 
     const handleSocialSignUp = async (
         strategy: "oauth_google" | "oauth_apple",
@@ -40,8 +42,8 @@ export default function SignUpPage() {
         try {
             await signUp.authenticateWithRedirect({
                 strategy,
-                redirectUrl: "/sso-callback",
-                redirectUrlComplete: "/dashboard",
+                redirectUrl: `/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
+                redirectUrlComplete: redirectUrl,
             });
         } catch (err: any) {
             const errorMessage =
@@ -127,7 +129,7 @@ export default function SignUpPage() {
                         <p className="text-sm text-muted-foreground">
                             Vous avez déjà un compte ?{" "}
                             <Link
-                                href="/sign-in"
+                                href={`/sign-in${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
                                 className="text-secondary font-bold hover:text-secondary/80 transition-colors underline decoration-2 underline-offset-4"
                             >
                                 Se connecter
