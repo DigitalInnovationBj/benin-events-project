@@ -6,7 +6,8 @@ import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
 import { AgentInvitationEmail } from "@/emails/agent-invitation";
 
-const FROM = "Benin Events <no-reply@beninevents.com>";
+const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
+const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 // ─────────────────────────────────────────────
@@ -85,7 +86,7 @@ export async function sendOrderConfirmationEmail(
     );
 
     await resend.emails.send({
-        from: FROM,
+        from: FROM_VENTES,
         to,
         subject: `✓ Vos billets pour ${eventTitle}`,
         html,
@@ -120,7 +121,7 @@ export async function sendOrganizerRequestAdminEmail(
     );
 
     await resend.emails.send({
-        from: FROM,
+        from: FROM_SUPPORT,
         to: adminEmails,
         subject: `🔔 Nouvelle demande d'organisateur — ${params.organizerName}`,
         html,
@@ -156,7 +157,7 @@ export async function sendOrganizerRequestDecisionEmail(
             : "Votre demande d'organisateur — Décision";
 
     await resend.emails.send({
-        from: FROM,
+        from: FROM_SUPPORT,
         to,
         subject,
         html,
@@ -207,7 +208,7 @@ export async function sendAgentInvitationEmail(
     );
 
     await resend.emails.send({
-        from: FROM,
+        from: FROM_SUPPORT,
         to,
         subject: `🎟️ Invitation agent — ${eventTitle}`,
         html,
