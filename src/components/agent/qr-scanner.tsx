@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
-import { Camera, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Camera, CameraOff, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ScanResult {
@@ -13,97 +12,140 @@ interface ScanResult {
     quantity?: number;
 }
 
-const SCANNER_ID = "qr-scanner-region";
-
 export function QrScanner({ eventId }: { eventId: string }) {
-    const scannerRef = useRef<Html5Qrcode | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const rafRef = useRef<number>(0);
+
     const [scanning, setScanning] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [supported, setSupported] = useState(true);
 
     useEffect(() => {
-        return () => {
-            stopScanner();
-        };
+        if (!("BarcodeDetector" in window)) setSupported(false);
+        return () => stop();
     }, []);
 
-    async function stopScanner() {
-        if (scannerRef.current?.isScanning) {
-            await scannerRef.current.stop().catch(() => {});
-        }
+    function stop() {
+        cancelAnimationFrame(rafRef.current);
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
         setScanning(false);
     }
 
-    async function startScanner() {
+    const runDetection = useCallback(() => {
+        const video = videoRef.current;
+        if (!video || !streamRef.current) return;
+
+        // @ts-expect-error — BarcodeDetector not yet in TS lib
+        const detector = new BarcodeDetector({ formats: ["qr_code"] });
+
+        const tick = async () => {
+            if (!videoRef.current || !streamRef.current) return;
+            try {
+                const codes = await detector.detect(videoRef.current);
+                if (codes.length > 0) {
+                    stop();
+                    await validate(codes[0].rawValue);
+                    return;
+                }
+            } catch {
+                // non-fatal, keep looping
+            }
+            rafRef.current = requestAnimationFrame(tick);
+        };
+
+        rafRef.current = requestAnimationFrame(tick);
+    }, []);
+
+    async function start() {
         setError(null);
         setResult(null);
-
         try {
-            const scanner = new Html5Qrcode(SCANNER_ID);
-            scannerRef.current = scanner;
-
-            await scanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                async (decodedText) => {
-                    await stopScanner();
-                    await validateCode(decodedText);
-                },
-                () => {},
-            );
-
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment", width: 640, height: 480 },
+            });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                await videoRef.current.play();
+            }
             setScanning(true);
+            runDetection();
         } catch {
-            setError(
-                "Impossible d'accéder à la caméra. Vérifiez les permissions.",
-            );
+            setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
         }
     }
 
-    async function validateCode(rawValue: string) {
+    async function validate(raw: string) {
         try {
-            const url = new URL(rawValue);
+            const url = new URL(raw);
             const itemId = url.searchParams.get("item");
             const orderRef = url.searchParams.get("order");
-
             if (!itemId || !orderRef) {
                 setResult({ valid: false, message: "QR code non reconnu" });
                 return;
             }
-
             const res = await fetch("/api/agent/validate-ticket", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ itemId, orderReference: orderRef, eventId }),
             });
-
-            const data: ScanResult = await res.json();
-            setResult(data);
+            setResult(await res.json());
         } catch {
             setResult({ valid: false, message: "QR code invalide" });
         }
     }
 
-    async function handleRestart() {
-        setResult(null);
-        await startScanner();
+    if (!supported) {
+        return (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5 text-center">
+                <p className="text-yellow-800 font-medium text-sm">
+                    Votre navigateur ne supporte pas la détection de QR codes.
+                </p>
+                <p className="text-yellow-700 text-xs mt-1">
+                    Utilisez Chrome 83+ ou Edge sur Android / desktop.
+                </p>
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Scanner region */}
-            <div className="max-w-md mx-auto">
-                <div
-                    id={SCANNER_ID}
-                    className="rounded-2xl overflow-hidden border bg-black aspect-[4/3]"
+        <div className="space-y-5">
+            {/* Viewfinder */}
+            <div className="relative bg-black rounded-2xl overflow-hidden aspect-4/3 max-w-sm mx-auto">
+                <video
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
                 />
+                {!scanning && !result && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <CameraOff className="w-10 h-10 text-zinc-500" />
+                    </div>
+                )}
+                {scanning && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-52 h-52 relative">
+                            <span className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl" />
+                            <span className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr" />
+                            <span className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl" />
+                            <span className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br" />
+                        </div>
+                        <p className="absolute bottom-3 text-white text-xs bg-black/50 px-3 py-1 rounded-full">
+                            Pointez vers un QR code
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Controls */}
             <div className="flex justify-center">
                 {!scanning ? (
                     <Button
-                        onClick={startScanner}
+                        onClick={start}
                         size="lg"
                         className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                     >
@@ -111,14 +153,9 @@ export function QrScanner({ eventId }: { eventId: string }) {
                         Démarrer le scanner
                     </Button>
                 ) : (
-                    <Button
-                        onClick={stopScanner}
-                        variant="outline"
-                        size="lg"
-                        className="gap-2"
-                    >
+                    <Button onClick={stop} variant="outline" size="lg" className="gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        Scan en cours... (Arrêter)
+                        Scan en cours… (Arrêter)
                     </Button>
                 )}
             </div>
@@ -130,46 +167,29 @@ export function QrScanner({ eventId }: { eventId: string }) {
                 </div>
             )}
 
-            {/* Scan result */}
+            {/* Result */}
             {result && (
-                <div
-                    className={`rounded-2xl p-6 text-center border ${
-                        result.valid
-                            ? "bg-emerald-50 border-emerald-200"
-                            : "bg-red-50 border-red-200"
-                    }`}
-                >
-                    {result.valid ? (
-                        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-                    ) : (
-                        <XCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-                    )}
-                    <p
-                        className={`font-bold text-lg ${
-                            result.valid ? "text-emerald-800" : "text-red-800"
-                        }`}
-                    >
+                <div className={`rounded-2xl p-6 text-center border ${result.valid ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+                    {result.valid
+                        ? <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
+                        : <XCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+                    }
+                    <p className={`font-bold text-lg ${result.valid ? "text-emerald-800" : "text-red-800"}`}>
                         {result.message}
                     </p>
                     {result.ticketTitle && (
-                        <p className="text-sm mt-1 text-zinc-600">
-                            {result.ticketTitle}
+                        <p className="text-sm mt-1 text-zinc-600">{result.ticketTitle}</p>
+                    )}
+                    {result.scannedCount !== undefined && result.quantity !== undefined && (
+                        <p className="text-sm mt-1 text-zinc-500">
+                            Entrées validées : <strong>{result.scannedCount} / {result.quantity}</strong>
                         </p>
                     )}
-                    {result.scannedCount !== undefined &&
-                        result.quantity !== undefined && (
-                            <p className="text-sm mt-1 text-zinc-500">
-                                Entrées validées :{" "}
-                                <strong>
-                                    {result.scannedCount} / {result.quantity}
-                                </strong>
-                            </p>
-                        )}
-
                     <Button
-                        onClick={handleRestart}
+                        onClick={() => { setResult(null); start(); }}
                         className="mt-4 gap-2"
                         variant="outline"
+                        size="sm"
                     >
                         <Camera className="w-4 h-4" />
                         Scanner un autre billet

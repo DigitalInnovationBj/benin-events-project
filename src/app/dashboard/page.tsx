@@ -132,8 +132,7 @@ export default async function DashboardPage() {
     // ── Données ORGANIZER / ADMIN ────────────────────────────────────────────
     let organizerData = null;
     if (role === "ORGANIZER" || role === "ADMIN") {
-        const whereEvents =
-            role === "ADMIN" ? {} : { organizerId: dbUser.id };
+        const whereEvents = role === "ADMIN" ? {} : { organizerId: dbUser.id };
 
         const [events, orderStats, recentSales, pendingRequests] =
             await Promise.all([
@@ -181,8 +180,7 @@ export default async function DashboardPage() {
             (sum, e) =>
                 sum +
                 e.orders.reduce(
-                    (s, o) =>
-                        s + o.items.reduce((q, i) => q + i.quantity, 0),
+                    (s, o) => s + o.items.reduce((q, i) => q + i.quantity, 0),
                     0,
                 ),
             0,
@@ -219,7 +217,6 @@ export default async function DashboardPage() {
 
     return (
         <div className="max-w-6xl mx-auto w-full space-y-5 pb-8">
-
             {/* ── Header ───────────────────────────────────────────────── */}
             <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -287,7 +284,7 @@ export default async function DashboardPage() {
 
             {/* ── Stats ORGANIZER ───────────────────────────────────────── */}
             {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <StatCard
                         label="Évènements"
                         value={organizerData.events.length}
@@ -309,7 +306,7 @@ export default async function DashboardPage() {
 
             {/* ── Stats USER ────────────────────────────────────────────── */}
             {role === "USER" && (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <StatCard
                         label="Commandes"
                         value={completedOrders}
@@ -332,18 +329,21 @@ export default async function DashboardPage() {
             {/* ── Corps principal ───────────────────────────────────────── */}
             {/* Sur mobile : actions d'abord, puis contenu. Sur desktop : contenu | actions */}
             <div className="grid lg:grid-cols-3 gap-5">
-
                 {/* Colonne principale — order-2 mobile, order-1 desktop */}
                 <div className="lg:col-span-2 space-y-5 order-2 lg:order-1">
-
                     {/* Commandes récentes (USER) */}
                     {role === "USER" && (
                         <Section
                             title="Commandes récentes"
                             action={
                                 <Link href="/dashboard/orders">
-                                    <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 px-2">
-                                        Tout voir <ArrowRight className="w-3 h-3" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="gap-1 text-xs h-7 px-2"
+                                    >
+                                        Tout voir{" "}
+                                        <ArrowRight className="w-3 h-3" />
                                     </Button>
                                 </Link>
                             }
@@ -362,11 +362,18 @@ export default async function DashboardPage() {
                                                     {order.event.title}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground font-mono">
-                                                    #{order.reference.slice(0, 12)}…
+                                                    #
+                                                    {order.reference.slice(
+                                                        0,
+                                                        12,
+                                                    )}
+                                                    …
                                                 </p>
                                             </div>
                                             <div className="flex flex-col items-end gap-1 shrink-0">
-                                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[order.status]}`}>
+                                                <span
+                                                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[order.status]}`}
+                                                >
                                                     {statusLabel[order.status]}
                                                 </span>
                                                 <span className="text-xs font-bold">
@@ -381,117 +388,166 @@ export default async function DashboardPage() {
                     )}
 
                     {/* Ventes récentes (ORGANIZER / ADMIN) */}
-                    {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
-                        <Section title="Ventes récentes">
-                            {organizerData.recentSales.length === 0 ? (
-                                <Empty text="Aucune vente pour le moment." />
-                            ) : (
-                                <div className="space-y-2">
-                                    {organizerData.recentSales.map((order) => (
-                                        <div
-                                            key={order.id}
-                                            className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
-                                        >
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-semibold text-sm truncate">
-                                                    {order.event.title}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground truncate">
-                                                    {order.user.name ?? order.user.email}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                                <span className="text-xs font-bold">
-                                                    {fmt(order.totalAmount)}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {order.items.reduce((s, i) => s + i.quantity, 0)} billet(s)
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </Section>
-                    )}
+                    {(role === "ORGANIZER" || role === "ADMIN") &&
+                        organizerData && (
+                            <Section title="Ventes récentes">
+                                {organizerData.recentSales.length === 0 ? (
+                                    <Empty text="Aucune vente pour le moment." />
+                                ) : (
+                                    <div className="space-y-2">
+                                        {organizerData.recentSales.map(
+                                            (order) => (
+                                                <div
+                                                    key={order.id}
+                                                    className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-sm truncate">
+                                                            {order.event.title}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground truncate">
+                                                            {order.user.name ??
+                                                                order.user
+                                                                    .email}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                                        <span className="text-xs font-bold">
+                                                            {fmt(
+                                                                order.totalAmount,
+                                                            )}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {order.items.reduce(
+                                                                (s, i) =>
+                                                                    s +
+                                                                    i.quantity,
+                                                                0,
+                                                            )}{" "}
+                                                            billet(s)
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                )}
+                            </Section>
+                        )}
 
                     {/* Évènements (ORGANIZER / ADMIN) */}
-                    {(role === "ORGANIZER" || role === "ADMIN") && organizerData && (
-                        <Section
-                            title={role === "ADMIN" ? "Derniers évènements" : "Mes évènements"}
-                            action={
-                                <Link href="/dashboard/events">
-                                    <Button variant="ghost" size="sm" className="gap-1 text-xs h-7 px-2">
-                                        Tout voir <ArrowRight className="w-3 h-3" />
-                                    </Button>
-                                </Link>
-                            }
-                        >
-                            {organizerData.events.length === 0 ? (
-                                <Empty text="Aucun évènement créé." />
-                            ) : (
-                                <div className="space-y-2">
-                                    {organizerData.events.map((event) => {
-                                        const ticketsSold = event.orders.reduce(
-                                            (s, o) => s + o.items.reduce((q, i) => q + i.quantity, 0), 0,
-                                        );
-                                        const revenue = event.orders.reduce((s, o) => s + o.totalAmount, 0);
-                                        return (
-                                            <div
-                                                key={event.id}
-                                                className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
-                                            >
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <p className="font-semibold text-sm truncate">
-                                                            {event.title}
+                    {(role === "ORGANIZER" || role === "ADMIN") &&
+                        organizerData && (
+                            <Section
+                                title={
+                                    role === "ADMIN"
+                                        ? "Derniers évènements"
+                                        : "Mes évènements"
+                                }
+                                action={
+                                    <Link href="/dashboard/events">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="gap-1 text-xs h-7 px-2"
+                                        >
+                                            Tout voir{" "}
+                                            <ArrowRight className="w-3 h-3" />
+                                        </Button>
+                                    </Link>
+                                }
+                            >
+                                {organizerData.events.length === 0 ? (
+                                    <Empty text="Aucun évènement créé." />
+                                ) : (
+                                    <div className="space-y-2">
+                                        {organizerData.events.map((event) => {
+                                            const ticketsSold =
+                                                event.orders.reduce(
+                                                    (s, o) =>
+                                                        s +
+                                                        o.items.reduce(
+                                                            (q, i) =>
+                                                                q + i.quantity,
+                                                            0,
+                                                        ),
+                                                    0,
+                                                );
+                                            const revenue = event.orders.reduce(
+                                                (s, o) => s + o.totalAmount,
+                                                0,
+                                            );
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    className="flex items-center gap-3 p-3 rounded-xl border hover:bg-muted/30 transition-colors"
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="font-semibold text-sm truncate">
+                                                                {event.title}
+                                                            </p>
+                                                            {event.isFeatured && (
+                                                                <Star className="w-3 h-3 text-yellow-500 fill-yellow-400 shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {format(
+                                                                new Date(
+                                                                    event.startDate,
+                                                                ),
+                                                                "d MMM yyyy",
+                                                                { locale: fr },
+                                                            )}
                                                         </p>
-                                                        {event.isFeatured && (
-                                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-400 shrink-0" />
-                                                        )}
                                                     </div>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {format(new Date(event.startDate), "d MMM yyyy", { locale: fr })}
-                                                    </p>
+                                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                                        <span className="text-xs font-bold">
+                                                            {fmt(revenue)}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {ticketsSold}{" "}
+                                                            billet(s)
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col items-end gap-0.5 shrink-0">
-                                                    <span className="text-xs font-bold">
-                                                        {fmt(revenue)}
-                                                    </span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {ticketsSold} billet(s)
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </Section>
-                    )}
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </Section>
+                        )}
                 </div>
 
                 {/* Colonne latérale — order-1 mobile (en haut), order-2 desktop */}
                 <div className="space-y-5 order-1 lg:order-2">
-
                     {/* Actions rapides */}
                     <Section title="Actions rapides">
                         <div className="space-y-2">
                             <Link href="/dashboard/orders" className="block">
-                                <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-2 h-10 text-sm"
+                                >
                                     <ShoppingBag className="w-4 h-4 shrink-0" />
                                     Mes commandes
                                 </Button>
                             </Link>
                             <Link href="/events" className="block">
-                                <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start gap-2 h-10 text-sm"
+                                >
                                     <CalendarDays className="w-4 h-4 shrink-0" />
                                     Parcourir les évènements
                                 </Button>
                             </Link>
 
                             {role === "USER" && (
-                                <Link href="/dashboard/demande-organisateur" className="block">
+                                <Link
+                                    href="/dashboard/demande-organisateur"
+                                    className="block"
+                                >
                                     <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/30">
                                         <PlusCircle className="w-4 h-4 shrink-0" />
                                         Devenir organisateur
@@ -501,14 +557,23 @@ export default async function DashboardPage() {
 
                             {(role === "ORGANIZER" || role === "ADMIN") && (
                                 <>
-                                    <Link href="/dashboard/events/new" className="block">
+                                    <Link
+                                        href="/dashboard/events/new"
+                                        className="block"
+                                    >
                                         <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary hover:bg-secondary/90 text-secondary-foreground">
                                             <PlusCircle className="w-4 h-4 shrink-0" />
                                             Créer un évènement
                                         </Button>
                                     </Link>
-                                    <Link href="/dashboard/events" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                    <Link
+                                        href="/dashboard/events"
+                                        className="block"
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start gap-2 h-10 text-sm"
+                                        >
                                             <CalendarDays className="w-4 h-4 shrink-0" />
                                             Mes évènements
                                         </Button>
@@ -518,8 +583,14 @@ export default async function DashboardPage() {
 
                             {role === "ADMIN" && (
                                 <>
-                                    <Link href="/admin/requests" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm border-orange-300 text-orange-700 hover:bg-orange-50">
+                                    <Link
+                                        href="/admin/requests"
+                                        className="block"
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start gap-2 h-10 text-sm border-orange-300 text-orange-700 hover:bg-orange-50"
+                                        >
                                             <AlertCircle className="w-4 h-4 shrink-0" />
                                             <span className="truncate">
                                                 Demandes
@@ -530,7 +601,10 @@ export default async function DashboardPage() {
                                         </Button>
                                     </Link>
                                     <Link href="/admin" className="block">
-                                        <Button variant="outline" className="w-full justify-start gap-2 h-10 text-sm">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start gap-2 h-10 text-sm"
+                                        >
                                             <Users className="w-4 h-4 shrink-0" />
                                             Panneau admin
                                         </Button>
@@ -555,7 +629,11 @@ export default async function DashboardPage() {
                                                 {a.event.title}
                                             </p>
                                             <p className="text-xs text-muted-foreground">
-                                                {format(new Date(a.event.startDate), "d MMM yyyy", { locale: fr })}
+                                                {format(
+                                                    new Date(a.event.startDate),
+                                                    "d MMM yyyy",
+                                                    { locale: fr },
+                                                )}
                                             </p>
                                         </div>
                                         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -567,15 +645,25 @@ export default async function DashboardPage() {
 
                     {/* Prochains événements (USER) */}
                     {role === "USER" && upcomingEvents.length > 0 && (
-                        <Section title="À venir" icon={<Clock className="w-4 h-4 text-secondary" />}>
+                        <Section
+                            title="À venir"
+                            icon={<Clock className="w-4 h-4 text-secondary" />}
+                        >
                             <div className="space-y-2">
                                 {upcomingEvents.map((o) => (
-                                    <div key={o.id} className="p-3 rounded-xl border">
+                                    <div
+                                        key={o.id}
+                                        className="p-3 rounded-xl border"
+                                    >
                                         <p className="font-semibold text-sm truncate">
                                             {o.event.title}
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-0.5">
-                                            {format(new Date(o.event.startDate), "EEE d MMM yyyy", { locale: fr })}
+                                            {format(
+                                                new Date(o.event.startDate),
+                                                "EEE d MMM yyyy",
+                                                { locale: fr },
+                                            )}
                                         </p>
                                     </div>
                                 ))}

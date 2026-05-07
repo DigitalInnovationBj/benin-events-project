@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Ticket, Calendar } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
+import { TicketQrCode } from "@/components/orders/ticket-qr-code";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const STATUS_CONFIG: Record<
     OrderStatus,
@@ -111,6 +114,22 @@ export default async function OrdersPage() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* QR codes — uniquement pour les commandes confirmées */}
+                                {order.status === "COMPLETED" && (
+                                    <div className="space-y-2 pt-1">
+                                        {order.items.map((item) => (
+                                            <TicketQrCode
+                                                key={item.id}
+                                                itemId={item.id}
+                                                orderReference={order.reference}
+                                                ticketTitle={item.ticket.title}
+                                                quantity={item.quantity}
+                                                appUrl={APP_URL}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
 
                                 <div className="border-t pt-3 flex items-center justify-between gap-4 flex-wrap">
                                     <span className="text-xs text-muted-foreground font-mono">
