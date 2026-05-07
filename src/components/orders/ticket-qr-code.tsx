@@ -1,16 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { QrCode, ChevronDown, ChevronUp } from "lucide-react";
+import { ReactQRCode } from "@lglab/react-qr-code";
 
 interface Props {
-    qrDataUrl: string;
+    verifyUrl: string;
     ticketTitle: string;
     quantity: number;
 }
 
-export function TicketQrCode({ qrDataUrl, ticketTitle, quantity }: Props) {
+export function TicketQrCode({ verifyUrl, ticketTitle, quantity }: Props) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -38,12 +38,11 @@ export function TicketQrCode({ qrDataUrl, ticketTitle, quantity }: Props) {
             {open && (
                 <div className="border-t px-4 py-5 flex flex-col items-center gap-3 bg-white dark:bg-zinc-950">
                     <div className="p-3 bg-white rounded-xl border shadow-sm">
-                        <Image
-                            src={qrDataUrl}
-                            alt={`QR code — ${ticketTitle}`}
-                            width={200}
-                            height={200}
-                            unoptimized
+                        <ReactQRCode
+                            value={verifyUrl}
+                            size={200}
+                            level="H"
+                            marginSize={1}
                         />
                     </div>
                     <p className="text-xs text-center text-muted-foreground max-w-55">

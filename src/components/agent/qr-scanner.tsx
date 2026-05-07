@@ -4,9 +4,13 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Camera, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
-// SSR disabled — react-qr-scanner uses getUserMedia & Web Worker
-const QrReader = dynamic(() => import("react-qr-scanner"), { ssr: false });
+// SSR disabled — Scanner uses getUserMedia (browser-only)
+const Scanner = dynamic(
+    () => import("@yudiel/react-qr-scanner").then((m) => m.Scanner),
+    { ssr: false },
+);
 
 interface ScanResult {
     valid: boolean;
@@ -21,8 +25,9 @@ export function QrScanner({ eventId }: { eventId: string }) {
     const [result, setResult] = useState<ScanResult | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    async function handleScan(data: string | null) {
-        if (!data) return;
+    async function handleScan(detected: IDetectedBarcode[]) {
+        if (!detected.length) return;
+        const data = detected[0].rawValue;
         setScanning(false);
 
         try {
@@ -38,11 +43,7 @@ export function QrScanner({ eventId }: { eventId: string }) {
             const res = await fetch("/api/agent/validate-ticket", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    itemId,
-                    orderReference: orderRef,
-                    eventId,
-                }),
+                body: JSON.stringify({ itemId, orderReference: orderRef, eventId }),
             });
 
             setResult(await res.json());
@@ -69,14 +70,19 @@ export function QrScanner({ eventId }: { eventId: string }) {
             <div className="relative bg-black rounded-2xl overflow-hidden max-w-sm mx-auto">
                 {scanning ? (
                     <div className="relative">
-                        <QrReader
-                            delay={200}
-                            facingMode="rear"
+                        <Scanner
                             onScan={handleScan}
                             onError={handleError}
-                            style={{ width: "100%", display: "block" }}
+                            constraints={{ facingMode: "environment" }}
+                            scanDelay={300}
+                            formats={["qr_code"]}
+                            styles={{
+                                container: { width: "100%", borderRadius: 0 },
+                                video: { width: "100%", display: "block" },
+                            }}
+                            components={{ finder: false }}
                         />
-                        {/* Scan frame overlay */}
+                        {/* Corner frame overlay */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="w-52 h-52 relative">
                                 <span className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl" />
@@ -149,33 +155,19 @@ export function QrScanner({ eventId }: { eventId: string }) {
                     ) : (
                         <XCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
                     )}
-                    <p
-                        className={`font-bold text-lg ${
-                            result.valid ? "text-emerald-800" : "text-red-800"
-                        }`}
-                    >
+                    <p className={`font-bold text-lg ${result.valid ? "text-emerald-800" : "text-red-800"}`}>
                         {result.message}
                     </p>
                     {result.ticketTitle && (
-                        <p className="text-sm mt-1 text-zinc-600">
-                            {result.ticketTitle}
+                        <p className="text-sm mt-1 text-zinc-600">{result.ticketTitle}</p>
+                    )}
+                    {result.scannedCount !== undefined && result.quantity !== undefined && (
+                        <p className="text-sm mt-1 text-zinc-500">
+                            Entrées validées :{" "}
+                            <strong>{result.scannedCount} / {result.quantity}</strong>
                         </p>
                     )}
-                    {result.scannedCount !== undefined &&
-                        result.quantity !== undefined && (
-                            <p className="text-sm mt-1 text-zinc-500">
-                                Entrées validées :{" "}
-                                <strong>
-                                    {result.scannedCount} / {result.quantity}
-                                </strong>
-                            </p>
-                        )}
-                    <Button
-                        onClick={restart}
-                        className="mt-4 gap-2"
-                        variant="outline"
-                        size="sm"
-                    >
+                    <Button onClick={restart} className="mt-4 gap-2" variant="outline" size="sm">
                         <Camera className="w-4 h-4" />
                         Scanner un autre billet
                     </Button>

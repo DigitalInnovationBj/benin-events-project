@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Ticket, Calendar } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { TicketQrCode } from "@/components/orders/ticket-qr-code";
-import QRCode from "qrcode";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -21,16 +20,6 @@ const STATUS_CONFIG: Record<
     EXPIRED: { label: "Expiré", variant: "outline" },
     CANCELLED: { label: "Annulé", variant: "outline" },
 };
-
-async function generateQR(itemId: string, orderReference: string) {
-    const url = `${APP_URL}/verify?item=${itemId}&order=${orderReference}`;
-    return QRCode.toDataURL(url, {
-        errorCorrectionLevel: "H",
-        margin: 2,
-        width: 300,
-        color: { dark: "#000000", light: "#ffffff" },
-    });
-}
 
 export default async function OrdersPage() {
     const { userId } = await auth();
@@ -51,19 +40,6 @@ export default async function OrdersPage() {
         },
         orderBy: { createdAt: "desc" },
     });
-
-    // Pré-générer les QR codes pour les commandes COMPLETED
-    const qrMap = new Map<string, string>();
-    await Promise.all(
-        orders
-            .filter((o) => o.status === "COMPLETED")
-            .flatMap((o) =>
-                o.items.map(async (item) => {
-                    const dataUrl = await generateQR(item.id, o.reference);
-                    qrMap.set(item.id, dataUrl);
-                }),
-            ),
-    );
 
     return (
         <div className="max-w-3xl mx-auto w-full pb-20">
@@ -144,7 +120,7 @@ export default async function OrdersPage() {
                                         {order.items.map((item) => (
                                             <TicketQrCode
                                                 key={item.id}
-                                                qrDataUrl={qrMap.get(item.id) ?? ""}
+                                                verifyUrl={`${APP_URL}/verify?item=${item.id}&order=${order.reference}`}
                                                 ticketTitle={item.ticket.title}
                                                 quantity={item.quantity}
                                             />
