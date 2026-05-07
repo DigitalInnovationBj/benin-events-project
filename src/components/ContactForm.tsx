@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import emailjs from "@emailjs/browser";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Send, Loader2 } from "lucide-react";
+import { sendContactMessage } from "@/actions/contact.actions";
 
 const SUBJECTS = [
     { value: "information", label: "Demande d'information" },
@@ -29,31 +29,26 @@ export default function ContactForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [subject, setSubject] = useState("");
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
         e.preventDefault();
+        if (!subject) return;
+
         setIsSubmitting(true);
+        const formData = new FormData(e.currentTarget);
+        formData.set("user_subject", subject);
 
-        const form = e.currentTarget;
+        const result = await sendContactMessage(formData);
 
-        try {
-            await emailjs.sendForm(
-                process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
-                process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
-                form,
-                process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
-            );
+        if (result.error) {
+            toast.error(result.error);
+        } else {
             toast.success("Message envoyé ! Nous vous répondons sous 24 h.");
-            form.reset();
+            (e.target as HTMLFormElement).reset();
             setSubject("");
-        } catch (error) {
-            console.error("EmailJS Error:", error);
-            toast.error(
-                "Une erreur est survenue. Veuillez réessayer ou nous contacter directement.",
-            );
-        } finally {
-            setIsSubmitting(false);
         }
-    };
+
+        setIsSubmitting(false);
+    }
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -87,7 +82,6 @@ export default function ContactForm() {
                 <Select
                     value={subject}
                     onValueChange={setSubject}
-                    name="user_subject"
                 >
                     <SelectTrigger id="user_subject">
                         <SelectValue placeholder="Choisissez un sujet…" />
@@ -100,14 +94,6 @@ export default function ContactForm() {
                         ))}
                     </SelectContent>
                 </Select>
-                {/* Champ caché pour EmailJS */}
-                <input
-                    type="hidden"
-                    name="user_subject"
-                    value={
-                        SUBJECTS.find((s) => s.value === subject)?.label ?? ""
-                    }
-                />
             </div>
 
             {/* Message */}

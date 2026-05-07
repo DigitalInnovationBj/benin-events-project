@@ -5,6 +5,10 @@ import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
 import { AgentInvitationEmail } from "@/emails/agent-invitation";
+import {
+    ContactNotificationEmail,
+    ContactAutoReplyEmail,
+} from "@/emails/contact-notification";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -213,4 +217,54 @@ export async function sendAgentInvitationEmail(
         subject: `🎟️ Invitation agent — ${eventTitle}`,
         html,
     });
+}
+
+// ─────────────────────────────────────────────
+// sendContactEmails
+// ─────────────────────────────────────────────
+
+export interface SendContactEmailsParams {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+}
+
+export async function sendContactEmails(params: SendContactEmailsParams) {
+    const { name, email, subject, message } = params;
+
+    const [notifHtml, replyHtml] = await Promise.all([
+        render(
+            ContactNotificationEmail({
+                name,
+                email,
+                subject,
+                message,
+                adminPanelUrl: APP_URL,
+            }),
+        ),
+        render(
+            ContactAutoReplyEmail({
+                name,
+                subject,
+                appUrl: APP_URL,
+            }),
+        ),
+    ]);
+
+    await Promise.all([
+        resend.emails.send({
+            from: FROM_SUPPORT,
+            to: "support@beninevents.com",
+            replyTo: email,
+            subject: `📬 [Contact] ${subject} — ${name}`,
+            html: notifHtml,
+        }),
+        resend.emails.send({
+            from: FROM_SUPPORT,
+            to: email,
+            subject: "Nous avons bien reçu votre message — Benin Events",
+            html: replyHtml,
+        }),
+    ]);
 }

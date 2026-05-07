@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Ticket, Calendar } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { TicketQrCode } from "@/components/orders/ticket-qr-code";
+import QRCode from "qrcode";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -21,6 +22,16 @@ const STATUS_CONFIG: Record<
     CANCELLED: { label: "Annulé", variant: "outline" },
 };
 
+async function generateQR(itemId: string, orderReference: string) {
+    const url = `${APP_URL}/verify?item=${itemId}&order=${orderReference}`;
+    return QRCode.toDataURL(url, {
+        errorCorrectionLevel: "H",
+        margin: 2,
+        width: 300,
+        color: { dark: "#000000", light: "#ffffff" },
+    });
+}
+
 export default async function OrdersPage() {
     const { userId } = await auth();
     if (!userId) redirect("/sign-in");
@@ -32,11 +43,7 @@ export default async function OrdersPage() {
         where: { userId: dbUser.id },
         include: {
             event: {
-                select: {
-                    title: true,
-                    slug: true,
-                    startDate: true,
-                },
+                select: { title: true, slug: true, startDate: true },
             },
             items: {
                 include: { ticket: { select: { title: true } } },
@@ -44,6 +51,19 @@ export default async function OrdersPage() {
         },
         orderBy: { createdAt: "desc" },
     });
+
+    // Pré-générer les QR codes pour les commandes COMPLETED
+    const qrMap = new Map<string, string>();
+    await Promise.all(
+        orders
+            .filter((o) => o.status === "COMPLETED")
+            .flatMap((o) =>
+                o.items.map(async (item) => {
+                    const dataUrl = await generateQR(item.id, o.reference);
+                    qrMap.set(item.id, dataUrl);
+                }),
+            ),
+    );
 
     return (
         <div className="max-w-3xl mx-auto w-full pb-20">
@@ -63,24 +83,24 @@ export default async function OrdersPage() {
                 <div className="space-y-4">
                     {orders.map((order) => {
                         const config =
-                            STATUS_CONFIG[order.status] ??
-                            STATUS_CONFIG.PENDING;
+                            STATUS_CONFIG[order.status] ?? STATUS_CONFIG.PENDING;
 
                         return (
                             <div
                                 key={order.id}
-                                className="bg-card border rounded-2xl p-5 space-y-4"
+                                className="bg-card border rounded-2xl p-4 sm:p-5 space-y-4"
                             >
+                                {/* En-tête */}
                                 <div className="flex items-start justify-between gap-4 flex-wrap">
-                                    <div>
+                                    <div className="min-w-0">
                                         <Link
                                             href={`/events/${order.event.slug}`}
-                                            className="font-bold text-lg hover:underline underline-offset-2"
+                                            className="font-bold text-base sm:text-lg hover:underline underline-offset-2 line-clamp-1"
                                         >
                                             {order.event.title}
                                         </Link>
                                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                                            <Calendar className="w-3.5 h-3.5" />
+                                            <Calendar className="w-3.5 h-3.5 shrink-0" />
                                             {new Date(
                                                 order.event.startDate,
                                             ).toLocaleDateString("fr-FR", {
@@ -90,52 +110,54 @@ export default async function OrdersPage() {
                                             })}
                                         </div>
                                     </div>
-                                    <Badge variant={config.variant}>
+                                    <Badge variant={config.variant} className="shrink-0">
                                         {config.label}
                                     </Badge>
                                 </div>
 
+                                {/* Lignes de billets */}
                                 <div className="space-y-1.5">
                                     {order.items.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="flex justify-between text-sm"
+                                            className="flex justify-between text-sm gap-2"
                                         >
-                                            <span className="flex items-center gap-1.5 text-muted-foreground">
-                                                <Ticket className="w-3.5 h-3.5" />
-                                                {item.ticket.title} ×{" "}
-                                                {item.quantity}
+                                            <span className="flex items-center gap-1.5 text-muted-foreground truncate">
+                                                <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                                <span className="truncate">
+                                                    {item.ticket.title}
+                                                </span>
+                                                <span className="shrink-0">× {item.quantity}</span>
                                             </span>
-                                            <span className="font-medium">
+                                            <span className="font-medium shrink-0">
                                                 {item.price === 0
                                                     ? "Gratuit"
-                                                    : `${(item.price * item.quantity).toLocaleString("fr-FR")} FCFA`}
+                                                    : `${(item.price * item.quantity).toLocaleString("fr-FR")} F`}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* QR codes — uniquement pour les commandes confirmées */}
+                                {/* QR codes — commandes confirmées uniquement */}
                                 {order.status === "COMPLETED" && (
                                     <div className="space-y-2 pt-1">
                                         {order.items.map((item) => (
                                             <TicketQrCode
                                                 key={item.id}
-                                                itemId={item.id}
-                                                orderReference={order.reference}
+                                                qrDataUrl={qrMap.get(item.id) ?? ""}
                                                 ticketTitle={item.ticket.title}
                                                 quantity={item.quantity}
-                                                appUrl={APP_URL}
                                             />
                                         ))}
                                     </div>
                                 )}
 
-                                <div className="border-t pt-3 flex items-center justify-between gap-4 flex-wrap">
-                                    <span className="text-xs text-muted-foreground font-mono">
+                                {/* Pied : référence + total */}
+                                <div className="border-t pt-3 flex items-center justify-between gap-4">
+                                    <span className="text-xs text-muted-foreground font-mono truncate">
                                         {order.reference}
                                     </span>
-                                    <span className="font-bold text-secondary">
+                                    <span className="font-bold text-secondary shrink-0">
                                         {order.totalAmount === 0
                                             ? "Gratuit"
                                             : `${order.totalAmount.toLocaleString("fr-FR")} FCFA`}
