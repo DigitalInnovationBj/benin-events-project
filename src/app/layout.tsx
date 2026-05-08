@@ -23,7 +23,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const TITLE = "Benin Events";
 const DESCRIPTION =
     "La plateforme de référence pour découvrir, réserver et organiser les meilleurs évènements au Bénin. Concerts, festivals, conférences, galas et bien plus.";
-const OG_IMAGE = "/hero.jpg";
+const OG_IMAGE = "/og-img.jpg";
 
 export const metadata: Metadata = {
     metadataBase: new URL(APP_URL),
@@ -137,7 +137,7 @@ export default function RootLayout({
                         {children}
                         <Toaster position="top-center" />
                         <CookieBanner />
-                        <AskAIButton />
+                        {/* <AskAIButton /> */}
                     </ThemeProvider>
                 </body>
             </html>
