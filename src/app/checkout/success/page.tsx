@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, Ticket, Calendar } from "lucide-react";
+import { CheckCircle2, Clock, Ticket, Calendar, UserPlus } from "lucide-react";
 
 interface Props {
     searchParams: Promise<{ orderId?: string }>;
@@ -13,23 +13,37 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
     const { userId } = await auth();
 
     let order = null;
+    let isGuest = false;
 
-    if (orderId && userId) {
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-            select: { id: true },
-        });
+    if (orderId) {
+        const dbUser = userId
+            ? await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } })
+            : null;
 
         if (dbUser) {
+            // Utilisateur connecté : on vérifie la propriété
             order = await prisma.order.findFirst({
                 where: { id: orderId, userId: dbUser.id },
                 include: {
                     event: { select: { title: true, slug: true } },
-                    items: {
-                        include: { ticket: { select: { title: true } } },
-                    },
+                    items: { include: { ticket: { select: { title: true } } } },
                 },
             });
+        }
+
+        if (!order) {
+            // Commande invité : accessible par l'URL (orderId = token non devinable)
+            const candidate = await prisma.order.findFirst({
+                where: { id: orderId, userId: null },
+                include: {
+                    event: { select: { title: true, slug: true } },
+                    items: { include: { ticket: { select: { title: true } } } },
+                },
+            });
+            if (candidate) {
+                order = candidate;
+                isGuest = true;
+            }
         }
     }
 
@@ -45,9 +59,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                 )}
 
                 <h1 className="text-3xl font-afo">
-                    {isConfirmed
-                        ? "Paiement confirmé !"
-                        : "Confirmation en attente"}
+                    {isConfirmed ? "Paiement confirmé !" : "Confirmation en attente"}
                 </h1>
 
                 {isConfirmed && order ? (
@@ -62,10 +74,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
 
                         <div className="bg-muted/40 rounded-2xl p-4 text-left space-y-2">
                             {order.items.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className="flex justify-between text-sm"
-                                >
+                                <div key={item.id} className="flex justify-between text-sm">
                                     <span className="flex items-center gap-1.5 text-muted-foreground">
                                         <Ticket className="w-4 h-4 text-secondary" />
                                         {item.ticket.title} × {item.quantity}
@@ -91,19 +100,42 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                             <Calendar className="w-3.5 h-3.5" />
                             Réf : {order.reference}
                         </div>
+
+                        {/* CTA création de compte pour les invités */}
+                        {isGuest && (
+                            <div className="bg-secondary/10 border border-secondary/20 rounded-2xl p-4 text-left space-y-2">
+                                <div className="flex items-center gap-2 font-semibold text-sm">
+                                    <UserPlus className="w-4 h-4 text-secondary shrink-0" />
+                                    Retrouvez vos billets à tout moment
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Créez un compte avec l&apos;email utilisé lors de l&apos;achat pour accéder à vos billets et QR codes depuis votre espace personnel.
+                                </p>
+                                <Button asChild size="sm" variant="secondary" className="w-full mt-1">
+                                    <Link href="/sign-up">Créer mon compte</Link>
+                                </Button>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <p className="text-muted-foreground">
                         Votre paiement est en cours de traitement. Vous
                         recevrez une confirmation dès qu&apos;il sera validé.
-                        Vérifiez vos commandes dans quelques instants.
+                        {!userId && " Vérifiez votre boîte email dans quelques instants."}
+                        {userId && " Vérifiez vos commandes dans quelques instants."}
                     </p>
                 )}
 
                 <div className="flex flex-col gap-3 pt-2">
-                    <Button asChild variant="secondary">
-                        <Link href="/dashboard/orders">Mes commandes</Link>
-                    </Button>
+                    {userId ? (
+                        <Button asChild variant="secondary">
+                            <Link href="/dashboard/orders">Mes commandes</Link>
+                        </Button>
+                    ) : (
+                        <Button asChild variant="secondary">
+                            <Link href="/sign-in">Se connecter pour voir mes commandes</Link>
+                        </Button>
+                    )}
                     <Button asChild variant="outline">
                         <Link href="/events">Voir d&apos;autres évènements</Link>
                     </Button>

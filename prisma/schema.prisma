@@ -259,8 +259,13 @@ model Order {
   geniuspayId Int?
   checkoutUrl String?
 
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Acheteur authentifié (null pour les commandes invité)
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Informations acheteur invité (non authentifié)
+  guestEmail String?
+  guestName  String?
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -271,15 +276,20 @@ model Order {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([guestEmail])
   @@index([eventId])
 }
 
 model OrderItem {
-  id           String    @id @default(cuid())
-  quantity     Int
-  price        Float
-  scannedCount Int       @default(0)
+  id             String    @id @default(cuid())
+  quantity       Int
+  price          Float
+  scannedCount   Int       @default(0)
   firstScannedAt DateTime?
+
+  // Participant nommé (optionnel — utilisé quand l'acheteur achète pour quelqu'un d'autre)
+  attendeeName  String?
+  attendeeEmail String?
 
   orderId  String
   order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -288,6 +298,8 @@ model OrderItem {
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([attendeeEmail])
 }
 
 // ─────────────────────────────────────────────

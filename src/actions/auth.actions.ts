@@ -10,22 +10,33 @@ export async function syncUser() {
         return { success: false, message: "Non authentifié" };
     }
 
-    try {
-        const existingUser = await prisma.user.findUnique({
-            where: { clerkId: user.id },
-        });
+    const email = user.emailAddresses[0].emailAddress;
 
-        if (!existingUser) {
-            await prisma.user.create({
+    try {
+        let dbUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
+
+        if (!dbUser) {
+            dbUser = await prisma.user.create({
                 data: {
                     clerkId: user.id,
-                    email: user.emailAddresses[0].emailAddress,
-                    name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.emailAddresses[0].emailAddress.split("@")[0],
+                    email,
+                    name:
+                        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                        email.split("@")[0],
                     image: user.imageUrl,
                     role: "USER",
                 },
             });
-            console.log("Nouvel utilisateur synchronisé :", user.id);
+        }
+
+        // Lier les commandes passées en tant qu'invité avec cet email
+        const linked = await prisma.order.updateMany({
+            where: { guestEmail: email, userId: null },
+            data: { userId: dbUser.id, guestEmail: null, guestName: null },
+        });
+
+        if (linked.count > 0) {
+            console.log(`syncUser: ${linked.count} commande(s) invité liée(s) à ${dbUser.id}`);
         }
 
         return { success: true };

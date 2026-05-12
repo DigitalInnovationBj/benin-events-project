@@ -114,9 +114,16 @@ async function sendConfirmationEmail(orderId: string) {
 
     if (!order) return;
 
+    // Utilise les infos invité si la commande n'est pas liée à un compte
+    const buyer = order.user;
+    const recipientEmail = buyer ? buyer.email : order.guestEmail;
+    const recipientName = buyer ? (buyer.name ?? "Client") : (order.guestName ?? "Client");
+
+    if (!recipientEmail) return;
+
     await sendOrderConfirmationEmail({
-        to: order.user.email,
-        customerName: order.user.name ?? "Client",
+        to: recipientEmail,
+        customerName: recipientName,
         eventTitle: order.event.title,
         eventDate: new Date(order.event.startDate).toLocaleDateString("fr-FR", {
             weekday: "long",

@@ -406,9 +406,7 @@ export default async function DashboardPage() {
                                                             {order.event.title}
                                                         </p>
                                                         <p className="text-xs text-muted-foreground truncate">
-                                                            {order.user.name ??
-                                                                order.user
-                                                                    .email}
+                                                            {order.user?.name ?? order.user?.email ?? order.guestName ?? order.guestEmail ?? "Invité"}
                                                         </p>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-0.5 shrink-0">

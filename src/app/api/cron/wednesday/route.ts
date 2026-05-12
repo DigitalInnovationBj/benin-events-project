@@ -76,9 +76,9 @@ export async function GET(req: NextRequest) {
     favorites.forEach((f) =>
         addPrefs(f.userId, f.event.categories.map((c) => c.categoryId)),
     );
-    orders.forEach((o) =>
-        addPrefs(o.userId, o.event.categories.map((c) => c.categoryId)),
-    );
+    orders.forEach((o) => {
+        if (o.userId) addPrefs(o.userId, o.event.categories.map((c) => c.categoryId));
+    });
 
     // ── 4. Per-user recommendations ───────────────────────────────────────────
     const users = await prisma.user.findMany({
