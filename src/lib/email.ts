@@ -20,6 +20,18 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 // Helpers
 // ─────────────────────────────────────────────
 
+// Génère HTML + texte brut depuis le même template React Email.
+// La version texte évite d'être considéré comme spam (emails HTML-only pénalisés).
+async function renderBoth(component: React.ReactElement) {
+    const [html, text] = await Promise.all([
+        render(component),
+        render(component, { plainText: true }),
+    ]);
+    return { html, text };
+}
+
+// Génère un QR code en PNG embarqué inline (CID) pour les clients email.
+// Évite le blocage des images externes (Gmail bloque les URLs externes par défaut).
 async function generateQrAttachment(content: string, index: number) {
     const buffer = await QRCode.toBuffer(content, {
         width: 300,
@@ -62,21 +74,19 @@ export async function sendOrderConfirmationEmail(
     params: SendOrderConfirmationParams,
 ) {
     const {
-        to,
-        customerName,
-        eventTitle,
-        eventDate,
-        eventLocation,
-        eventType,
-        orderReference,
-        totalAmount,
-        items,
+        to, customerName, eventTitle, eventDate,
+        eventLocation, eventType, orderReference, totalAmount, items,
     } = params;
 
-    const [itemsWithQR, attachments] = await Promise.all([
-        Promise.resolve(items.map((item, index) => {
-            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
-            return { ...item, qrCodeDataUrl: `cid:qr-${index}`, verifyUrl };
+    const itemsWithQR = items.map((item, index) => {
+        const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+        return { ...item, qrCodeDataUrl: `cid:qr-${index}`, verifyUrl };
+    });
+
+    const [{ html, text }, attachments] = await Promise.all([
+        renderBoth(OrderConfirmationEmail({
+            customerName, eventTitle, eventDate, eventLocation,
+            eventType, orderReference, totalAmount, items: itemsWithQR, appUrl: APP_URL,
         })),
         Promise.all(items.map((item, index) => {
             const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
@@ -84,25 +94,12 @@ export async function sendOrderConfirmationEmail(
         })),
     ]);
 
-    const html = await render(
-        OrderConfirmationEmail({
-            customerName,
-            eventTitle,
-            eventDate,
-            eventLocation,
-            eventType,
-            orderReference,
-            totalAmount,
-            items: itemsWithQR,
-            appUrl: APP_URL,
-        }),
-    );
-
     await resend.emails.send({
         from: FROM_VENTES,
         to,
-        subject: `✓ Vos billets pour ${eventTitle}`,
+        subject: `Vos billets pour ${eventTitle} - Confirmation`,
         html,
+        text,
         attachments,
     });
 }
@@ -126,19 +123,16 @@ export async function sendOrganizerRequestAdminEmail(
     params: SendOrganizerRequestAdminParams,
 ) {
     const { adminEmails, ...rest } = params;
-
-    const html = await render(
-        OrganizerRequestAdminEmail({
-            ...rest,
-            adminPanelUrl: `${APP_URL}/admin/requests`,
-        }),
+    const { html, text } = await renderBoth(
+        OrganizerRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/requests` }),
     );
 
     await resend.emails.send({
         from: FROM_SUPPORT,
         to: adminEmails,
-        subject: `🔔 Nouvelle demande d'organisateur — ${params.organizerName}`,
+        subject: `Nouvelle demande d'organisateur - ${params.organizerName}`,
         html,
+        text,
     });
 }
 
@@ -161,29 +155,19 @@ export async function sendOrganizerRequestDecisionEmail(
 ) {
     const { to, applicantName, status, eventCreationFeeEnabled, eventCreationFee, featuredEventFeeEnabled, featuredEventFee } = params;
 
-    const html = await render(
+    const { html, text } = await renderBoth(
         OrganizerRequestDecisionEmail({
-            applicantName,
-            status,
-            appUrl: APP_URL,
-            eventCreationFeeEnabled,
-            eventCreationFee,
-            featuredEventFeeEnabled,
-            featuredEventFee,
+            applicantName, status, appUrl: APP_URL,
+            eventCreationFeeEnabled, eventCreationFee,
+            featuredEventFeeEnabled, featuredEventFee,
         }),
     );
 
-    const subject =
-        status === "APPROVED"
-            ? "🎉 Votre demande d'organisateur a été approuvée !"
-            : "Votre demande d'organisateur — Décision";
+    const subject = status === "APPROVED"
+        ? "Votre demande d'organisateur a été approuvée - Benin Events"
+        : "Votre demande d'organisateur - Décision";
 
-    await resend.emails.send({
-        from: FROM_SUPPORT,
-        to,
-        subject,
-        html,
-    });
+    await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
 }
 
 // ─────────────────────────────────────────────
@@ -201,39 +185,20 @@ export interface SendAgentInvitationParams {
     token: string;
 }
 
-export async function sendAgentInvitationEmail(
-    params: SendAgentInvitationParams,
-) {
-    const {
-        to,
-        recipientName,
-        eventTitle,
-        eventDate,
-        eventLocation,
-        eventType,
-        organizerName,
-        token,
-    } = params;
-
+export async function sendAgentInvitationEmail(params: SendAgentInvitationParams) {
+    const { to, recipientName, eventTitle, eventDate, eventLocation, eventType, organizerName, token } = params;
     const confirmUrl = `${APP_URL}/agent/confirm/${token}`;
 
-    const html = await render(
-        AgentInvitationEmail({
-            recipientName,
-            eventTitle,
-            eventDate,
-            eventLocation,
-            eventType,
-            organizerName,
-            confirmUrl,
-        }),
+    const { html, text } = await renderBoth(
+        AgentInvitationEmail({ recipientName, eventTitle, eventDate, eventLocation, eventType, organizerName, confirmUrl }),
     );
 
     await resend.emails.send({
         from: FROM_SUPPORT,
         to,
-        subject: `🎟️ Invitation agent — ${eventTitle}`,
+        subject: `Invitation agent pour ${eventTitle} - Benin Events`,
         html,
+        text,
     });
 }
 
@@ -258,19 +223,16 @@ export interface SendPayoutRequestAdminParams {
 
 export async function sendPayoutRequestAdminEmail(params: SendPayoutRequestAdminParams) {
     const { adminEmails, ...rest } = params;
-
-    const html = await render(
-        PayoutRequestAdminEmail({
-            ...rest,
-            adminPanelUrl: `${APP_URL}/admin/payouts`,
-        }),
+    const { html, text } = await renderBoth(
+        PayoutRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/payouts` }),
     );
 
     await resend.emails.send({
         from: FROM_SUPPORT,
         to: adminEmails,
-        subject: `💰 Nouvelle demande de reversement — ${params.organizerName}`,
+        subject: `Demande de reversement - ${params.organizerName}`,
         html,
+        text,
     });
 }
 
@@ -291,31 +253,18 @@ export interface SendPayoutStatusParams {
 export async function sendPayoutStatusEmail(params: SendPayoutStatusParams) {
     const { to, type, organizerName, netAmount, grossAmount, commissionRate, adminNote } = params;
 
-    const html = await render(
-        PayoutNotificationEmail({
-            organizerName,
-            type,
-            netAmount,
-            grossAmount,
-            commissionRate,
-            adminNote,
-            appUrl: APP_URL,
-        }),
+    const { html, text } = await renderBoth(
+        PayoutNotificationEmail({ organizerName, type, netAmount, grossAmount, commissionRate, adminNote, appUrl: APP_URL }),
     );
 
     const subjects: Record<PayoutNotifType, string> = {
-        REQUESTED:  "⏳ Votre demande de reversement a été reçue",
-        PROCESSING: "🔄 Votre reversement est en cours de traitement",
-        PAID:       "✅ Votre reversement a été effectué !",
-        REJECTED:   "Votre demande de reversement — Décision",
+        REQUESTED:  "Votre demande de reversement a été reçue - Benin Events",
+        PROCESSING: "Votre reversement est en cours de traitement - Benin Events",
+        PAID:       "Votre reversement a été effectué - Benin Events",
+        REJECTED:   "Votre demande de reversement - Décision",
     };
 
-    await resend.emails.send({
-        from: FROM_SUPPORT,
-        to,
-        subject: subjects[type],
-        html,
-    });
+    await resend.emails.send({ from: FROM_SUPPORT, to, subject: subjects[type], html, text });
 }
 
 // ─────────────────────────────────────────────
@@ -332,23 +281,9 @@ export interface SendContactEmailsParams {
 export async function sendContactEmails(params: SendContactEmailsParams) {
     const { name, email, subject, message } = params;
 
-    const [notifHtml, replyHtml] = await Promise.all([
-        render(
-            ContactNotificationEmail({
-                name,
-                email,
-                subject,
-                message,
-                adminPanelUrl: APP_URL,
-            }),
-        ),
-        render(
-            ContactAutoReplyEmail({
-                name,
-                subject,
-                appUrl: APP_URL,
-            }),
-        ),
+    const [notif, reply] = await Promise.all([
+        renderBoth(ContactNotificationEmail({ name, email, subject, message, adminPanelUrl: APP_URL })),
+        renderBoth(ContactAutoReplyEmail({ name, subject, appUrl: APP_URL })),
     ]);
 
     await Promise.all([
@@ -356,14 +291,16 @@ export async function sendContactEmails(params: SendContactEmailsParams) {
             from: FROM_SUPPORT,
             to: "support@beninevents.com",
             replyTo: email,
-            subject: `📬 [Contact] ${subject} — ${name}`,
-            html: notifHtml,
+            subject: `[Contact] ${subject} - ${name}`,
+            html: notif.html,
+            text: notif.text,
         }),
         resend.emails.send({
             from: FROM_SUPPORT,
             to: email,
-            subject: "Nous avons bien reçu votre message — Benin Events",
-            html: replyHtml,
+            subject: "Nous avons bien reçu votre message - Benin Events",
+            html: reply.html,
+            text: reply.text,
         }),
     ]);
 }
