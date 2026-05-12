@@ -1,5 +1,6 @@
 import { render } from "@react-email/components";
 import { resend } from "@/lib/resend";
+import QRCode from "qrcode";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
@@ -19,10 +20,19 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 // Helpers
 // ─────────────────────────────────────────────
 
-// Retourne une URL publique vers un QR code PNG (compatible avec tous les clients email).
-// Les data URLs base64 sont bloquées par Gmail, Outlook et la plupart des webmails.
-function buildQrUrl(content: string): string {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(content)}&ecc=H&margin=2`;
+async function generateQrAttachment(content: string, index: number) {
+    const buffer = await QRCode.toBuffer(content, {
+        width: 300,
+        errorCorrectionLevel: "H",
+        margin: 2,
+    });
+    return {
+        filename: `qr-${index}.png`,
+        content: buffer.toString("base64"),
+        contentType: "image/png",
+        contentDisposition: "inline" as const,
+        contentId: `qr-${index}`,
+    };
 }
 
 // ─────────────────────────────────────────────
@@ -63,10 +73,16 @@ export async function sendOrderConfirmationEmail(
         items,
     } = params;
 
-    const itemsWithQR = items.map((item) => {
-        const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
-        return { ...item, qrCodeDataUrl: buildQrUrl(verifyUrl) };
-    });
+    const [itemsWithQR, attachments] = await Promise.all([
+        Promise.resolve(items.map((item, index) => {
+            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+            return { ...item, qrCodeDataUrl: `cid:qr-${index}`, verifyUrl };
+        })),
+        Promise.all(items.map((item, index) => {
+            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+            return generateQrAttachment(verifyUrl, index);
+        })),
+    ]);
 
     const html = await render(
         OrderConfirmationEmail({
@@ -87,6 +103,7 @@ export async function sendOrderConfirmationEmail(
         to,
         subject: `✓ Vos billets pour ${eventTitle}`,
         html,
+        attachments,
     });
 }
 
