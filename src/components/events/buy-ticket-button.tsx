@@ -303,7 +303,7 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                                         </span>
                                     </div>
                                     <div className="flex justify-between text-muted-foreground">
-                                        <span>Frais de service</span>
+                                        <span>Frais de transaction</span>
                                         <span>
                                             {fees.toLocaleString("fr-FR")} FCFA
                                         </span>
