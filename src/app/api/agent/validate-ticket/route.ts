@@ -2,15 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 
+const STATUS_DETAIL: Record<string, string> = {
+    PENDING:   "Le paiement de cette commande n'a pas encore été confirmé.",
+    FAILED:    "Le paiement de cette commande a échoué.",
+    CANCELLED: "Cette commande a été annulée par l'acheteur.",
+    EXPIRED:   "Cette commande a expiré sans paiement.",
+};
+
+function fmtDate(d: Date) {
+    return d.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Africa/Porto-Novo",
+    });
+}
+
 export async function POST(req: NextRequest) {
+    // ── 1. Auth ───────────────────────────────────────────────────────────
     const { userId } = await auth();
     if (!userId) {
-        return NextResponse.json({ valid: false, message: "Non authentifié" }, { status: 401 });
+        return NextResponse.json({
+            valid: false,
+            message: "Non authentifié",
+            detail: "Vous devez être connecté pour valider des billets.",
+        }, { status: 401 });
     }
 
+    // ── 2. Validation du body ─────────────────────────────────────────────
     const body = await req.json().catch(() => null);
     if (!body?.itemId || !body?.orderReference || !body?.eventId) {
-        return NextResponse.json({ valid: false, message: "Requête invalide" }, { status: 400 });
+        return NextResponse.json({
+            valid: false,
+            message: "Requête invalide",
+            detail: "Données de scan manquantes ou corrompues.",
+        }, { status: 400 });
     }
 
     const { itemId, orderReference, eventId } = body as {
@@ -19,69 +47,114 @@ export async function POST(req: NextRequest) {
         eventId: string;
     };
 
-    // Check caller is a confirmed agent for this event
+    // ── 3. Vérification de l'agent ────────────────────────────────────────
     const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!dbUser) {
-        return NextResponse.json({ valid: false, message: "Utilisateur introuvable" }, { status: 401 });
+        return NextResponse.json({
+            valid: false,
+            message: "Compte introuvable",
+            detail: "Votre compte n'est pas reconnu dans le système.",
+        }, { status: 401 });
     }
 
     const agent = await prisma.eventAgent.findUnique({
         where: { eventId_userId: { eventId, userId: dbUser.id } },
     });
 
-    const isOrganizer = dbUser.role === "ADMIN" || (dbUser.role === "ORGANIZER" && await prisma.event.findFirst({ where: { id: eventId, organizerId: dbUser.id } }).then(Boolean));
+    const isOrganizer =
+        dbUser.role === "ADMIN" ||
+        (dbUser.role === "ORGANIZER" &&
+            !!(await prisma.event.findFirst({ where: { id: eventId, organizerId: dbUser.id } })));
 
     if (!isOrganizer && (!agent || agent.status !== "CONFIRMED")) {
-        return NextResponse.json({ valid: false, message: "Accès refusé" }, { status: 403 });
+        return NextResponse.json({
+            valid: false,
+            message: "Accès refusé",
+            detail: "Vous n'êtes pas autorisé à scanner les billets de cet évènement.",
+        }, { status: 403 });
     }
 
-    // Fetch the order item
-    const orderItem = await prisma.orderItem.findFirst({
-        where: {
-            id: itemId,
-            order: {
-                reference: orderReference,
-                eventId,
-                status: "COMPLETED",
-            },
-        },
+    // ── 4. Recherche de l'OrderItem sans contraintes (pour messages précis) ──
+    const rawItem = await prisma.orderItem.findUnique({
+        where: { id: itemId },
         include: {
-            ticket: true,
-            order: true,
+            ticket: { select: { title: true } },
+            order: {
+                include: {
+                    event: { select: { id: true, title: true } },
+                },
+            },
         },
     });
 
-    if (!orderItem) {
+    // ── 5. Item introuvable ───────────────────────────────────────────────
+    if (!rawItem) {
         return NextResponse.json({
             valid: false,
-            message: "Billet invalide ou commande introuvable",
+            message: "Billet introuvable",
+            detail: "Ce QR code ne correspond à aucun billet enregistré. Il est peut-être falsifié ou corrompu.",
         });
     }
 
-    if (orderItem.scannedCount >= orderItem.quantity) {
+    // ── 6. Référence de commande incorrecte ───────────────────────────────
+    if (rawItem.order.reference !== orderReference) {
+        return NextResponse.json({
+            valid: false,
+            message: "QR code invalide",
+            detail: "La référence de commande encodée dans ce QR ne correspond pas au billet.",
+        });
+    }
+
+    // ── 7. Billet d'un autre évènement ────────────────────────────────────
+    if (rawItem.order.eventId !== eventId) {
+        return NextResponse.json({
+            valid: false,
+            message: "Mauvais évènement",
+            detail: `Ce billet est valable pour « ${rawItem.order.event.title} », pas pour cet évènement.`,
+            ticketTitle: rawItem.ticket.title,
+        });
+    }
+
+    // ── 8. Commande non COMPLETED ─────────────────────────────────────────
+    if (rawItem.order.status !== "COMPLETED") {
+        return NextResponse.json({
+            valid: false,
+            message: "Commande non confirmée",
+            detail: STATUS_DETAIL[rawItem.order.status] ?? "Statut de commande inconnu.",
+            ticketTitle: rawItem.ticket.title,
+        });
+    }
+
+    // ── 9. Billet déjà entièrement utilisé ───────────────────────────────
+    if (rawItem.scannedCount >= rawItem.quantity) {
         return NextResponse.json({
             valid: false,
             message: "Billet déjà utilisé",
-            ticketTitle: orderItem.ticket.title,
-            scannedCount: orderItem.scannedCount,
-            quantity: orderItem.quantity,
+            detail: rawItem.firstScannedAt
+                ? `Scanné pour la première fois le ${fmtDate(rawItem.firstScannedAt)}.`
+                : "Ce billet a déjà été scanné.",
+            ticketTitle: rawItem.ticket.title,
+            attendeeName: rawItem.attendeeName,
+            scannedCount: rawItem.scannedCount,
+            quantity: rawItem.quantity,
         });
     }
 
-    // Increment scan count
+    // ── 10. Valide → incrémenter ──────────────────────────────────────────
     const updated = await prisma.orderItem.update({
-        where: { id: orderItem.id },
+        where: { id: rawItem.id },
         data: {
             scannedCount: { increment: 1 },
-            firstScannedAt: orderItem.firstScannedAt ?? new Date(),
+            firstScannedAt: rawItem.firstScannedAt ?? new Date(),
         },
     });
 
     return NextResponse.json({
         valid: true,
-        message: "Billet valide ✓",
-        ticketTitle: orderItem.ticket.title,
+        message: "Billet valide",
+        ticketTitle: rawItem.ticket.title,
+        attendeeName: rawItem.attendeeName,
         scannedCount: updated.scannedCount,
-        quantity: orderItem.quantity,
+        quantity: rawItem.quantity,
     });
 }
