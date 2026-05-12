@@ -41,6 +41,17 @@ enum AgentStatus {
   REVOKED
 }
 
+enum PlatformPaymentType {
+  EVENT_CREATION
+  EVENT_FEATURED
+}
+
+enum PlatformPaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
 enum PayoutMethodType {
   MOBILE_MONEY
   BANK_TRANSFER
@@ -78,6 +89,7 @@ model User {
   agentFor          EventAgent[]
   payoutMethod      PayoutMethod?
   payoutRequests    PayoutRequest[]    @relation("OrganizerPayouts")
+  platformPayments  PlatformPayment[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -158,8 +170,11 @@ model Event {
   startDate   DateTime
   endDate     DateTime
 
-  // Mise en vedette (décidé par l'admin)
+  // Mise en vedette (décidé par l'admin ou payé par l'organisateur)
   isFeatured  Boolean  @default(false)
+
+  // Publication (false = en attente de paiement de création)
+  isPublished Boolean  @default(true)
 
   // Suppression douce (soft delete)
   isDeleted   Boolean  @default(false)
@@ -179,12 +194,13 @@ model Event {
   organizerId String
   organizer   User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
-  tickets     Ticket[]
-  categories  EventCategory[]
-  likes       Like[]
-  favorites   Favorite[]
-  orders      Order[]
-  agents      EventAgent[]
+  tickets          Ticket[]
+  categories       EventCategory[]
+  likes            Like[]
+  favorites        Favorite[]
+  orders           Order[]
+  agents           EventAgent[]
+  platformPayments PlatformPayment[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -355,9 +371,40 @@ model PayoutRequest {
 // ─────────────────────────────────────────────
 
 model PlatformSettings {
-  id             String   @id @default("singleton")
-  commissionRate Float    @default(0)
-  updatedAt      DateTime @updatedAt
+  id                      String   @id @default("singleton")
+  commissionRate          Float    @default(0)
+  eventCreationFeeEnabled Boolean  @default(false)
+  eventCreationFee        Float    @default(5000)
+  featuredEventFeeEnabled Boolean  @default(false)
+  featuredEventFee        Float    @default(5000)
+  updatedAt               DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// Paiements plateforme (création d'évènement, mise en vedette)
+// ─────────────────────────────────────────────
+
+model PlatformPayment {
+  id          String                @id @default(cuid())
+  type        PlatformPaymentType
+  status      PlatformPaymentStatus @default(PENDING)
+  amount      Float
+
+  geniuspayId Int?
+  checkoutUrl String?
+  reference   String?               @unique
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────

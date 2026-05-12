@@ -52,9 +52,9 @@ export default async function EventsPage({
 
     // ── Clause WHERE dynamique ─────────────────────────────────────────────
     const where: Prisma.EventWhereInput = {
-        // Uniquement les événements dont la date de début est dans le futur
         startDate: { gte: new Date() },
         isDeleted: false,
+        isPublished: true,
     };
 
     // Recherche full-text sur le titre et la description

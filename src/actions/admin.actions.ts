@@ -44,10 +44,16 @@ export async function processOrganizerRequest(
             });
         }
 
+        const settings = await prisma.platformSettings.findUnique({ where: { id: "singleton" } });
+
         sendOrganizerRequestDecisionEmail({
             to: request.user.email,
             applicantName: request.user.name ?? request.organizerName,
             status,
+            eventCreationFeeEnabled: settings?.eventCreationFeeEnabled ?? false,
+            eventCreationFee: settings?.eventCreationFee ?? 5000,
+            featuredEventFeeEnabled: settings?.featuredEventFeeEnabled ?? false,
+            featuredEventFee: settings?.featuredEventFee ?? 5000,
         }).catch((err) =>
             console.error("Organizer decision email error:", err),
         );

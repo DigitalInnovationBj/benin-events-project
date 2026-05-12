@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     const events = await prisma.event.findMany({
         where: {
             isDeleted: false,
+            isPublished: true,
             startDate: { gte: saturdayStart, lte: sundayEnd },
         },
         include: {

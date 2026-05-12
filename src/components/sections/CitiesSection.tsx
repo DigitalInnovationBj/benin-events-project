@@ -46,6 +46,8 @@ export default async function CitiesSection() {
         where: {
             startDate: { gte: new Date() },
             location: { not: null },
+            isDeleted: false,
+            isPublished: true,
         },
         select: { location: true },
     });

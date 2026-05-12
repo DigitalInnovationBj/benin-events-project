@@ -15,12 +15,20 @@ export interface OrganizerRequestDecisionEmailProps {
     applicantName: string;
     status: "APPROVED" | "REJECTED";
     appUrl: string;
+    eventCreationFeeEnabled?: boolean;
+    eventCreationFee?: number;
+    featuredEventFeeEnabled?: boolean;
+    featuredEventFee?: number;
 }
 
 export function OrganizerRequestDecisionEmail({
     applicantName,
     status,
     appUrl,
+    eventCreationFeeEnabled = false,
+    eventCreationFee = 5000,
+    featuredEventFeeEnabled = false,
+    featuredEventFee = 5000,
 }: OrganizerRequestDecisionEmailProps) {
     const isApproved = status === "APPROVED";
 
@@ -101,6 +109,34 @@ export function OrganizerRequestDecisionEmail({
                                         à travers tout le Bénin
                                     </Text>
                                 </Section>
+
+                                {(eventCreationFeeEnabled || featuredEventFeeEnabled) && (
+                                    <>
+                                        <Heading style={{ ...h2, marginTop: "28px" }}>
+                                            Conditions tarifaires
+                                        </Heading>
+                                        <Section style={conditionsBox}>
+                                            {eventCreationFeeEnabled && (
+                                                <Text style={conditionItem}>
+                                                    💳{" "}
+                                                    <strong>Publication d&apos;évènement :</strong>{" "}
+                                                    {eventCreationFee.toLocaleString("fr-FR")} FCFA par évènement publié.
+                                                </Text>
+                                            )}
+                                            {featuredEventFeeEnabled && (
+                                                <Text style={conditionItem}>
+                                                    ⭐{" "}
+                                                    <strong>Mise en vedette :</strong>{" "}
+                                                    {featuredEventFee.toLocaleString("fr-FR")} FCFA pour mettre un évènement en avant sur la page d&apos;accueil.
+                                                </Text>
+                                            )}
+                                            <Text style={{ ...conditionItem, marginBottom: 0, color: "#6b7280", fontSize: "12px" }}>
+                                                Ces tarifs sont susceptibles d&apos;évoluer. Consultez les paramètres de la plateforme pour les valeurs actuelles.
+                                            </Text>
+                                        </Section>
+                                    </>
+                                )}
+
                                 <Section style={{ textAlign: "center", marginTop: "28px" }}>
                                     <Button
                                         href={`${appUrl}/dashboard/events/new`}
@@ -317,4 +353,18 @@ const footerCopyright: React.CSSProperties = {
     color: "#d1d5db",
     fontSize: "11px",
     margin: "12px 0 0",
+};
+
+const conditionsBox: React.CSSProperties = {
+    backgroundColor: "#fffbeb",
+    borderRadius: "12px",
+    padding: "20px 24px",
+    border: "1px solid #fcd34d",
+};
+
+const conditionItem: React.CSSProperties = {
+    color: "#92400e",
+    fontSize: "14px",
+    margin: "0 0 10px",
+    lineHeight: "1.5",
 };

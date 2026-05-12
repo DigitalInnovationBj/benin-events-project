@@ -18,7 +18,13 @@ export default async function AdminSettingsPage() {
                         Pourcentage prélevé sur le CA brut de chaque organisateur lors du reversement des fonds.
                         Actuellement <span className="font-bold text-foreground">{settings.commissionRate}%</span>.
                     </p>
-                    <SettingsForm currentRate={settings.commissionRate} />
+                    <SettingsForm
+                        currentRate={settings.commissionRate}
+                        eventCreationFeeEnabled={settings.eventCreationFeeEnabled}
+                        eventCreationFee={settings.eventCreationFee}
+                        featuredEventFeeEnabled={settings.featuredEventFeeEnabled}
+                        featuredEventFee={settings.featuredEventFee}
+                    />
                 </div>
             </div>
         </div>

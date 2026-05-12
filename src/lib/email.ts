@@ -133,18 +133,26 @@ export interface SendOrganizerRequestDecisionParams {
     to: string;
     applicantName: string;
     status: "APPROVED" | "REJECTED";
+    eventCreationFeeEnabled?: boolean;
+    eventCreationFee?: number;
+    featuredEventFeeEnabled?: boolean;
+    featuredEventFee?: number;
 }
 
 export async function sendOrganizerRequestDecisionEmail(
     params: SendOrganizerRequestDecisionParams,
 ) {
-    const { to, applicantName, status } = params;
+    const { to, applicantName, status, eventCreationFeeEnabled, eventCreationFee, featuredEventFeeEnabled, featuredEventFee } = params;
 
     const html = await render(
         OrganizerRequestDecisionEmail({
             applicantName,
             status,
             appUrl: APP_URL,
+            eventCreationFeeEnabled,
+            eventCreationFee,
+            featuredEventFeeEnabled,
+            featuredEventFee,
         }),
     );
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyWebhookSignature } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { revalidatePath } from "next/cache";
 
 const STATUS_MAP: Record<string, "FAILED" | "EXPIRED" | "CANCELLED"> = {
     "payment.failed": "FAILED",
@@ -147,12 +148,59 @@ async function sendConfirmationEmail(orderId: string) {
     });
 }
 
+async function processPlatformPayment(
+    event: string,
+    platformPaymentId: string,
+    reference: string | undefined,
+) {
+    const payment = await prisma.platformPayment.findUnique({
+        where: { id: platformPaymentId },
+    });
+    if (!payment || payment.status !== "PENDING") return;
+
+    if (event === "payment.success") {
+        await prisma.platformPayment.update({
+            where: { id: payment.id },
+            data: { status: "COMPLETED", ...(reference ? { reference } : {}) },
+        });
+
+        if (payment.type === "EVENT_CREATION") {
+            await prisma.event.update({
+                where: { id: payment.eventId },
+                data: { isPublished: true },
+            });
+            revalidatePath("/dashboard/events");
+            revalidatePath("/");
+        } else if (payment.type === "EVENT_FEATURED") {
+            await prisma.event.update({
+                where: { id: payment.eventId },
+                data: { isFeatured: true },
+            });
+            revalidatePath(`/dashboard/events/${payment.eventId}`);
+            revalidatePath("/");
+        }
+    } else {
+        await prisma.platformPayment.update({
+            where: { id: payment.id },
+            data: { status: "FAILED" },
+        });
+    }
+}
+
 async function processEvent(
     event: string,
     payload: { data?: { reference?: string; metadata?: Record<string, string> } },
 ) {
     const reference = payload.data?.reference;
-    const orderId = payload.data?.metadata?.order_id;
+    const metadata = payload.data?.metadata ?? {};
+
+    // Paiements plateforme (création / mise en vedette)
+    if (metadata.payment_context === "platform" && metadata.platform_payment_id) {
+        await processPlatformPayment(event, metadata.platform_payment_id, reference);
+        return;
+    }
+
+    const orderId = metadata.order_id;
 
     switch (event) {
         case "payment.success": {
@@ -198,12 +246,10 @@ async function processEvent(
             break;
 
         case "payment.refunded":
-            // Géré de façon informative — à étendre si nécessaire
             console.log("GeniusPay webhook: payment.refunded", { reference, orderId });
             break;
 
         case "webhook.test":
-            // Événement de test — ne rien faire
             console.log("GeniusPay webhook: test reçu");
             break;
 

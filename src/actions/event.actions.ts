@@ -5,6 +5,9 @@ import prisma from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { createPayment } from "@/lib/geniuspay";
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -172,6 +175,15 @@ export async function createEvent(formData: FormData) {
             ogImageUrl = blob.url;
         }
 
+        // ── Vérification des frais de création ───────────────────────────
+        const settings = await prisma.platformSettings.upsert({
+            where: { id: "singleton" },
+            create: { id: "singleton", commissionRate: 0, eventCreationFeeEnabled: false, eventCreationFee: 5000, featuredEventFeeEnabled: false, featuredEventFee: 5000 },
+            update: {},
+        });
+
+        const requiresPayment = settings.eventCreationFeeEnabled && dbUser.role !== "ADMIN";
+
         // ── Créer l'évènement ─────────────────────────────────────────────
         const event = await prisma.event.create({
             data: {
@@ -187,7 +199,7 @@ export async function createEvent(formData: FormData) {
                 ogTitle: data.ogTitle || data.title,
                 ogImage: ogImageUrl,
                 organizerId: dbUser.id,
-                // Catégories via la table de jointure
+                isPublished: !requiresPayment,
                 categories:
                     categoryIds.length > 0
                         ? {
@@ -199,10 +211,54 @@ export async function createEvent(formData: FormData) {
             },
         });
 
-        revalidatePath("/dashboard/events");
-        revalidatePath("/");
+        if (!requiresPayment) {
+            revalidatePath("/dashboard/events");
+            revalidatePath("/");
+            return { success: true, eventId: event.id, slug: event.slug };
+        }
 
-        return { success: true, eventId: event.id, slug: event.slug };
+        // ── Créer le paiement de publication ─────────────────────────────
+        const amount = settings.eventCreationFee;
+        const platformPayment = await prisma.platformPayment.create({
+            data: {
+                type: "EVENT_CREATION",
+                status: "PENDING",
+                amount,
+                eventId: event.id,
+                userId: dbUser.id,
+            },
+        });
+
+        try {
+            const paymentRes = await createPayment({
+                amount,
+                description: `Publication d'évènement — ${data.title}`,
+                customer: { name: dbUser.name ?? undefined, email: dbUser.email },
+                success_url: `${APP_URL}/dashboard/events/${event.id}?created=1`,
+                error_url: `${APP_URL}/dashboard/events/new?payment_error=1`,
+                metadata: {
+                    payment_context: "platform",
+                    platform_payment_id: platformPayment.id,
+                    platform_payment_type: "EVENT_CREATION",
+                    event_id: event.id,
+                },
+            });
+
+            const { reference, checkout_url, id: geniuspayId } = paymentRes.data;
+            await prisma.platformPayment.update({
+                where: { id: platformPayment.id },
+                data: { reference, geniuspayId, checkoutUrl: checkout_url },
+            });
+
+            return { success: true, eventId: event.id, slug: event.slug, redirectUrl: checkout_url };
+        } catch (err) {
+            console.error("GeniusPay event creation payment error:", err);
+            await prisma.platformPayment.update({
+                where: { id: platformPayment.id },
+                data: { status: "FAILED" },
+            });
+            return { error: "Service de paiement indisponible. L'évènement a été sauvegardé mais n'est pas encore publié." };
+        }
     } catch (error) {
         console.error("Erreur createEvent:", error);
         return {

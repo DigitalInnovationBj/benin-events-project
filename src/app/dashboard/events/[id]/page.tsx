@@ -13,18 +13,24 @@ import {
     Plus,
     Star,
     Users,
+    AlertCircle,
+    CheckCircle2,
 } from "lucide-react";
 import Image from "next/image";
 import { TicketForm } from "./ticket-form";
 import { TicketEditDialog } from "./ticket-edit-dialog";
 import DeleteEventButton from "./DeleteEventButton";
+import { FeaturedButton } from "./FeaturedButton";
+import { getSettings } from "@/actions/settings.actions";
 
 export default async function EventDetailsPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>;
+    searchParams: Promise<{ created?: string; featured?: string; featured_error?: string }>;
 }) {
-    const { id } = await params;
+    const [{ id }, sp] = await Promise.all([params, searchParams]);
     const { userId } = await auth();
 
     if (!userId) redirect("/sign-in");
@@ -37,15 +43,16 @@ export default async function EventDetailsPage({
         redirect("/dashboard");
     }
 
-    const event = await prisma.event.findUnique({
-        where: { id },
-        include: {
-            tickets: true,
-            categories: {
-                include: { category: true },
+    const [event, settings] = await Promise.all([
+        prisma.event.findUnique({
+            where: { id },
+            include: {
+                tickets: true,
+                categories: { include: { category: true } },
             },
-        },
-    });
+        }),
+        getSettings(),
+    ]);
 
     if (!event) {
         return (
@@ -64,8 +71,56 @@ export default async function EventDetailsPage({
         redirect("/dashboard/events");
     }
 
+    const showCreatedSuccess = sp.created === "1";
+    const showFeaturedSuccess = sp.featured === "1";
+    const showFeaturedError = sp.featured_error === "1";
+    const canFeature =
+        settings.featuredEventFeeEnabled &&
+        dbUser.role === "ORGANIZER" &&
+        !event.isFeatured;
+
     return (
         <div className="max-w-5xl mx-auto w-full pb-20">
+            {/* ── Bannières contextuelles ───────────────────────── */}
+            {showCreatedSuccess && (
+                <div className="mb-5 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <span className="text-emerald-800 dark:text-emerald-200 font-medium">
+                        Paiement confirmé — votre évènement est maintenant publié !
+                    </span>
+                </div>
+            )}
+            {showFeaturedSuccess && (
+                <div className="mb-5 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 text-sm">
+                    <Star className="w-5 h-5 text-yellow-600 shrink-0 fill-yellow-600" />
+                    <span className="text-yellow-800 dark:text-yellow-200 font-medium">
+                        Paiement confirmé — votre évènement est maintenant en vedette !
+                    </span>
+                </div>
+            )}
+            {showFeaturedError && (
+                <div className="mb-5 flex items-center gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm">
+                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                    <span className="text-red-800 dark:text-red-200 font-medium">
+                        Le paiement a échoué. Vous pouvez réessayer ci-dessous.
+                    </span>
+                </div>
+            )}
+            {!event.isPublished && (
+                <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm">
+                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-semibold text-amber-800 dark:text-amber-200">
+                            Évènement non publié — en attente de paiement
+                        </p>
+                        <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+                            Cet évènement n&apos;est pas visible par le public. Finalisez le paiement de{" "}
+                            {settings.eventCreationFee.toLocaleString("fr-FR")} FCFA pour le publier.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* ── En-tête ──────────────────────────────────────────── */}
             <div className="flex items-center justify-between mb-6">
                 <Link href="/dashboard/events">
@@ -75,7 +130,10 @@ export default async function EventDetailsPage({
                     </Button>
                 </Link>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {canFeature && (
+                        <FeaturedButton eventId={event.id} fee={settings.featuredEventFee} />
+                    )}
                     <DeleteEventButton
                         eventId={event.id}
                         eventTitle={event.title}

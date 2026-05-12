@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     // Upcoming events with their context
     const events = await prisma.event.findMany({
-        where: { isDeleted: false, startDate: { gte: new Date() } },
+        where: { isDeleted: false, isPublished: true, startDate: { gte: new Date() } },
         include: {
             categories: { include: { category: { select: { name: true } } } },
             tickets: { select: { price: true } },
