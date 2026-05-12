@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, Calendar, Gift } from "lucide-react";
+import { Ticket, Calendar, Gift, User } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { TicketQrCode } from "@/components/orders/ticket-qr-code";
 
@@ -28,7 +28,7 @@ export default async function OrdersPage() {
     const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!dbUser) redirect("/sign-in");
 
-    // Lier d'éventuelles commandes invité passées sous cet email (vérification au chargement)
+    // Lier les éventuelles commandes invitées passées sous cet email
     await prisma.order.updateMany({
         where: { guestEmail: dbUser.email, userId: null },
         data: { userId: dbUser.id, guestEmail: null, guestName: null },
@@ -44,8 +44,8 @@ export default async function OrdersPage() {
         orderBy: { createdAt: "desc" },
     });
 
-    // Billets reçus : l'utilisateur est nommé comme participant sur un item
-    // (mais n'est pas l'acheteur de la commande parente)
+    // Billets reçus : l'utilisateur est nommé comme bénéficiaire sur un item
+    // mais n'est pas l'acheteur de la commande parente
     const receivedItems = await prisma.orderItem.findMany({
         where: {
             attendeeEmail: dbUser.email,
@@ -80,10 +80,11 @@ export default async function OrdersPage() {
                 </div>
             ) : (
                 <div className="space-y-10">
-                    {/* ── Commandes achetées ──────────────────────────── */}
+
+                    {/* ── Commandes achetées ──────────────────────── */}
                     {buyerOrders.length > 0 && (
                         <section className="space-y-4">
-                            {buyerOrders.map((order) => {
+                            {buyerOrders.map(order => {
                                 const config = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.PENDING;
 
                                 return (
@@ -116,35 +117,46 @@ export default async function OrdersPage() {
 
                                         {/* Lignes de billets */}
                                         <div className="space-y-1.5">
-                                            {order.items.map((item) => (
-                                                <div key={item.id} className="flex justify-between text-sm gap-2">
-                                                    <span className="flex items-center gap-1.5 text-muted-foreground truncate">
-                                                        <Ticket className="w-3.5 h-3.5 shrink-0" />
-                                                        <span className="truncate">{item.ticket.title}</span>
-                                                        <span className="shrink-0">× {item.quantity}</span>
-                                                        {item.attendeeName && (
-                                                            <span className="shrink-0 text-xs italic">
-                                                                — {item.attendeeName}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                    <span className="font-medium shrink-0">
-                                                        {item.price === 0
-                                                            ? "Gratuit"
-                                                            : `${(item.price * item.quantity).toLocaleString("fr-FR")} F`}
-                                                    </span>
-                                                </div>
-                                            ))}
+                                            {order.items.map(item => {
+                                                const isMyTicket = item.attendeeEmail === dbUser.email || !item.attendeeEmail;
+                                                return (
+                                                    <div key={item.id} className="flex justify-between text-sm gap-2">
+                                                        <span className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                                                            <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                                            <span className="truncate">{item.ticket.title}</span>
+                                                            {isMyTicket ? (
+                                                                <span className="shrink-0 text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-md font-medium">
+                                                                    Vous
+                                                                </span>
+                                                            ) : (
+                                                                <span className="shrink-0 text-xs flex items-center gap-1 text-muted-foreground/70 italic">
+                                                                    <User className="w-3 h-3" />
+                                                                    {item.attendeeName ?? "Bénéficiaire"}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                        <span className="font-medium shrink-0">
+                                                            {item.price === 0
+                                                                ? "Gratuit"
+                                                                : `${(item.price * item.quantity).toLocaleString("fr-FR")} F`}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
 
-                                        {/* QR codes — commandes confirmées uniquement */}
+                                        {/* QR codes — commandes confirmées */}
                                         {order.status === "COMPLETED" && (
                                             <div className="space-y-2 pt-1">
-                                                {order.items.map((item) => (
+                                                {order.items.map(item => (
                                                     <TicketQrCode
                                                         key={item.id}
                                                         verifyUrl={`${APP_URL}/verify?item=${item.id}&order=${order.reference}`}
-                                                        ticketTitle={item.ticket.title}
+                                                        ticketTitle={
+                                                            item.attendeeName && item.attendeeEmail !== dbUser.email
+                                                                ? `${item.ticket.title} — ${item.attendeeName}`
+                                                                : item.ticket.title
+                                                        }
                                                         quantity={item.quantity}
                                                     />
                                                 ))}
@@ -168,7 +180,7 @@ export default async function OrdersPage() {
                         </section>
                     )}
 
-                    {/* ── Billets reçus (participant nommé) ──────────── */}
+                    {/* ── Billets reçus (bénéficiaire nommé) ─────── */}
                     {receivedItems.length > 0 && (
                         <section className="space-y-4">
                             <div className="flex items-center gap-2">
@@ -179,7 +191,7 @@ export default async function OrdersPage() {
                                 Ces billets ont été achetés pour vous par quelqu&apos;un d&apos;autre.
                             </p>
 
-                            {receivedItems.map((item) => {
+                            {receivedItems.map(item => {
                                 const config = STATUS_CONFIG[item.order.status] ?? STATUS_CONFIG.PENDING;
 
                                 return (
@@ -215,7 +227,7 @@ export default async function OrdersPage() {
                                         <div className="flex justify-between text-sm gap-2">
                                             <span className="flex items-center gap-1.5 text-muted-foreground">
                                                 <Ticket className="w-3.5 h-3.5 shrink-0" />
-                                                {item.ticket.title} × {item.quantity}
+                                                {item.ticket.title}
                                             </span>
                                             <span className="font-medium shrink-0">
                                                 {item.price === 0
@@ -242,6 +254,7 @@ export default async function OrdersPage() {
                             })}
                         </section>
                     )}
+
                 </div>
             )}
         </div>

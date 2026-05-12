@@ -107,35 +107,46 @@ export default async function PublicEventPage({ params }: Props) {
     let isLiked = false;
     let isFavorited = false;
     let isLoggedIn = false;
+    let buyerName: string | undefined;
+    let buyerEmail: string | undefined;
+    let hasExistingTicket = false;
 
     if (userId) {
         isLoggedIn = true;
         const dbUser = await prisma.user.findUnique({
             where: { clerkId: userId },
-            select: { id: true },
+            select: { id: true, name: true, email: true },
         });
 
         if (dbUser) {
-            const [like, favorite] = await Promise.all([
+            buyerName = dbUser.name ?? undefined;
+            buyerEmail = dbUser.email;
+
+            const [like, favorite, attendeeItem, legacyOrder] = await Promise.all([
                 prisma.like.findUnique({
-                    where: {
-                        userId_eventId: {
-                            userId: dbUser.id,
-                            eventId: event.id,
-                        },
-                    },
+                    where: { userId_eventId: { userId: dbUser.id, eventId: event.id } },
                 }),
                 prisma.favorite.findUnique({
+                    where: { userId_eventId: { userId: dbUser.id, eventId: event.id } },
+                }),
+                // Ticket via attendeeEmail (nouveau système)
+                prisma.orderItem.findFirst({
                     where: {
-                        userId_eventId: {
-                            userId: dbUser.id,
-                            eventId: event.id,
-                        },
+                        attendeeEmail: dbUser.email,
+                        order: { eventId: event.id, status: "COMPLETED" },
                     },
+                    select: { id: true },
+                }),
+                // Ticket via userId (ancien système ou achat sans attendeeEmail)
+                prisma.order.findFirst({
+                    where: { userId: dbUser.id, eventId: event.id, status: "COMPLETED" },
+                    select: { id: true },
                 }),
             ]);
+
             isLiked = !!like;
             isFavorited = !!favorite;
+            hasExistingTicket = !!(attendeeItem || legacyOrder);
         }
     }
 
@@ -471,9 +482,10 @@ export default async function PublicEventPage({ params }: Props) {
                                                 <BuyTicketButton
                                                     ticket={ticket}
                                                     isLoggedIn={isLoggedIn}
-                                                    remainingStock={
-                                                        ticket.remainingStock
-                                                    }
+                                                    remainingStock={ticket.remainingStock}
+                                                    buyerName={buyerName}
+                                                    buyerEmail={buyerEmail}
+                                                    hasExistingTicket={hasExistingTicket}
                                                 />
                                             </div>
                                             {ticket.remainingStock !== null && (

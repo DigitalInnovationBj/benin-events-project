@@ -11,17 +11,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { initiateTicketPayment } from "@/actions/payment.actions";
-import type { Attendee } from "@/actions/payment.actions";
+import type { TicketAssignment } from "@/actions/payment.actions";
 import { toast } from "sonner";
-import {
-    Minus,
-    Plus,
-    Loader2,
-    Ticket,
-    ChevronDown,
-    ChevronUp,
-    Users,
-} from "lucide-react";
+import { Minus, Plus, Loader2, Ticket, User, Users } from "lucide-react";
 
 interface Props {
     ticket: {
@@ -32,68 +24,78 @@ interface Props {
     };
     isLoggedIn: boolean;
     remainingStock: number | null;
+    buyerName?: string;
+    buyerEmail?: string;
+    hasExistingTicket?: boolean;
 }
 
-export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
+type Assignment = { forSelf: boolean; name: string; email: string };
+
+export function BuyTicketButton({
+    ticket,
+    isLoggedIn,
+    remainingStock,
+    buyerName,
+    buyerEmail,
+    hasExistingTicket = false,
+}: Props) {
     const [open, setOpen] = useState(false);
     const [quantity, setQuantity] = useState(1);
     const [isPending, startTransition] = useTransition();
 
-    // Champs invité
+    // Infos acheteur invité
     const [guestName, setGuestName] = useState("");
     const [guestEmail, setGuestEmail] = useState("");
 
-    // Participants
-    const [showAttendees, setShowAttendees] = useState(false);
-    const [attendees, setAttendees] = useState<
-        { name: string; email: string }[]
-    >([]);
+    // Attribution : 1 entrée par billet
+    const [assignments, setAssignments] = useState<Assignment[]>([]);
 
     const isFree = ticket.price === 0;
     const isSoldOut = remainingStock !== null && remainingStock <= 0;
     const maxQty = remainingStock !== null ? Math.min(remainingStock, 10) : 10;
 
-    // Synchronise la taille du tableau participants avec la quantité
+    // Synchronise le tableau quand la quantité change
     useEffect(() => {
-        setAttendees((prev) =>
-            Array.from(
-                { length: quantity },
-                (_, i) => prev[i] ?? { name: "", email: "" },
-            ),
+        setAssignments(prev =>
+            Array.from({ length: quantity }, (_, i) => {
+                if (prev[i]) return prev[i];
+                return { forSelf: i === 0 && !hasExistingTicket, name: "", email: "" };
+            })
         );
-    }, [quantity]);
+    }, [quantity, hasExistingTicket]);
 
     function handleOpen() {
         setQuantity(1);
         setGuestName("");
         setGuestEmail("");
-        setShowAttendees(false);
-        setAttendees([{ name: "", email: "" }]);
+        setAssignments([{ forSelf: !hasExistingTicket, name: "", email: "" }]);
         setOpen(true);
     }
 
-    function updateAttendee(
-        index: number,
-        field: "name" | "email",
-        value: string,
-    ) {
-        setAttendees((prev) =>
-            prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)),
-        );
+    function toggleForSelf(index: number, value: boolean) {
+        setAssignments(prev => prev.map((a, i) => i === index ? { ...a, forSelf: value } : a));
     }
+
+    function updateAssignment(index: number, field: "name" | "email", value: string) {
+        setAssignments(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
+    }
+
+    const effectiveName = isLoggedIn ? buyerName : guestName;
+    const effectiveEmail = isLoggedIn ? buyerEmail : guestEmail;
 
     function handleSubmit() {
         startTransition(async () => {
-            const attendeesPayload: Attendee[] = showAttendees
-                ? attendees.map((a) => ({ name: a.name, email: a.email }))
-                : [];
+            const payload: TicketAssignment[] = assignments.map(a => ({
+                forSelf: a.forSelf,
+                name: a.forSelf ? effectiveName : a.name,
+                email: a.forSelf ? effectiveEmail : a.email,
+            }));
 
             const result = await initiateTicketPayment({
                 ticketId: ticket.id,
-                quantity,
+                assignments: payload,
                 guestEmail: isLoggedIn ? undefined : guestEmail,
                 guestName: isLoggedIn ? undefined : guestName,
-                attendees: attendeesPayload,
             });
 
             if (result.error) {
@@ -127,93 +129,75 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                     </DialogHeader>
 
                     <div className="space-y-5 pt-1">
-                        {/* ── Infos invité (non connecté uniquement) ──── */}
-                        {!isLoggedIn && (
+
+                        {/* ── Bloc acheteur ─────────────────────────── */}
+                        {isLoggedIn ? (
+                            <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl border">
+                                <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+                                    <User className="w-4 h-4 text-secondary" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{buyerName}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{buyerEmail}</p>
+                                </div>
+                            </div>
+                        ) : (
                             <div className="space-y-3 p-4 bg-muted/40 rounded-xl border">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                    Vos informations
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Vos informations (acheteur)
                                 </p>
-                                <div className="space-y-2">
-                                    <div>
-                                        <Label
-                                            htmlFor="guest-name"
-                                            className="text-sm"
-                                        >
-                                            Nom complet{" "}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </Label>
-                                        <Input
-                                            id="guest-name"
-                                            placeholder="Ex : Kofi Mensah"
-                                            value={guestName}
-                                            onChange={(e) =>
-                                                setGuestName(e.target.value)
-                                            }
-                                            disabled={isPending}
-                                            className="mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label
-                                            htmlFor="guest-email"
-                                            className="text-sm"
-                                        >
-                                            Email{" "}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </Label>
-                                        <Input
-                                            id="guest-email"
-                                            type="email"
-                                            placeholder="votre@email.com"
-                                            value={guestEmail}
-                                            onChange={(e) =>
-                                                setGuestEmail(e.target.value)
-                                            }
-                                            disabled={isPending}
-                                            className="mt-1"
-                                        />
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Vos billets seront envoyés à cet
-                                            email.
-                                        </p>
-                                    </div>
+                                <div>
+                                    <Label htmlFor="guest-name" className="text-sm">
+                                        Nom complet <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="guest-name"
+                                        placeholder="Ex : Kofi Mensah"
+                                        value={guestName}
+                                        onChange={e => setGuestName(e.target.value)}
+                                        disabled={isPending}
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="guest-email" className="text-sm">
+                                        Email <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="guest-email"
+                                        type="email"
+                                        placeholder="votre@email.com"
+                                        value={guestEmail}
+                                        onChange={e => setGuestEmail(e.target.value)}
+                                        disabled={isPending}
+                                        className="mt-1"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Le récapitulatif de votre achat sera envoyé à cette adresse.
+                                    </p>
                                 </div>
                             </div>
                         )}
 
                         {/* ── Quantité ──────────────────────────────── */}
                         <div className="flex items-center justify-between">
-                            <span className="text-sm text-muted-foreground">
-                                Quantité
-                            </span>
+                            <span className="text-sm text-muted-foreground">Quantité</span>
                             <div className="flex items-center gap-3">
                                 <Button
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() =>
-                                        setQuantity((q) => Math.max(1, q - 1))
-                                    }
+                                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
                                     disabled={quantity <= 1 || isPending}
                                 >
                                     <Minus className="w-3 h-3" />
                                 </Button>
-                                <span className="w-6 text-center font-bold text-lg">
-                                    {quantity}
-                                </span>
+                                <span className="w-6 text-center font-bold text-lg">{quantity}</span>
                                 <Button
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() =>
-                                        setQuantity((q) =>
-                                            Math.min(maxQty, q + 1),
-                                        )
-                                    }
+                                    onClick={() => setQuantity(q => Math.min(maxQty, q + 1))}
                                     disabled={quantity >= maxQty || isPending}
                                 >
                                     <Plus className="w-3 h-3" />
@@ -227,68 +211,69 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                             </p>
                         )}
 
-                        {/* ── Participants (optionnel) ──────────────── */}
-                        <div className="border rounded-xl overflow-hidden">
-                            <button
-                                type="button"
-                                onClick={() => setShowAttendees((v) => !v)}
-                                disabled={isPending}
-                                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/40 transition-colors"
-                            >
-                                <span className="flex items-start gap-2">
-                                    <Users className="w-5 h-5 text-muted-foreground" />
-                                    Ajouter les informations des participants
-                                </span>
-                                {showAttendees ? (
-                                    <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                                ) : (
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                )}
-                            </button>
+                        {/* ── Attribution par billet ────────────────── */}
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">Attribution des billets</span>
+                            </div>
 
-                            {showAttendees && (
-                                <div className="px-4 pb-4 space-y-4 border-t bg-muted/20">
-                                    <p className="text-xs text-muted-foreground pt-3">
-                                        Chaque participant recevra son billet
-                                        par email si vous renseignez son
-                                        adresse.
-                                    </p>
-                                    {attendees.map((attendee, i) => (
-                                        <div key={i} className="space-y-2">
-                                            <p className="text-xs font-semibold text-foreground">
-                                                Participant {i + 1}
-                                            </p>
-                                            <Input
-                                                placeholder="Nom complet"
-                                                value={attendee.name}
-                                                onChange={(e) =>
-                                                    updateAttendee(
-                                                        i,
-                                                        "name",
-                                                        e.target.value,
-                                                    )
-                                                }
+                            {assignments.map((assignment, i) => (
+                                <div key={i} className="border rounded-xl p-3 space-y-2.5">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                            Billet {i + 1}
+                                        </span>
+                                        <div className="flex gap-1.5">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant={assignment.forSelf ? "secondary" : "outline"}
+                                                className="h-7 text-xs px-2.5"
+                                                onClick={() => toggleForSelf(i, true)}
                                                 disabled={isPending}
-                                                className="h-9 text-sm"
+                                            >
+                                                Pour moi
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant={!assignment.forSelf ? "secondary" : "outline"}
+                                                className="h-7 text-xs px-2.5"
+                                                onClick={() => toggleForSelf(i, false)}
+                                                disabled={isPending}
+                                            >
+                                                Pour quelqu&apos;un d&apos;autre
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {assignment.forSelf ? (
+                                        <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 truncate">
+                                            {effectiveName || "Vous"}
+                                            {effectiveEmail ? ` — ${effectiveEmail}` : ""}
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Input
+                                                placeholder="Nom du bénéficiaire *"
+                                                value={assignment.name}
+                                                onChange={e => updateAssignment(i, "name", e.target.value)}
+                                                disabled={isPending}
+                                                className="h-8 text-sm"
                                             />
                                             <Input
                                                 type="email"
-                                                placeholder="Email participant"
-                                                value={attendee.email}
-                                                onChange={(e) =>
-                                                    updateAttendee(
-                                                        i,
-                                                        "email",
-                                                        e.target.value,
-                                                    )
-                                                }
+                                                placeholder="Email (optionnel)"
+                                                value={assignment.email}
+                                                onChange={e => updateAssignment(i, "email", e.target.value)}
                                                 disabled={isPending}
-                                                className="h-9 text-sm"
+                                                className="h-8 text-sm"
                                             />
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
-                            )}
+                            ))}
                         </div>
 
                         {/* ── Récapitulatif + bouton ────────────────── */}
@@ -297,24 +282,17 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>Billets ({quantity})</span>
-                                        <span>
-                                            {basePrice.toLocaleString("fr-FR")}{" "}
-                                            FCFA
-                                        </span>
+                                        <span>{basePrice.toLocaleString("fr-FR")} FCFA</span>
                                     </div>
                                     <div className="flex justify-between text-muted-foreground">
-                                        <span>Frais de transaction</span>
-                                        <span>
-                                            {fees.toLocaleString("fr-FR")} FCFA
-                                        </span>
+                                        <span>Frais de service</span>
+                                        <span>{fees.toLocaleString("fr-FR")} FCFA</span>
                                     </div>
                                 </div>
                             )}
                             <div className="flex items-center justify-between gap-4">
                                 <div>
-                                    <p className="text-xs text-muted-foreground mb-0.5">
-                                        Total
-                                    </p>
+                                    <p className="text-xs text-muted-foreground mb-0.5">Total</p>
                                     <p className="text-2xl font-bold text-secondary">
                                         {totalPrice === 0
                                             ? "Gratuit"
@@ -327,17 +305,12 @@ export function BuyTicketButton({ ticket, isLoggedIn, remainingStock }: Props) {
                                     size="lg"
                                     className="gap-2"
                                 >
-                                    {isPending && (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    )}
-                                    {isPending
-                                        ? "Redirection…"
-                                        : isFree
-                                          ? "Réserver"
-                                          : "Payer"}
+                                    {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {isPending ? "Redirection…" : isFree ? "Réserver" : "Payer"}
                                 </Button>
                             </div>
                         </div>
+
                     </div>
                 </DialogContent>
             </Dialog>

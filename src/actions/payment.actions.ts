@@ -8,7 +8,6 @@ import { revalidatePath } from "next/cache";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-// Frais de service : 5 % du montant + 100 F fixe
 function computeFees(base: number): number {
     if (base === 0) return 0;
     return Math.ceil(base * 0.05) + 100;
@@ -16,16 +15,19 @@ function computeFees(base: number): number {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type Attendee = { name?: string; email?: string };
+// Un billet du lot : soit pour l'acheteur lui-même, soit pour un bénéficiaire nommé
+export type TicketAssignment = {
+    forSelf: boolean;
+    name?: string;  // nom du bénéficiaire (ou de l'acheteur si forSelf)
+    email?: string; // email du bénéficiaire (ou de l'acheteur si forSelf)
+};
 
 export type PaymentInput = {
     ticketId: string;
-    quantity: number;
-    // Champs invité (quand non authentifié)
+    assignments: TicketAssignment[]; // 1 entrée par billet, length = quantité totale
+    // Acheteur invité (non connecté)
     guestEmail?: string;
     guestName?: string;
-    // Un participant optionnel par billet
-    attendees?: Attendee[];
 };
 
 export async function initiateTicketPayment(input: PaymentInput) {
@@ -52,11 +54,22 @@ export async function initiateTicketPayment(input: PaymentInput) {
         buyerName = name;
     }
 
-    // ── Validation de la saisie ───────────────────────────────────────────
-    const { ticketId, quantity, attendees } = input;
+    // ── Validation des assignements ───────────────────────────────────────
+    const { ticketId, assignments } = input;
+    const quantity = assignments.length;
+
     if (!ticketId) return { error: "Billet invalide." };
-    if (isNaN(quantity) || quantity < 1 || quantity > 10) {
-        return { error: "Quantité invalide (1 à 10)." };
+    if (quantity < 1 || quantity > 10) return { error: "Quantité invalide (1 à 10)." };
+
+    for (const [i, a] of assignments.entries()) {
+        if (!a.forSelf) {
+            if (!a.name?.trim()) {
+                return { error: `Le nom du bénéficiaire est requis pour le billet ${i + 1}.` };
+            }
+            if (a.email?.trim() && !EMAIL_RE.test(a.email.trim())) {
+                return { error: `Email invalide pour le billet ${i + 1}.` };
+            }
+        }
     }
 
     // ── Récupération du ticket ────────────────────────────────────────────
@@ -87,32 +100,14 @@ export async function initiateTicketPayment(input: PaymentInput) {
         }
     }
 
-    // ── Construction des lignes de commande ───────────────────────────────
-    // Si des participants nommés sont fournis → un OrderItem par participant (quantité = 1)
-    // Sinon → un seul OrderItem avec la quantité totale
-    const hasNamedAttendees = attendees?.some(a => a?.name?.trim() || a?.email?.trim());
-
-    type ItemData = {
-        quantity: number;
-        price: number;
-        ticketId: string;
-        attendeeName?: string | null;
-        attendeeEmail?: string | null;
-    };
-
-    let orderItemsData: ItemData[];
-
-    if (hasNamedAttendees && attendees) {
-        orderItemsData = attendees.slice(0, quantity).map(a => ({
-            quantity: 1,
-            price: ticket.price,
-            ticketId: ticket.id,
-            attendeeName: a?.name?.trim() || null,
-            attendeeEmail: a?.email?.trim().toLowerCase() || null,
-        }));
-    } else {
-        orderItemsData = [{ quantity, price: ticket.price, ticketId: ticket.id }];
-    }
+    // ── Construction des OrderItems (1 par billet) ────────────────────────
+    const orderItemsData = assignments.map(a => ({
+        quantity: 1,
+        price: ticket.price,
+        ticketId: ticket.id,
+        attendeeName: a.forSelf ? (buyerName ?? null) : (a.name?.trim() ?? null),
+        attendeeEmail: a.forSelf ? buyerEmail : (a.email?.trim().toLowerCase() ?? null),
+    }));
 
     const baseAmount = ticket.price * quantity;
     const fees = computeFees(baseAmount);
@@ -162,13 +157,13 @@ export async function initiateTicketPayment(input: PaymentInput) {
             eventType: order.event.eventType,
             orderReference: order.reference,
             totalAmount: 0,
-            items: order.items.map((item) => ({
+            items: order.items.map(item => ({
                 id: item.id,
                 ticketTitle: ticket.title,
-                quantity: item.quantity,
+                quantity: 1,
                 price: 0,
             })),
-        }).catch((err) => console.error("Free ticket email error:", err));
+        }).catch(err => console.error("Free ticket email error:", err));
 
         revalidatePath(`/events/${order.event.slug}`);
         return {
@@ -177,7 +172,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
         };
     }
 
-    // ── Billet payant : créer la commande PENDING puis appeler GeniusPay ──
+    // ── Billet payant ─────────────────────────────────────────────────────
     const order = await prisma.order.create({
         data: {
             reference: `TMP-${Date.now()}`,
@@ -195,10 +190,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
         const paymentRes = await createPayment({
             amount: totalAmount,
             description: `${ticket.title} × ${quantity} — ${ticket.event.title}`,
-            customer: {
-                name: buyerName,
-                email: buyerEmail,
-            },
+            customer: { name: buyerName, email: buyerEmail },
             success_url: `${APP_URL}/checkout/success?orderId=${order.id}`,
             error_url: `${APP_URL}/checkout/error?orderId=${order.id}`,
             metadata: {
@@ -218,7 +210,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
         return { success: true, redirectUrl: checkout_url };
     } catch (err) {
-        console.error("GeniusPay initiateTicketPayment error:", err);
+        console.error("GeniusPay error:", err);
         await prisma.order.update({
             where: { id: order.id },
             data: { status: "FAILED" },
@@ -238,12 +230,7 @@ export async function getUserOrders() {
         where: { userId: dbUser.id },
         include: {
             event: {
-                select: {
-                    title: true,
-                    slug: true,
-                    imageUrl: true,
-                    startDate: true,
-                },
+                select: { title: true, slug: true, imageUrl: true, startDate: true },
             },
             items: {
                 include: { ticket: { select: { title: true } } },
