@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifyWebhookSignature } from "@/lib/geniuspay";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 const STATUS_MAP: Record<string, "FAILED" | "EXPIRED" | "CANCELLED"> = {
@@ -108,7 +108,14 @@ async function sendConfirmationEmail(orderId: string) {
                 },
             },
             items: {
-                include: { ticket: { select: { title: true } } },
+                select: {
+                    id: true,
+                    price: true,
+                    quantity: true,
+                    attendeeName: true,
+                    attendeeEmail: true,
+                    ticket: { select: { title: true } },
+                },
             },
         },
     });
@@ -146,6 +153,33 @@ async function sendConfirmationEmail(orderId: string) {
             price: item.price,
         })),
     });
+
+    // Envoyer un email cadeau à chaque bénéficiaire distinct de l'acheteur
+    const eventDate = new Date(order.event.startDate).toLocaleDateString("fr-FR", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric",
+        hour: "2-digit", minute: "2-digit", timeZone: "Africa/Porto-Novo",
+    });
+
+    const giftItems = order.items.filter(
+        (item) => item.attendeeEmail && item.attendeeEmail !== recipientEmail,
+    );
+
+    await Promise.allSettled(
+        giftItems.map((item) =>
+            sendTicketGiftEmail({
+                to: item.attendeeEmail!,
+                recipientName: item.attendeeName ?? "Invité",
+                senderName: recipientName,
+                eventTitle: order.event.title,
+                eventDate,
+                eventLocation: order.event.location,
+                eventType: order.event.eventType,
+                ticketTitle: item.ticket.title,
+                orderItemId: item.id,
+                orderReference: order.reference,
+            }),
+        ),
+    );
 }
 
 async function processPlatformPayment(

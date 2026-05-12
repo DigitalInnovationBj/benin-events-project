@@ -11,6 +11,7 @@ import {
 } from "@/emails/contact-notification";
 import { PayoutNotificationEmail, type PayoutNotifType } from "@/emails/payout-notification";
 import { PayoutRequestAdminEmail } from "@/emails/payout-request-admin";
+import { TicketGiftEmail } from "@/emails/ticket-gift";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -265,6 +266,48 @@ export async function sendPayoutStatusEmail(params: SendPayoutStatusParams) {
     };
 
     await resend.emails.send({ from: FROM_SUPPORT, to, subject: subjects[type], html, text });
+}
+
+// ─────────────────────────────────────────────
+// sendTicketGiftEmail
+// ─────────────────────────────────────────────
+
+export interface SendTicketGiftParams {
+    to: string;
+    recipientName: string;
+    senderName: string;
+    eventTitle: string;
+    eventDate: string;
+    eventLocation: string | null;
+    eventType: "IN_PERSON" | "ONLINE";
+    ticketTitle: string;
+    orderItemId: string;
+    orderReference: string;
+}
+
+export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
+    const { to, recipientName, senderName, eventTitle, eventDate, eventLocation, eventType, ticketTitle, orderItemId, orderReference } = params;
+
+    const verifyUrl = `${APP_URL}/verify?item=${orderItemId}&order=${orderReference}`;
+
+    const [{ html, text }, attachment] = await Promise.all([
+        renderBoth(TicketGiftEmail({
+            recipientName, senderName, eventTitle, eventDate,
+            eventLocation, eventType, ticketTitle,
+            qrCodeUrl: "cid:qr-gift",
+            orderItemId, orderReference, appUrl: APP_URL,
+        })),
+        generateQrAttachment(verifyUrl, 0).then(a => ({ ...a, contentId: "qr-gift" })),
+    ]);
+
+    await resend.emails.send({
+        from: FROM_VENTES,
+        to,
+        subject: `${senderName} vous offre un billet pour ${eventTitle}`,
+        html,
+        text,
+        attachments: [attachment],
+    });
 }
 
 // ─────────────────────────────────────────────
