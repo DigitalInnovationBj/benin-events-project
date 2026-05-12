@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/geniuspay";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -140,19 +140,16 @@ export async function initiateTicketPayment(input: PaymentInput) {
             },
         });
 
+        const eventDate = new Date(order.event.startDate).toLocaleDateString("fr-FR", {
+            weekday: "long", day: "numeric", month: "long", year: "numeric",
+            hour: "2-digit", minute: "2-digit", timeZone: "Africa/Porto-Novo",
+        });
+
         sendOrderConfirmationEmail({
             to: buyerEmail,
             customerName: buyerName ?? "Client",
             eventTitle: order.event.title,
-            eventDate: new Date(order.event.startDate).toLocaleDateString("fr-FR", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                timeZone: "Africa/Porto-Novo",
-            }),
+            eventDate,
             eventLocation: order.event.location,
             eventType: order.event.eventType,
             orderReference: order.reference,
@@ -164,6 +161,27 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 price: 0,
             })),
         }).catch(err => console.error("Free ticket email error:", err));
+
+        // Emails cadeaux pour les bénéficiaires distincts de l'acheteur
+        const giftItems = order.items.filter(
+            (item) => item.attendeeEmail && item.attendeeEmail !== buyerEmail,
+        );
+        Promise.allSettled(
+            giftItems.map((item) =>
+                sendTicketGiftEmail({
+                    to: item.attendeeEmail!,
+                    recipientName: item.attendeeName ?? "Invité",
+                    senderName: buyerName ?? "Un ami",
+                    eventTitle: order.event.title,
+                    eventDate,
+                    eventLocation: order.event.location,
+                    eventType: order.event.eventType,
+                    ticketTitle: ticket.title,
+                    orderItemId: item.id,
+                    orderReference: order.reference,
+                }),
+            ),
+        ).catch(err => console.error("Gift email error:", err));
 
         revalidatePath(`/events/${order.event.slug}`);
         return {
