@@ -70,7 +70,8 @@ export default async function EventDetailsPage({
             <div className="flex items-center justify-between mb-6">
                 <Link href="/dashboard/events">
                     <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" /> Retour
+                        <ArrowLeft className="w-4 h-4" />{" "}
+                        <span className="hidden md:block">Retour</span>
                     </Button>
                 </Link>
 
