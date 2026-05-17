@@ -159,6 +159,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 ticketTitle: ticket.title,
                 quantity: 1,
                 price: 0,
+                emailTemplate: ticket.emailTemplate,
             })),
         }).catch(err => console.error("Free ticket email error:", err));
 
@@ -177,6 +178,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
                     eventLocation: order.event.location,
                     eventType: order.event.eventType,
                     ticketTitle: ticket.title,
+                    price: 0,
+                    emailTemplate: ticket.emailTemplate,
                     orderItemId: item.id,
                     orderReference: order.reference,
                 }),
