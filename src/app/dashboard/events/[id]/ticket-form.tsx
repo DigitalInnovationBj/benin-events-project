@@ -8,12 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Plus, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { createTicket } from "@/actions/ticket.actions";
+import { TicketTemplateSelector } from "./ticket-template-selector";
 
 export function TicketForm({ eventId }: { eventId: string }) {
     const [isLoading, setIsLoading] = useState(false);
-    const [ticketImagePreview, setTicketImagePreview] = useState<string | null>(
-        null,
-    );
+    const [ticketImagePreview, setTicketImagePreview] = useState<string | null>(null);
+    const [emailTemplate, setEmailTemplate] = useState<"PRIMARY" | "SECONDARY">("PRIMARY");
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -37,6 +37,8 @@ export function TicketForm({ eventId }: { eventId: string }) {
         const formData = new FormData(e.currentTarget);
         formData.append("eventId", eventId);
 
+        formData.append("emailTemplate", emailTemplate);
+
         try {
             const res = await createTicket(formData);
 
@@ -49,6 +51,7 @@ export function TicketForm({ eventId }: { eventId: string }) {
             toast.success("Billet ajouté avec succès !");
             (e.target as HTMLFormElement).reset();
             setTicketImagePreview(null);
+            setEmailTemplate("PRIMARY");
         } catch (err) {
             toast.error("Erreur inattendue");
         } finally {
@@ -136,6 +139,11 @@ export function TicketForm({ eventId }: { eventId: string }) {
                         )}
                     </Label>
                 </div>
+            </div>
+
+            <div className="grid gap-2">
+                <Label>Template du billet PDF</Label>
+                <TicketTemplateSelector value={emailTemplate} onChange={setEmailTemplate} />
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full">

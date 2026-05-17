@@ -69,6 +69,11 @@ enum PayoutStatus {
   REJECTED
 }
 
+enum TicketTemplate {
+  PRIMARY
+  SECONDARY
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -252,6 +257,9 @@ model Ticket {
 
   // Options de stock
   totalStock  Int?
+
+  // Template du billet PDF joint à l'email de confirmation
+  emailTemplate TicketTemplate @default(PRIMARY)
 
   // Relations
   eventId    String

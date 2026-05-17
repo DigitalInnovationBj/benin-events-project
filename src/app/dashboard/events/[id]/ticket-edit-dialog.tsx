@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Pencil, Trash2, ImagePlus } from "lucide-react";
 import { toast } from "sonner";
 import { updateTicket, deleteTicket } from "@/actions/ticket.actions";
+import { TicketTemplateSelector } from "./ticket-template-selector";
 
 type Ticket = {
     id: string;
@@ -35,16 +36,15 @@ type Ticket = {
     imageUrl: string | null;
     totalStock: number | null;
     eventId: string;
+    emailTemplate: "PRIMARY" | "SECONDARY";
 };
 
 export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [imagePreview, setImagePreview] = useState<string | null>(
-        ticket.imageUrl,
-    );
-    const [hasNewImage, setHasNewImage] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(ticket.imageUrl);
+    const [emailTemplate, setEmailTemplate] = useState<"PRIMARY" | "SECONDARY">(ticket.emailTemplate);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -55,7 +55,6 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
             return;
         }
         setImagePreview(URL.createObjectURL(file));
-        setHasNewImage(true);
     };
 
     const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,6 +63,7 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
 
         const formData = new FormData(e.currentTarget);
         formData.set("ticketId", ticket.id);
+        formData.set("emailTemplate", emailTemplate);
 
         try {
             const res = await updateTicket(formData);
@@ -183,6 +183,12 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                             />
                         </div>
 
+                        {/* Template PDF */}
+                        <div className="grid gap-2">
+                            <Label>Template du billet PDF</Label>
+                            <TicketTemplateSelector value={emailTemplate} onChange={setEmailTemplate} />
+                        </div>
+
                         {/* Image */}
                         <div className="grid gap-2">
                             <Label htmlFor={`img-${ticket.id}`}>
@@ -226,10 +232,7 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                                 <button
                                     type="button"
                                     className="text-xs text-muted-foreground hover:text-destructive text-left transition-colors"
-                                    onClick={() => {
-                                        setImagePreview(null);
-                                        setHasNewImage(false);
-                                    }}
+                                    onClick={() => setImagePreview(null)}
                                 >
                                     Retirer l&apos;image
                                 </button>

@@ -114,7 +114,7 @@ async function sendConfirmationEmail(orderId: string) {
                     quantity: true,
                     attendeeName: true,
                     attendeeEmail: true,
-                    ticket: { select: { title: true } },
+                    ticket: { select: { title: true, emailTemplate: true } },
                 },
             },
         },
@@ -151,6 +151,7 @@ async function sendConfirmationEmail(orderId: string) {
             ticketTitle: item.ticket.title,
             quantity: item.quantity,
             price: item.price,
+            emailTemplate: item.ticket.emailTemplate,
         })),
     });
 
@@ -175,6 +176,8 @@ async function sendConfirmationEmail(orderId: string) {
                 eventLocation: order.event.location,
                 eventType: order.event.eventType,
                 ticketTitle: item.ticket.title,
+                price: item.price,
+                emailTemplate: item.ticket.emailTemplate,
                 orderItemId: item.id,
                 orderReference: order.reference,
             }),

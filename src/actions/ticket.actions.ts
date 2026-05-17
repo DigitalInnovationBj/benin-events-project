@@ -24,6 +24,7 @@ const ticketBaseSchema = z.object({
         .refine((val) => !val || (!isNaN(parseInt(val)) && parseInt(val) > 0), {
             message: "Stock invalide",
         }),
+    emailTemplate: z.enum(["PRIMARY", "SECONDARY"]).default("PRIMARY"),
 });
 
 const createTicketSchema = ticketBaseSchema.extend({
@@ -73,6 +74,7 @@ export async function createTicket(formData: FormData) {
             description: formData.get("description"),
             price: formData.get("price"),
             totalStock: formData.get("totalStock"),
+            emailTemplate: formData.get("emailTemplate") ?? "PRIMARY",
         });
 
         if (!parsedData.success) {
@@ -109,6 +111,7 @@ export async function createTicket(formData: FormData) {
                 price: parseFloat(data.price),
                 totalStock: data.totalStock ? parseInt(data.totalStock) : null,
                 imageUrl,
+                emailTemplate: data.emailTemplate,
                 eventId: event.id,
             },
         });
@@ -161,6 +164,7 @@ export async function updateTicket(formData: FormData) {
             description: formData.get("description") || undefined,
             price: formData.get("price"),
             totalStock: formData.get("totalStock") || undefined,
+            emailTemplate: formData.get("emailTemplate") ?? "PRIMARY",
         });
 
         if (!parsedData.success) {
@@ -196,6 +200,7 @@ export async function updateTicket(formData: FormData) {
                 price: parseFloat(data.price),
                 totalStock: data.totalStock ? parseInt(data.totalStock) : null,
                 imageUrl,
+                emailTemplate: data.emailTemplate,
             },
         });
 

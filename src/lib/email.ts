@@ -1,6 +1,7 @@
 import { render } from "@react-email/components";
 import { resend } from "@/lib/resend";
 import QRCode from "qrcode";
+import { generateTicketPdf } from "@/lib/ticket-pdf";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
@@ -57,6 +58,7 @@ export interface OrderItemForEmail {
     ticketTitle: string;
     quantity: number;
     price: number;
+    emailTemplate: "PRIMARY" | "SECONDARY";
 }
 
 export interface SendOrderConfirmationParams {
@@ -84,7 +86,9 @@ export async function sendOrderConfirmationEmail(
         return { ...item, qrCodeDataUrl: `cid:qr-${index}`, verifyUrl };
     });
 
-    const [{ html, text }, attachments] = await Promise.all([
+    const totalTickets = items.reduce((sum, i) => sum + i.quantity, 0);
+
+    const [{ html, text }, qrAttachments, pdfAttachments] = await Promise.all([
         renderBoth(OrderConfirmationEmail({
             customerName, eventTitle, eventDate, eventLocation,
             eventType, orderReference, totalAmount, items: itemsWithQR, appUrl: APP_URL,
@@ -92,6 +96,33 @@ export async function sendOrderConfirmationEmail(
         Promise.all(items.map((item, index) => {
             const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
             return generateQrAttachment(verifyUrl, index);
+        })),
+        Promise.all(items.map(async (item, index) => {
+            const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
+            const qrBuffer = await QRCode.toBuffer(verifyUrl, {
+                width: 300,
+                errorCorrectionLevel: "H",
+                margin: 2,
+            });
+            const pdfBuffer = await generateTicketPdf({
+                eventTitle,
+                eventDate,
+                eventLocation,
+                eventType,
+                ticketTitle: item.ticketTitle,
+                price: item.price,
+                orderReference,
+                ticketIndex: index + 1,
+                ticketTotal: totalTickets,
+                qrBuffer,
+                template: item.emailTemplate,
+            });
+            const slug = eventTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
+            return {
+                filename: `billet-${index + 1}-${slug}.pdf`,
+                content: pdfBuffer.toString("base64"),
+                contentType: "application/pdf",
+            };
         })),
     ]);
 
@@ -101,7 +132,7 @@ export async function sendOrderConfirmationEmail(
         subject: `Vos billets pour ${eventTitle} - Confirmation`,
         html,
         text,
-        attachments,
+        attachments: [...qrAttachments, ...pdfAttachments],
     });
 }
 
@@ -281,16 +312,28 @@ export interface SendTicketGiftParams {
     eventLocation: string | null;
     eventType: "IN_PERSON" | "ONLINE";
     ticketTitle: string;
+    price: number;
+    emailTemplate: "PRIMARY" | "SECONDARY";
     orderItemId: string;
     orderReference: string;
 }
 
 export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
-    const { to, recipientName, senderName, eventTitle, eventDate, eventLocation, eventType, ticketTitle, orderItemId, orderReference } = params;
+    const {
+        to, recipientName, senderName, eventTitle, eventDate,
+        eventLocation, eventType, ticketTitle, price, emailTemplate,
+        orderItemId, orderReference,
+    } = params;
 
     const verifyUrl = `${APP_URL}/verify?item=${orderItemId}&order=${orderReference}`;
 
-    const [{ html, text }, attachment] = await Promise.all([
+    const qrBuffer = await QRCode.toBuffer(verifyUrl, {
+        width: 300,
+        errorCorrectionLevel: "H",
+        margin: 2,
+    });
+
+    const [{ html, text }, qrAttachment, pdfBuffer] = await Promise.all([
         renderBoth(TicketGiftEmail({
             recipientName, senderName, eventTitle, eventDate,
             eventLocation, eventType, ticketTitle,
@@ -298,7 +341,16 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
             orderItemId, orderReference, appUrl: APP_URL,
         })),
         generateQrAttachment(verifyUrl, 0).then(a => ({ ...a, contentId: "qr-gift" })),
+        generateTicketPdf({
+            eventTitle, eventDate, eventLocation, eventType,
+            ticketTitle, price, orderReference,
+            ticketIndex: 1, ticketTotal: 1,
+            qrBuffer,
+            template: emailTemplate,
+        }),
     ]);
+
+    const slug = eventTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
 
     await resend.emails.send({
         from: FROM_VENTES,
@@ -306,7 +358,14 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
         subject: `${senderName} vous offre un billet pour ${eventTitle}`,
         html,
         text,
-        attachments: [attachment],
+        attachments: [
+            qrAttachment,
+            {
+                filename: `billet-cadeau-${slug}.pdf`,
+                content: pdfBuffer.toString("base64"),
+                contentType: "application/pdf",
+            },
+        ],
     });
 }
 
