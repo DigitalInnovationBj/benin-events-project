@@ -1,3 +1,4 @@
+import React from "react";
 import path from "path";
 import {
     Document,
@@ -62,7 +63,7 @@ export interface TicketPdfData {
     orderReference: string;
     ticketIndex: number;
     ticketTotal: number;
-    qrBuffer: Buffer;
+    qrDataUri: string;   // data:image/png;base64,...
     template: "PRIMARY" | "SECONDARY";
 }
 
@@ -229,7 +230,7 @@ function TicketDocument({ data, theme }: {
     const {
         eventTitle, eventDate, eventLocation, eventType,
         ticketTitle, price, orderReference,
-        ticketIndex, ticketTotal, qrBuffer,
+        ticketIndex, ticketTotal, qrDataUri,
     } = data;
 
     const locationLine = eventType === "IN_PERSON"
@@ -310,7 +311,7 @@ function TicketDocument({ data, theme }: {
                     <View style={common.qrWrapper}>
                         <Image
                             style={common.qrImage}
-                            src={qrBuffer}
+                            src={qrDataUri}
                         />
                     </View>
                     <Text style={[common.scanLabel, { color: theme.scanLabelColor }]}>

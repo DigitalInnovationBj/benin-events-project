@@ -104,6 +104,7 @@ export async function sendOrderConfirmationEmail(
                 errorCorrectionLevel: "H",
                 margin: 2,
             });
+            const qrDataUri = `data:image/png;base64,${qrBuffer.toString("base64")}`;
             const pdfBuffer = await generateTicketPdf({
                 eventTitle,
                 eventDate,
@@ -114,7 +115,7 @@ export async function sendOrderConfirmationEmail(
                 orderReference,
                 ticketIndex: index + 1,
                 ticketTotal: totalTickets,
-                qrBuffer,
+                qrDataUri,
                 template: item.emailTemplate,
             });
             const slug = eventTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
@@ -332,6 +333,7 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
         errorCorrectionLevel: "H",
         margin: 2,
     });
+    const qrDataUri = `data:image/png;base64,${qrBuffer.toString("base64")}`;
 
     const [{ html, text }, qrAttachment, pdfBuffer] = await Promise.all([
         renderBoth(TicketGiftEmail({
@@ -345,7 +347,7 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
             eventTitle, eventDate, eventLocation, eventType,
             ticketTitle, price, orderReference,
             ticketIndex: 1, ticketTotal: 1,
-            qrBuffer,
+            qrDataUri,
             template: emailTemplate,
         }),
     ]);
