@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { ensureDbUser } from "@/lib/sync-user";
 import { createPayment } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
@@ -39,7 +40,9 @@ export async function initiateTicketPayment(input: PaymentInput) {
     let dbUserId: string | undefined;
 
     if (userId) {
-        const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+        // Crée l'utilisateur en base s'il n'existe pas encore (ex. connecté
+        // sans jamais être passé par le dashboard)
+        const dbUser = await ensureDbUser();
         if (!dbUser) return { error: "Utilisateur introuvable." };
         buyerEmail = dbUser.email;
         buyerName = dbUser.name ?? undefined;
@@ -85,21 +88,6 @@ export async function initiateTicketPayment(input: PaymentInput) {
     if (!ticket) return { error: "Billet introuvable." };
     if (ticket.event.isDeleted) return { error: "Cet événement n'est plus disponible." };
 
-    // ── Vérification du stock ─────────────────────────────────────────────
-    if (ticket.totalStock !== null) {
-        const sold = await prisma.orderItem.aggregate({
-            where: {
-                ticketId: ticket.id,
-                order: { status: { in: ["COMPLETED", "PENDING"] } },
-            },
-            _sum: { quantity: true },
-        });
-        const remaining = ticket.totalStock - (sold._sum.quantity ?? 0);
-        if (remaining < quantity) {
-            return { error: `Stock insuffisant. Il ne reste que ${remaining} place(s).` };
-        }
-    }
-
     // ── Construction des OrderItems (1 par billet) ────────────────────────
     const orderItemsData = assignments.map(a => ({
         quantity: 1,
@@ -112,14 +100,34 @@ export async function initiateTicketPayment(input: PaymentInput) {
     const baseAmount = ticket.price * quantity;
     const fees = computeFees(baseAmount);
     const totalAmount = baseAmount + fees;
+    const isFree = baseAmount === 0;
 
-    // ── Billet gratuit ────────────────────────────────────────────────────
-    if (baseAmount === 0) {
-        const order = await prisma.order.create({
+    // ── Vérification du stock + création de commande (transaction) ───────
+    // Verrou sur la ligne du ticket (FOR UPDATE) : les achats concurrents du
+    // même billet sont sérialisés → aucune survente possible.
+    const txResult = await prisma.$transaction(async (tx) => {
+        if (ticket.totalStock !== null) {
+            await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticket.id} FOR UPDATE`;
+            const sold = await tx.orderItem.aggregate({
+                where: {
+                    ticketId: ticket.id,
+                    order: { status: { in: ["COMPLETED", "PENDING"] } },
+                },
+                _sum: { quantity: true },
+            });
+            const remaining = ticket.totalStock - (sold._sum.quantity ?? 0);
+            if (remaining < quantity) {
+                return { insufficientStock: Math.max(remaining, 0) };
+            }
+        }
+
+        const order = await tx.order.create({
             data: {
-                reference: `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                status: "COMPLETED",
-                totalAmount: 0,
+                reference: isFree
+                    ? `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+                    : `TMP-${Date.now()}`,
+                status: isFree ? "COMPLETED" : "PENDING",
+                totalAmount: isFree ? 0 : totalAmount,
                 ...(dbUserId
                     ? { userId: dbUserId }
                     : { guestEmail: buyerEmail, guestName: buyerName }),
@@ -139,6 +147,20 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 },
             },
         });
+
+        return { order };
+    });
+
+    if ("insufficientStock" in txResult) {
+        return {
+            error: `Stock insuffisant. Il ne reste que ${txResult.insufficientStock} place(s).`,
+        };
+    }
+
+    const order = txResult.order;
+
+    // ── Billet gratuit ────────────────────────────────────────────────────
+    if (isFree) {
 
         const eventDate = new Date(order.event.startDate).toLocaleDateString("fr-FR", {
             weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -194,19 +216,6 @@ export async function initiateTicketPayment(input: PaymentInput) {
     }
 
     // ── Billet payant ─────────────────────────────────────────────────────
-    const order = await prisma.order.create({
-        data: {
-            reference: `TMP-${Date.now()}`,
-            status: "PENDING",
-            totalAmount,
-            ...(dbUserId
-                ? { userId: dbUserId }
-                : { guestEmail: buyerEmail, guestName: buyerName }),
-            eventId: ticket.event.id,
-            items: { create: orderItemsData },
-        },
-    });
-
     try {
         const paymentRes = await createPayment({
             amount: totalAmount,

@@ -44,9 +44,10 @@ function LoginContent() {
                 redirectUrl: `/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
                 redirectUrlComplete: redirectUrl,
             });
-        } catch (err: any) {
+        } catch (err) {
             const errorMessage =
-                err?.errors?.[0]?.message || "Erreur lors de la connexion";
+                (err as { errors?: { message?: string }[] })?.errors?.[0]
+                    ?.message || "Erreur lors de la connexion";
             setError(errorMessage);
             toast.error(errorMessage);
             setIsSocialLoading(null);

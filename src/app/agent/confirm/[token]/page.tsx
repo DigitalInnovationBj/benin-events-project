@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import { confirmAgent } from "@/actions/agent.actions";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";

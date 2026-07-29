@@ -30,6 +30,8 @@ export interface EventDigestEmailProps {
     digestType: DigestType;
     events: DigestEvent[];
     appUrl: string;
+    /** Lien de désinscription signé, propre à chaque destinataire */
+    unsubscribeUrl?: string;
 }
 
 const CONFIG: Record<DigestType, { preview: string; badge: string; heading: string; intro: string }> = {
@@ -53,7 +55,7 @@ const CONFIG: Record<DigestType, { preview: string; badge: string; heading: stri
     },
 };
 
-export function EventDigestEmail({ userName, digestType, events, appUrl }: EventDigestEmailProps) {
+export function EventDigestEmail({ userName, digestType, events, appUrl, unsubscribeUrl }: EventDigestEmailProps) {
     const cfg = CONFIG[digestType];
 
     return (
@@ -124,10 +126,21 @@ export function EventDigestEmail({ userName, digestType, events, appUrl }: Event
                     <Text style={footer}>
                         Vous recevez cet email parce que vous êtes inscrit sur{" "}
                         <a href={appUrl} style={link}>beninevents.com</a>.
-                        Pour ne plus recevoir ces notifications, écrivez-nous à{" "}
-                        <a href="mailto:support@beninevents.com" style={link}>
-                            support@beninevents.com
-                        </a>.
+                        {unsubscribeUrl ? (
+                            <>
+                                {" "}Pour ne plus recevoir ces emails,{" "}
+                                <a href={unsubscribeUrl} style={link}>
+                                    cliquez ici pour vous désinscrire
+                                </a>.
+                            </>
+                        ) : (
+                            <>
+                                {" "}Pour ne plus recevoir ces notifications, écrivez-nous à{" "}
+                                <a href="mailto:support@beninevents.com" style={link}>
+                                    support@beninevents.com
+                                </a>.
+                            </>
+                        )}
                     </Text>
                 </Container>
             </Body>

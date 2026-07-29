@@ -26,7 +26,6 @@ export function ContactNotificationEmail({
     email,
     subject,
     message,
-    adminPanelUrl,
 }: ContactNotificationEmailProps) {
     return (
         <Html lang="fr">

@@ -45,9 +45,10 @@ function SignUpContent() {
                 redirectUrl: `/sso-callback?redirect_url=${encodeURIComponent(redirectUrl)}`,
                 redirectUrlComplete: redirectUrl,
             });
-        } catch (err: any) {
+        } catch (err) {
             const errorMessage =
-                err?.errors?.[0]?.message || "Erreur lors de l'inscription";
+                (err as { errors?: { message?: string }[] })?.errors?.[0]
+                    ?.message || "Erreur lors de l'inscription";
             setError(errorMessage);
             toast.error(errorMessage);
             setIsSocialLoading(null);

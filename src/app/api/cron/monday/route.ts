@@ -10,6 +10,7 @@ import {
     batchSend,
     renderDigestHtml,
 } from "../_lib";
+import { buildUnsubscribeUrl } from "@/lib/newsletter";
 
 // Runs every Monday at 07:00 UTC (08:00 Bénin)
 export async function GET(req: NextRequest) {
@@ -43,7 +44,8 @@ export async function GET(req: NextRequest) {
     const digestEvents = events.map(toDigestEvent);
 
     const users = await prisma.user.findMany({
-        select: { email: true, name: true },
+        where: { newsletterOptIn: true },
+        select: { id: true, email: true, name: true },
     });
 
     const emails = await Promise.all(
@@ -57,6 +59,7 @@ export async function GET(req: NextRequest) {
                     digestType: "week",
                     events: digestEvents,
                     appUrl: APP_URL,
+                    unsubscribeUrl: buildUnsubscribeUrl(APP_URL, user.id),
                 }),
             ),
         })),

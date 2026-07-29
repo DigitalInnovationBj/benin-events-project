@@ -140,13 +140,31 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // ── 10. Valide → incrémenter ──────────────────────────────────────────
-    const updated = await prisma.orderItem.update({
-        where: { id: rawItem.id },
+    // ── 10. Valide → incrémenter (atomique : refuse si le quota est déjà atteint,
+    // même en cas de scans simultanés par plusieurs agents) ───────────────
+    const { count } = await prisma.orderItem.updateMany({
+        where: { id: rawItem.id, scannedCount: { lt: rawItem.quantity } },
         data: {
             scannedCount: { increment: 1 },
             firstScannedAt: rawItem.firstScannedAt ?? new Date(),
         },
+    });
+
+    if (count === 0) {
+        return NextResponse.json({
+            valid: false,
+            message: "Billet déjà utilisé",
+            detail: "Ce billet vient d'être scanné par un autre agent.",
+            ticketTitle: rawItem.ticket.title,
+            attendeeName: rawItem.attendeeName,
+            scannedCount: rawItem.quantity,
+            quantity: rawItem.quantity,
+        });
+    }
+
+    const updated = await prisma.orderItem.findUnique({
+        where: { id: rawItem.id },
+        select: { scannedCount: true },
     });
 
     return NextResponse.json({
@@ -154,7 +172,7 @@ export async function POST(req: NextRequest) {
         message: "Billet valide",
         ticketTitle: rawItem.ticket.title,
         attendeeName: rawItem.attendeeName,
-        scannedCount: updated.scannedCount,
+        scannedCount: updated?.scannedCount ?? rawItem.scannedCount + 1,
         quantity: rawItem.quantity,
     });
 }

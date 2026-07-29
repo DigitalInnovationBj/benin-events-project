@@ -1,15 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, FunctionCallingMode } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
 export async function POST(req: NextRequest) {
+    // Route publique qui déclenche un appel Gemini : on limite par IP
+    // (10 req/min) et globalement (60 req/min) pour protéger le quota.
+    const ip =
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    if (
+        !rateLimit(`ai-search:${ip}`, 10, 60_000) ||
+        !rateLimit("ai-search:global", 60, 60_000)
+    ) {
+        return NextResponse.json(
+            { error: "Trop de requêtes. Réessayez dans une minute." },
+            { status: 429 },
+        );
+    }
+
     const body = await req.json().catch(() => null);
     const query: string = body?.query?.trim();
 
     if (!query) {
         return NextResponse.json({ error: "Requête manquante" }, { status: 400 });
+    }
+    if (query.length > 300) {
+        return NextResponse.json(
+            { error: "Requête trop longue (300 caractères max)." },
+            { status: 400 },
+        );
     }
 
     // Upcoming events with their context

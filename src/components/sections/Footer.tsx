@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {
-    ArrowRight,
-    CalendarDays,
     MapPin,
     Heart,
     LayoutDashboard,

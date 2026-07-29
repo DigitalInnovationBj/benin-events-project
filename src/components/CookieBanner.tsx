@@ -44,9 +44,14 @@ export default function CookieBanner() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (!stored) {
-                setMounted(true);
-                const t = setTimeout(() => setVisible(true), 800);
-                return () => clearTimeout(t);
+                // setState différé (setTimeout) pour éviter un rendu en cascade
+                // synchrone dans l'effet ; l'animation d'entrée reste identique.
+                const t1 = setTimeout(() => setMounted(true), 0);
+                const t2 = setTimeout(() => setVisible(true), 800);
+                return () => {
+                    clearTimeout(t1);
+                    clearTimeout(t2);
+                };
             }
         } catch {
             // localStorage unavailable (SSR guard or private browsing)

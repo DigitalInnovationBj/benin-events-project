@@ -309,6 +309,7 @@ function TicketDocument({ data, theme }: {
                 {/* ── Bloc droit — QR ──────────────────────── */}
                 <View style={[common.right, { backgroundColor: theme.rightBg }]}>
                     <View style={common.qrWrapper}>
+                        {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de @react-pdf/renderer, ne supporte pas alt */}
                         <Image
                             style={common.qrImage}
                             src={qrDataUri}

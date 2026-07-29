@@ -52,7 +52,7 @@ export function TicketForm({ eventId }: { eventId: string }) {
             (e.target as HTMLFormElement).reset();
             setTicketImagePreview(null);
             setEmailTemplate("PRIMARY");
-        } catch (err) {
+        } catch {
             toast.error("Erreur inattendue");
         } finally {
             setIsLoading(false);

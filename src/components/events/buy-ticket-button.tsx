@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -54,15 +54,16 @@ export function BuyTicketButton({
     const isSoldOut = remainingStock !== null && remainingStock <= 0;
     const maxQty = remainingStock !== null ? Math.min(remainingStock, 10) : 10;
 
-    // Synchronise le tableau quand la quantité change
-    useEffect(() => {
+    // Met à jour la quantité et redimensionne le tableau d'attributions en même temps
+    function changeQuantity(next: number) {
+        setQuantity(next);
         setAssignments(prev =>
-            Array.from({ length: quantity }, (_, i) => {
+            Array.from({ length: next }, (_, i) => {
                 if (prev[i]) return prev[i];
                 return { forSelf: i === 0 && !hasExistingTicket, name: "", email: "" };
             })
         );
-    }, [quantity, hasExistingTicket]);
+    }
 
     function handleOpen() {
         setQuantity(1);
@@ -187,7 +188,7 @@ export function BuyTicketButton({
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                                    onClick={() => changeQuantity(Math.max(1, quantity - 1))}
                                     disabled={quantity <= 1 || isPending}
                                 >
                                     <Minus className="w-3 h-3" />
@@ -197,7 +198,7 @@ export function BuyTicketButton({
                                     variant="outline"
                                     size="icon"
                                     className="h-8 w-8"
-                                    onClick={() => setQuantity(q => Math.min(maxQty, q + 1))}
+                                    onClick={() => changeQuantity(Math.min(maxQty, quantity + 1))}
                                     disabled={quantity >= maxQty || isPending}
                                 >
                                     <Plus className="w-3 h-3" />

@@ -21,7 +21,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Loader2, User } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 
