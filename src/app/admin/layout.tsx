@@ -7,6 +7,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 
 export default async function AdminLayout({
@@ -25,23 +26,25 @@ export default async function AdminLayout({
     }
 
     return (
-        <SidebarProvider>
-            <DashboardSidebar
-                user={{
-                    name: user.name || user.email.split("@")[0],
-                    email: user.email,
-                    imageUrl: user.image ?? undefined,
-                    role: "ADMIN",
-                }}
-            />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator orientation="vertical" className="mr-2 h-4" />
-                    <span className="text-sm font-medium">Administration</span>
-                </header>
-                <main className="p-4 md:p-8">{children}</main>
-            </SidebarInset>
-        </SidebarProvider>
+        <TooltipProvider>
+            <SidebarProvider>
+                <DashboardSidebar
+                    user={{
+                        name: user.name || user.email.split("@")[0],
+                        email: user.email,
+                        imageUrl: user.image ?? undefined,
+                        role: "ADMIN",
+                    }}
+                />
+                <SidebarInset>
+                    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4">
+                        <SidebarTrigger className="-ml-1" />
+                        <Separator orientation="vertical" className="mr-2 h-4" />
+                        <span className="text-sm font-medium">Administration</span>
+                    </header>
+                    <main className="p-4 md:p-8">{children}</main>
+                </SidebarInset>
+            </SidebarProvider>
+        </TooltipProvider>
     );
 }
