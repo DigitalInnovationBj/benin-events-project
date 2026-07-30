@@ -14,6 +14,8 @@ import { PayoutNotificationEmail, type PayoutNotifType } from "@/emails/payout-n
 import { PayoutRequestAdminEmail } from "@/emails/payout-request-admin";
 import { TicketGiftEmail } from "@/emails/ticket-gift";
 import { AuthVerificationEmail } from "@/emails/auth-verification";
+import { EventCancellationEmail } from "@/emails/event-cancellation";
+import { RefundConfirmationEmail } from "@/emails/refund-confirmation";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -434,6 +436,72 @@ export async function sendAuthOtpEmail(params: SendAuthOtpParams) {
         from: FROM_SUPPORT,
         to,
         subject,
+        html,
+        text,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendEventCancellationEmail
+// ─────────────────────────────────────────────
+
+export interface SendEventCancellationParams {
+    to: string;
+    recipientName: string;
+    eventTitle: string;
+    eventDate: string;
+    orderReference: string;
+    totalAmount: number;
+    reason?: string;
+}
+
+export async function sendEventCancellationEmail(params: SendEventCancellationParams) {
+    const { to, recipientName, eventTitle, eventDate, orderReference, totalAmount, reason } = params;
+
+    const { html, text } = await renderBoth(
+        EventCancellationEmail({
+            recipientName,
+            eventTitle,
+            eventDate,
+            orderReference,
+            totalAmount,
+            reason,
+            appUrl: APP_URL,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to,
+        subject: `« ${eventTitle} » est annulé — remboursement en cours`,
+        html,
+        text,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendRefundConfirmationEmail
+// ─────────────────────────────────────────────
+
+export interface SendRefundConfirmationParams {
+    to: string;
+    recipientName: string;
+    eventTitle: string;
+    orderReference: string;
+    totalAmount: number;
+}
+
+export async function sendRefundConfirmationEmail(params: SendRefundConfirmationParams) {
+    const { to, recipientName, eventTitle, orderReference, totalAmount } = params;
+
+    const { html, text } = await renderBoth(
+        RefundConfirmationEmail({ recipientName, eventTitle, orderReference, totalAmount }),
+    );
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to,
+        subject: `Remboursement effectué — ${totalAmount.toLocaleString("fr-FR")} FCFA`,
         html,
         text,
     });

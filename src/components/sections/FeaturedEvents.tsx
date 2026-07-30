@@ -12,6 +12,7 @@ export default async function FeaturedEvents() {
         where: {
             isFeatured: true,
             isDeleted: false,
+            isCancelled: false,
             startDate: { gte: new Date() },
         },
         orderBy: { startDate: "asc" },

@@ -19,6 +19,7 @@ const STATUS_CONFIG: Record<
     FAILED: { label: "Échoué", variant: "destructive" },
     EXPIRED: { label: "Expiré", variant: "outline" },
     CANCELLED: { label: "Annulé", variant: "outline" },
+    REFUNDED: { label: "Remboursé", variant: "secondary" },
 };
 
 export default async function OrdersPage() {

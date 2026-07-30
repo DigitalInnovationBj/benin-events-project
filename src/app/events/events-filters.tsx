@@ -52,9 +52,13 @@ export default function EventsFilters({
     const [search, setSearch] = useState(currentSearch);
 
     // ── Sync input quand l'URL change (navigation arrière/avant) ────────────
-    useEffect(() => {
+    // Ajustement d'état pendant le rendu (pattern React officiel) plutôt
+    // qu'un setState dans un effet, qui déclencherait un rendu en cascade.
+    const [prevSearch, setPrevSearch] = useState(currentSearch);
+    if (prevSearch !== currentSearch) {
+        setPrevSearch(currentSearch);
         setSearch(currentSearch);
-    }, [currentSearch]);
+    }
 
     // ── Construit l'URL avec les params mis à jour ──────────────────────────
     const buildUrl = useCallback(

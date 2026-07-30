@@ -220,6 +220,13 @@ export default async function PublicEventPage({ params }: Props) {
 
     return (
         <main className="min-h-screen bg-background">
+            {event.isCancelled && (
+                <div className="bg-destructive text-destructive-foreground text-center py-3 px-4 text-sm font-medium">
+                    Cet évènement a été annulé
+                    {event.cancellationReason ? ` — ${event.cancellationReason}` : "."}
+                    {" "}Les billets achetés seront remboursés.
+                </div>
+            )}
             {/* ══════════════════════════════════════════════════════════════
                 Héro
             ══════════════════════════════════════════════════════════════ */}
@@ -472,14 +479,20 @@ export default async function PublicEventPage({ params }: Props) {
                                                         ? "Gratuit"
                                                         : `${ticket.price.toLocaleString("fr-FR")} FCFA`}
                                                 </span>
-                                                <BuyTicketButton
-                                                    ticket={ticket}
-                                                    isLoggedIn={isLoggedIn}
-                                                    remainingStock={ticket.remainingStock}
-                                                    buyerName={buyerName}
-                                                    buyerEmail={buyerEmail}
-                                                    hasExistingTicket={hasExistingTicket}
-                                                />
+                                                {event.isCancelled ? (
+                                                    <Button disabled variant="outline">
+                                                        Évènement annulé
+                                                    </Button>
+                                                ) : (
+                                                    <BuyTicketButton
+                                                        ticket={ticket}
+                                                        isLoggedIn={isLoggedIn}
+                                                        remainingStock={ticket.remainingStock}
+                                                        buyerName={buyerName}
+                                                        buyerEmail={buyerEmail}
+                                                        hasExistingTicket={hasExistingTicket}
+                                                    />
+                                                )}
                                             </div>
                                             {ticket.remainingStock !== null && (
                                                 <p className="text-xs text-muted-foreground mt-3 text-right">

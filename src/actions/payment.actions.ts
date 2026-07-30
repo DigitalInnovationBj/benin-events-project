@@ -3,7 +3,7 @@
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/geniuspay";
-import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendTicketGiftEmail, sendRefundConfirmationEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -103,10 +103,22 @@ export async function initiateTicketPayment(input: PaymentInput) {
     const txResult = await prisma.$transaction(async (tx) => {
         if (ticket.totalStock !== null) {
             await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticket.id} FOR UPDATE`;
+            // Une commande PENDING ne réserve le stock que pendant 1 h : les
+            // paiements abandonnés dont GeniusPay n'a jamais notifié
+            // l'expiration ne gèlent pas les places indéfiniment.
+            const pendingCutoff = new Date(Date.now() - 60 * 60 * 1000);
             const sold = await tx.orderItem.aggregate({
                 where: {
                     ticketId: ticket.id,
-                    order: { status: { in: ["COMPLETED", "PENDING"] } },
+                    order: {
+                        OR: [
+                            { status: "COMPLETED" },
+                            {
+                                status: "PENDING",
+                                createdAt: { gte: pendingCutoff },
+                            },
+                        ],
+                    },
                 },
                 _sum: { quantity: true },
             });
@@ -259,6 +271,80 @@ export async function getUserOrders() {
             },
         },
         orderBy: { createdAt: "desc" },
+    });
+
+    return { orders };
+}
+
+// ─────────────────────────────────────────────
+// markOrderRefunded — remboursement traité manuellement (GeniusPay n'expose
+// pas d'API de remboursement programmatique ; l'organisateur/admin l'effectue
+// hors plateforme puis confirme ici, ce qui déclenche l'email de confirmation)
+// ─────────────────────────────────────────────
+
+export async function markOrderRefunded(orderId: string) {
+    const user = await getCurrentUser();
+    if (!user) return { error: "Non authentifié" };
+
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+            event: { select: { id: true, title: true, organizerId: true } },
+            user: { select: { email: true, name: true } },
+        },
+    });
+    if (!order) return { error: "Commande introuvable" };
+
+    if (user.role !== "ADMIN" && order.event.organizerId !== user.id) {
+        return { error: "Accès refusé" };
+    }
+
+    if (order.status !== "COMPLETED") {
+        return { error: "Seule une commande payée peut être marquée remboursée" };
+    }
+
+    await prisma.order.update({
+        where: { id: order.id },
+        data: { status: "REFUNDED" },
+    });
+
+    const email = order.user?.email ?? order.guestEmail;
+    const name = order.user?.name ?? order.guestName ?? "Client";
+    if (email) {
+        sendRefundConfirmationEmail({
+            to: email,
+            recipientName: name,
+            eventTitle: order.event.title,
+            orderReference: order.reference,
+            totalAmount: order.totalAmount,
+        }).catch((err) => console.error("Refund confirmation email error:", err));
+    }
+
+    revalidatePath(`/dashboard/events/${order.event.id}`);
+    return { success: true };
+}
+
+// ─────────────────────────────────────────────
+// getOrdersToRefund — commandes payées d'un évènement annulé, pas encore remboursées
+// ─────────────────────────────────────────────
+
+export async function getOrdersToRefund(eventId: string) {
+    const user = await getCurrentUser();
+    if (!user) return { error: "Non authentifié", orders: [] };
+
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { organizerId: true },
+    });
+    if (!event) return { error: "Évènement introuvable", orders: [] };
+    if (user.role !== "ADMIN" && event.organizerId !== user.id) {
+        return { error: "Accès refusé", orders: [] };
+    }
+
+    const orders = await prisma.order.findMany({
+        where: { eventId, status: { in: ["COMPLETED", "REFUNDED"] } },
+        include: { user: { select: { name: true, email: true } } },
+        orderBy: { createdAt: "asc" },
     });
 
     return { orders };

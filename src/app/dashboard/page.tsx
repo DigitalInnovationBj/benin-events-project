@@ -74,6 +74,7 @@ const statusLabel: Record<string, string> = {
     FAILED: "Échouée",
     EXPIRED: "Expirée",
     CANCELLED: "Annulée",
+    REFUNDED: "Remboursée",
 };
 
 const statusColor: Record<string, string> = {
@@ -82,6 +83,7 @@ const statusColor: Record<string, string> = {
     FAILED: "bg-red-100 text-red-800",
     EXPIRED: "bg-zinc-100 text-zinc-600",
     CANCELLED: "bg-zinc-100 text-zinc-600",
+    REFUNDED: "bg-blue-100 text-blue-800",
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────

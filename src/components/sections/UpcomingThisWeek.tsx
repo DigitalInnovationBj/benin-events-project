@@ -10,6 +10,7 @@ export default async function UpcomingThisWeek() {
         where: {
             startDate: { gte: now, lte: nextWeek },
             isDeleted: false,
+            isCancelled: false,
         },
         orderBy: { startDate: "asc" },
         take: 10,

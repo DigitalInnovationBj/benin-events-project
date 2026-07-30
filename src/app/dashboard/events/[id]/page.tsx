@@ -7,6 +7,7 @@ import {
     ArrowLeft,
     Ticket as TicketIcon,
     Calendar,
+    Download,
     MapPin,
     MonitorPlay,
     Pencil,
@@ -20,8 +21,11 @@ import Image from "next/image";
 import { TicketForm } from "./ticket-form";
 import { TicketEditDialog } from "./ticket-edit-dialog";
 import DeleteEventButton from "./DeleteEventButton";
+import CancelEventButton from "./CancelEventButton";
+import RefundPanel from "./RefundPanel";
 import { FeaturedButton } from "./FeaturedButton";
 import { getSettings } from "@/actions/settings.actions";
+import { getOrdersToRefund } from "@/actions/payment.actions";
 
 export default async function EventDetailsPage({
     params,
@@ -75,6 +79,10 @@ export default async function EventDetailsPage({
         dbUser.role === "ORGANIZER" &&
         !event.isFeatured;
 
+    const { orders: ordersToRefund } = event.isCancelled
+        ? await getOrdersToRefund(event.id)
+        : { orders: [] };
+
     return (
         <div className="max-w-5xl mx-auto w-full pb-20">
             {/* ── Bannières contextuelles ───────────────────────── */}
@@ -102,18 +110,48 @@ export default async function EventDetailsPage({
                     </span>
                 </div>
             )}
-            {!event.isPublished && (
-                <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm">
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            {event.isCancelled ? (
+                <div className="mb-5 flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm">
+                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-semibold text-amber-800 dark:text-amber-200">
-                            Évènement non publié — en attente de paiement
+                        <p className="font-semibold text-red-800 dark:text-red-200">
+                            Évènement annulé
                         </p>
-                        <p className="text-amber-700 dark:text-amber-300 mt-0.5">
-                            Cet évènement n&apos;est pas visible par le public. Finalisez le paiement de{" "}
-                            {settings.eventCreationFee.toLocaleString("fr-FR")} FCFA pour le publier.
+                        <p className="text-red-700 dark:text-red-300 mt-0.5">
+                            {event.cancellationReason ||
+                                "Cet évènement a été annulé et n'est plus visible par le public."}{" "}
+                            Traitez les remboursements ci-dessous.
                         </p>
                     </div>
+                </div>
+            ) : (
+                !event.isPublished && (
+                    <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm">
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-semibold text-amber-800 dark:text-amber-200">
+                                Évènement non publié — en attente de paiement
+                            </p>
+                            <p className="text-amber-700 dark:text-amber-300 mt-0.5">
+                                Cet évènement n&apos;est pas visible par le public. Finalisez le paiement de{" "}
+                                {settings.eventCreationFee.toLocaleString("fr-FR")} FCFA pour le publier.
+                            </p>
+                        </div>
+                    </div>
+                )
+            )}
+            {event.isCancelled && ordersToRefund.length > 0 && (
+                <div className="mb-6">
+                    <RefundPanel
+                        orders={ordersToRefund.map((o) => ({
+                            id: o.id,
+                            reference: o.reference,
+                            totalAmount: o.totalAmount,
+                            status: o.status as "COMPLETED" | "REFUNDED",
+                            buyerName: o.user?.name ?? o.guestName ?? "Client",
+                            buyerEmail: o.user?.email ?? o.guestEmail ?? "",
+                        }))}
+                    />
                 </div>
             )}
 
@@ -130,10 +168,22 @@ export default async function EventDetailsPage({
                     {canFeature && (
                         <FeaturedButton eventId={event.id} fee={settings.featuredEventFee} />
                     )}
+                    {!event.isCancelled && !event.isDeleted && (
+                        <CancelEventButton
+                            eventId={event.id}
+                            eventTitle={event.title}
+                        />
+                    )}
                     <DeleteEventButton
                         eventId={event.id}
                         eventTitle={event.title}
                     />
+                    <a href={`/api/events/${event.id}/attendees`} download>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Download className="w-4 h-4" />
+                            Participants
+                        </Button>
+                    </a>
                     <Link href={`/dashboard/events/${event.id}/agents`}>
                         <Button variant="outline" size="sm" className="gap-2">
                             <Users className="w-4 h-4" />

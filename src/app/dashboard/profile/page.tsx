@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { authClient, useSession } from "@/lib/auth-client";
+import { setNewsletterOptIn } from "@/actions/user.actions";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -148,6 +152,15 @@ export default function ProfilePage() {
 
                         <Separator className="bg-white/10" />
 
+                        <NewsletterPreference
+                            initialOptIn={
+                                (user as { newsletterOptIn?: boolean })
+                                    .newsletterOptIn ?? true
+                            }
+                        />
+
+                        <Separator className="bg-white/10" />
+
                         <div className="space-y-4">
                             <h3 className="font-bold text-xl text-foreground">
                                 Sécurité & Accès
@@ -194,6 +207,55 @@ export default function ProfilePage() {
                         ← Retour au site principal
                     </Link>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────
+// Préférence newsletter
+// ─────────────────────────────────────────────
+
+function NewsletterPreference({ initialOptIn }: { initialOptIn: boolean }) {
+    const [optIn, setOptIn] = useState(initialOptIn);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleToggle = async (checked: boolean) => {
+        setOptIn(checked);
+        setIsSaving(true);
+        const res = await setNewsletterOptIn(checked);
+        setIsSaving(false);
+        if (res.error) {
+            setOptIn(!checked);
+            toast.error(res.error);
+        } else {
+            toast.success(
+                checked
+                    ? "Vous recevrez à nouveau nos suggestions d'évènements."
+                    : "Vous ne recevrez plus les emails de suggestions.",
+            );
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <h3 className="font-bold text-xl text-foreground">Préférences</h3>
+            <div className="flex items-center justify-between gap-4 px-5 py-4 bg-white/5 rounded-2xl border border-white/10">
+                <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                        Suggestions d&apos;évènements
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Recevoir les emails des lundis, mercredis et vendredis
+                        avec les évènements à venir.
+                    </p>
+                </div>
+                <Switch
+                    checked={optIn}
+                    onCheckedChange={handleToggle}
+                    disabled={isSaving}
+                    aria-label="Recevoir les suggestions d'évènements"
+                />
             </div>
         </div>
     );

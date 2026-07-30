@@ -5,7 +5,7 @@ import EventCard, { type EventForCard } from "@/app/events/event-card";
 
 export default async function TrendingSection() {
     const events = await prisma.event.findMany({
-        where: { startDate: { gte: new Date() }, isDeleted: false },
+        where: { startDate: { gte: new Date() }, isDeleted: false, isCancelled: false },
         orderBy: { likes: { _count: "desc" } },
         take: 6,
         include: {

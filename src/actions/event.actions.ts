@@ -6,6 +6,7 @@ import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createPayment } from "@/lib/geniuspay";
+import { sendEventCancellationEmail } from "@/lib/email";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -565,5 +566,99 @@ export async function deleteEvent(eventId: string) {
     } catch (error) {
         console.error("Erreur deleteEvent:", error);
         return { error: "Une erreur est survenue lors de la suppression" };
+    }
+}
+
+// ─────────────────────────────────────────────
+// cancelEvent — annulation (évènement conservé, dépublié, remboursements dus)
+// ─────────────────────────────────────────────
+
+export async function cancelEvent(eventId: string, reason?: string) {
+    try {
+        const dbUser = await getCurrentUser();
+        if (!dbUser) return { error: "Non authentifié" };
+
+        if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
+            return { error: "Vous n'avez pas la permission d'annuler un évènement" };
+        }
+
+        const event = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                startDate: true,
+                location: true,
+                eventType: true,
+                organizerId: true,
+                isDeleted: true,
+                isCancelled: true,
+            },
+        });
+
+        if (!event) return { error: "Évènement introuvable" };
+        if (event.isDeleted) return { error: "Cet évènement est supprimé" };
+        if (event.isCancelled) return { error: "Cet évènement est déjà annulé" };
+
+        if (dbUser.role !== "ADMIN" && event.organizerId !== dbUser.id) {
+            return { error: "Vous n'êtes pas autorisé à annuler cet évènement" };
+        }
+
+        await prisma.event.update({
+            where: { id: eventId },
+            data: {
+                isCancelled: true,
+                cancelledAt: new Date(),
+                cancellationReason: reason?.trim() || null,
+                isPublished: false,
+            },
+        });
+
+        // ── Notifier les acheteurs de billets payés (remboursement à venir) ──
+        const orders = await prisma.order.findMany({
+            where: { eventId, status: "COMPLETED" },
+            select: {
+                id: true,
+                reference: true,
+                totalAmount: true,
+                guestEmail: true,
+                guestName: true,
+                user: { select: { email: true, name: true } },
+            },
+        });
+
+        const eventDate = event.startDate.toLocaleDateString("fr-FR", {
+            weekday: "long", day: "numeric", month: "long", year: "numeric",
+            hour: "2-digit", minute: "2-digit", timeZone: "Africa/Porto-Novo",
+        });
+
+        await Promise.allSettled(
+            orders.map((order) => {
+                const email = order.user?.email ?? order.guestEmail;
+                const name = order.user?.name ?? order.guestName ?? "Client";
+                if (!email) return Promise.resolve();
+                return sendEventCancellationEmail({
+                    to: email,
+                    recipientName: name,
+                    eventTitle: event.title,
+                    eventDate,
+                    orderReference: order.reference,
+                    totalAmount: order.totalAmount,
+                    reason: reason?.trim() || undefined,
+                });
+            }),
+        );
+
+        revalidatePath(`/dashboard/events/${eventId}`);
+        revalidatePath("/dashboard/events");
+        revalidatePath(`/events/${event.slug}`);
+        revalidatePath("/events");
+        revalidatePath("/");
+
+        return { success: true, ordersToRefund: orders.length };
+    } catch (error) {
+        console.error("Erreur cancelEvent:", error);
+        return { error: "Une erreur est survenue lors de l'annulation" };
     }
 }

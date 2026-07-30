@@ -282,9 +282,29 @@ async function processEvent(
             }
             break;
 
-        case "payment.refunded":
-            console.log("GeniusPay webhook: payment.refunded", { reference, orderId });
+        case "payment.refunded": {
+            // GeniusPay n'expose pas d'API de remboursement programmatique :
+            // ce webhook confirme un remboursement initié côté GeniusPay
+            // (ex. suite à un litige), distinct du remboursement manuel
+            // (markOrderRefunded) déclenché après annulation d'évènement.
+            const refundedOrder = orderId
+                ? await prisma.order.findFirst({
+                      where: { id: orderId, status: "COMPLETED" },
+                  })
+                : reference
+                  ? await prisma.order.findFirst({
+                        where: { reference, status: "COMPLETED" },
+                    })
+                  : null;
+
+            if (refundedOrder) {
+                await prisma.order.update({
+                    where: { id: refundedOrder.id },
+                    data: { status: "REFUNDED" },
+                });
+            }
             break;
+        }
 
         case "webhook.test":
             console.log("GeniusPay webhook: test reçu");

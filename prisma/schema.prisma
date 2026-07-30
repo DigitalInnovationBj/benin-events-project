@@ -33,6 +33,7 @@ enum OrderStatus {
   FAILED
   EXPIRED
   CANCELLED
+  REFUNDED
 }
 
 enum AgentStatus {
@@ -236,6 +237,12 @@ model Event {
   // Suppression douce (soft delete)
   isDeleted   Boolean  @default(false)
   deletedAt   DateTime?
+
+  // Annulation par l'organisateur ou l'admin (évènement maintenu, non supprimé,
+  // mais dépublié — les commandes payées sont à rembourser)
+  isCancelled Boolean  @default(false)
+  cancelledAt DateTime?
+  cancellationReason String? @db.Text
 
   // Interactions — compteur de partages (likes & favoris via relations dédiées)
   shareCount  Int      @default(0)
