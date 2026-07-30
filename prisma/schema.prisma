@@ -80,9 +80,6 @@ enum TicketTemplate {
 
 model User {
   id                String             @id @default(cuid())
-  /// Héritage Clerk — rendu optionnel pendant la transition, supprimé par une
-  /// migration ultérieure une fois le déploiement better-auth validé.
-  clerkId           String?            @unique
   email             String             @unique
   name              String
   emailVerified     Boolean            @default(false)

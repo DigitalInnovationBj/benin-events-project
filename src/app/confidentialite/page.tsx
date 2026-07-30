@@ -45,8 +45,8 @@ export default function ConfidentialitePage() {
             <LegalSection title="2. Données collectées">
                 <LegalSubSection title="Données de compte">
                     <p>
-                        Lors de la création d&apos;un compte, nous collectons
-                        via notre prestataire d&apos;authentification Clerk :
+                        Lors de la création d&apos;un compte (par email ou via
+                        Google), nous collectons :
                     </p>
                     <LegalList
                         items={[
@@ -129,10 +129,10 @@ export default function ConfidentialitePage() {
                 </p>
                 <LegalList
                     items={[
-                        "Clerk Inc. (authentification et gestion des comptes) — USA, certifié Privacy Shield",
-                        "Vercel Inc. (hébergement de la plateforme) — USA, certifié Privacy Shield",
-                        "EmailJS (envoi des e-mails de contact) — soumis à GDPR",
-                        "Neon / PostgreSQL (base de données) — données chiffrées au repos",
+                        "Google LLC (connexion via un compte Google, si vous choisissez cette option) — USA",
+                        "Vercel Inc. (hébergement de la plateforme) — USA",
+                        "Resend (envoi des e-mails transactionnels) — soumis au RGPD",
+                        "Neon / PostgreSQL (base de données, y compris les comptes et sessions) — données chiffrées au repos",
                     ]}
                 />
                 <p>
@@ -187,7 +187,7 @@ export default function ConfidentialitePage() {
                     items={[
                         "Chiffrement HTTPS/TLS sur l'ensemble des échanges",
                         "Base de données chiffrée au repos",
-                        "Authentification sécurisée via Clerk (MFA disponible)",
+                        "Authentification sécurisée : mots de passe hachés, sessions signées, vérification d'email par code",
                         "Accès aux données restreint au personnel habilité",
                         "Audits de sécurité réguliers",
                     ]}

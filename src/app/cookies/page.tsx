@@ -47,9 +47,8 @@ export default function CookiesPage() {
                     </p>
                     <LegalList
                         items={[
-                            "__clerk_db_jwt — Authentification Clerk (session sécurisée) — Durée : session",
-                            "__session — Maintien de la session utilisateur — Durée : session",
-                            "__client_uat — Vérification d'activité du compte — Durée : session",
+                            "better-auth.session_token — Session utilisateur sécurisée — Durée : 7 jours",
+                            "better-auth.session_data — Cache de session signé — Durée : 5 minutes",
                             "theme-preference — Mémorisation du thème clair/sombre — Durée : 1 an",
                             "benin-events-cookie-consent — Mémorisation de vos préférences de cookies — Durée : 13 mois",
                         ]}
@@ -142,9 +141,8 @@ export default function CookiesPage() {
                 </p>
                 <LegalList
                     items={[
-                        "Clerk (authentification) — politique disponible sur clerk.com/legal/privacy",
+                        "Google (connexion via compte Google) — politique disponible sur policies.google.com/privacy",
                         "Vercel (hébergement et analytics) — politique disponible sur vercel.com/legal/privacy-policy",
-                        "EmailJS (formulaire de contact) — cookies de session uniquement",
                     ]}
                 />
                 <p>

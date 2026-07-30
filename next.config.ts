@@ -7,11 +7,12 @@ const nextConfig: NextConfig = {
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "img.clerk.com",
+                hostname: "*.public.blob.vercel-storage.com",
             },
+            // Avatars fournis par Google lors de la connexion sociale
             {
                 protocol: "https",
-                hostname: "*.public.blob.vercel-storage.com",
+                hostname: "lh3.googleusercontent.com",
             },
         ],
     },
