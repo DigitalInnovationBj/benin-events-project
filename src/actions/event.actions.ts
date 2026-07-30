@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { z } from "zod";
@@ -94,13 +94,8 @@ const createEventSchema = z
 
 export async function createEvent(formData: FormData) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Non autorisé" };
-
-        // Vérifier si l'utilisateur est ORGANIZER ou ADMIN dans notre DB
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        // Vérifier si l'utilisateur est ORGANIZER ou ADMIN
+        const dbUser = await getCurrentUser();
 
         if (
             !dbUser ||
@@ -311,12 +306,7 @@ const updateEventSchema = z
 
 export async function updateEvent(formData: FormData) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Non autorisé" };
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        const dbUser = await getCurrentUser();
 
         if (
             !dbUser ||
@@ -452,14 +442,8 @@ export async function updateEvent(formData: FormData) {
 
 export async function toggleLike(eventId: string) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Vous devez être connecté." };
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-            select: { id: true },
-        });
-        if (!dbUser) return { error: "Utilisateur introuvable." };
+        const dbUser = await getCurrentUser();
+        if (!dbUser) return { error: "Vous devez être connecté." };
 
         const existing = await prisma.like.findUnique({
             where: {
@@ -490,14 +474,8 @@ export async function toggleLike(eventId: string) {
 
 export async function toggleFavorite(eventId: string) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Vous devez être connecté." };
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-            select: { id: true },
-        });
-        if (!dbUser) return { error: "Utilisateur introuvable." };
+        const dbUser = await getCurrentUser();
+        if (!dbUser) return { error: "Vous devez être connecté." };
 
         const existing = await prisma.favorite.findUnique({
             where: {
@@ -544,16 +522,10 @@ export async function incrementShareCount(eventId: string) {
 // ─────────────────────────────────────────────
 
 export async function deleteEvent(eventId: string) {
-    const { userId } = await auth();
-
-    if (!userId) return { error: "Non authentifié" };
-
     try {
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        const dbUser = await getCurrentUser();
 
-        if (!dbUser) return { error: "Utilisateur introuvable" };
+        if (!dbUser) return { error: "Non authentifié" };
 
         if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
             return {

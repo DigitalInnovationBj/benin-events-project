@@ -1,26 +1,15 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { isAdmin } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { sendOrganizerRequestDecisionEmail } from "@/lib/email";
-
-async function checkAdmin() {
-    const user = await currentUser();
-    if (!user) return false;
-
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: user.id },
-    });
-    return dbUser?.role === "ADMIN";
-}
 
 export async function processOrganizerRequest(
     requestId: string,
     status: "APPROVED" | "REJECTED",
 ) {
-    const isAdmin = await checkAdmin();
-    if (!isAdmin) return { error: "Accès non autorisé" };
+    if (!(await isAdmin())) return { error: "Accès non autorisé" };
 
     try {
         const request = await prisma.organizerRequest.findUnique({

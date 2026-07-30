@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 
 const STATUS_DETAIL: Record<string, string> = {
@@ -22,8 +22,8 @@ function fmtDate(d: Date) {
 
 export async function POST(req: NextRequest) {
     // ── 1. Auth ───────────────────────────────────────────────────────────
-    const { userId } = await auth();
-    if (!userId) {
+    const dbUser = await getCurrentUser();
+    if (!dbUser) {
         return NextResponse.json({
             valid: false,
             message: "Non authentifié",
@@ -48,15 +48,6 @@ export async function POST(req: NextRequest) {
     };
 
     // ── 3. Vérification de l'agent ────────────────────────────────────────
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) {
-        return NextResponse.json({
-            valid: false,
-            message: "Compte introuvable",
-            detail: "Votre compte n'est pas reconnu dans le système.",
-        }, { status: 401 });
-    }
-
     const agent = await prisma.eventAgent.findUnique({
         where: { eventId_userId: { eventId, userId: dbUser.id } },
     });

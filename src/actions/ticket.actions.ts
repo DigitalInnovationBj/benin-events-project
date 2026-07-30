@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { z } from "zod";
@@ -37,14 +37,7 @@ const updateTicketSchema = ticketBaseSchema.extend({
 
 export async function createTicket(formData: FormData) {
     try {
-        const { userId } = await auth();
-        if (!userId) {
-            return { error: "Non autorisé" };
-        }
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        const dbUser = await getCurrentUser();
 
         if (
             !dbUser ||
@@ -134,12 +127,7 @@ export async function createTicket(formData: FormData) {
 
 export async function updateTicket(formData: FormData) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Non autorisé" };
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        const dbUser = await getCurrentUser();
         if (
             !dbUser ||
             (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")
@@ -220,12 +208,7 @@ export async function updateTicket(formData: FormData) {
 
 export async function deleteTicket(ticketId: string) {
     try {
-        const { userId } = await auth();
-        if (!userId) return { error: "Non autorisé" };
-
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-        });
+        const dbUser = await getCurrentUser();
         if (
             !dbUser ||
             (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")

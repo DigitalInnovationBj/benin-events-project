@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -7,17 +7,13 @@ import { Plus, Calendar, MapPin, ExternalLink } from "lucide-react";
 import Image from "next/image";
 
 export default async function EventsListPage() {
-    const { userId } = await auth();
+    const dbUser = await getCurrentUser();
 
-    if (!userId) {
+    if (!dbUser) {
         redirect("/sign-in");
     }
 
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-    });
-
-    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
+    if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
         redirect("/dashboard");
     }
 

@@ -1,31 +1,13 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { requireOrganizer, requireAdmin } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { MobileMoneyOperator, PayoutMethodType, PayoutStatus } from "@prisma/client";
 import {
     sendPayoutRequestAdminEmail,
     sendPayoutStatusEmail,
 } from "@/lib/email";
-
-async function requireOrganizer() {
-    const user = await currentUser();
-    if (!user) throw new Error("Non authentifié");
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
-    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
-        throw new Error("Accès refusé");
-    }
-    return dbUser;
-}
-
-async function requireAdmin() {
-    const user = await currentUser();
-    if (!user) throw new Error("Non authentifié");
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
-    if (dbUser?.role !== "ADMIN") throw new Error("Accès refusé");
-    return dbUser;
-}
 
 // ── Résumé financier de l'organisateur ───────────────────────────────────────
 

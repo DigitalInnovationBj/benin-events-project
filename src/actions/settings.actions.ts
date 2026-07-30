@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { requireAdmin } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 
 export async function getSettings() {
@@ -20,11 +20,7 @@ export async function getSettings() {
 }
 
 export async function updateCommissionRate(rate: number) {
-    const user = await currentUser();
-    if (!user) throw new Error("Non authentifié");
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
-    if (dbUser?.role !== "ADMIN") throw new Error("Accès refusé");
+    await requireAdmin();
 
     if (rate < 0 || rate > 100) throw new Error("Taux invalide (0–100)");
 
@@ -43,11 +39,7 @@ export async function updatePlatformFees(data: {
     featuredEventFeeEnabled: boolean;
     featuredEventFee: number;
 }) {
-    const user = await currentUser();
-    if (!user) throw new Error("Non authentifié");
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: user.id } });
-    if (dbUser?.role !== "ADMIN") throw new Error("Accès refusé");
+    await requireAdmin();
 
     if (data.eventCreationFee < 0) throw new Error("Montant invalide");
     if (data.featuredEventFee < 0) throw new Error("Montant invalide");

@@ -13,6 +13,7 @@ import {
 import { PayoutNotificationEmail, type PayoutNotifType } from "@/emails/payout-notification";
 import { PayoutRequestAdminEmail } from "@/emails/payout-request-admin";
 import { TicketGiftEmail } from "@/emails/ticket-gift";
+import { AuthVerificationEmail } from "@/emails/auth-verification";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -407,4 +408,33 @@ export async function sendContactEmails(params: SendContactEmailsParams) {
             text: reply.text,
         }),
     ]);
+}
+
+// ─────────────────────────────────────────────
+// sendAuthOtpEmail (better-auth : vérification & reset password)
+// ─────────────────────────────────────────────
+
+export interface SendAuthOtpParams {
+    to: string;
+    otp: string;
+    type: "email-verification" | "forget-password" | "sign-in" | "change-email";
+}
+
+export async function sendAuthOtpEmail(params: SendAuthOtpParams) {
+    const { to, otp, type } = params;
+
+    const { html, text } = await renderBoth(AuthVerificationEmail({ otp, type }));
+
+    const subject =
+        type === "forget-password"
+            ? `${otp} — Réinitialisation de votre mot de passe`
+            : `${otp} — Vérifiez votre adresse email`;
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to,
+        subject,
+        html,
+        text,
+    });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs";
+import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { SidebarMenuButton } from "./ui/sidebar";
 import { LogOut, Loader2 } from "lucide-react";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function LogoutButton() {
-    const { signOut } = useClerk();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -26,7 +25,9 @@ export function LogoutButton() {
     const handleSignOut = async () => {
         setIsLoading(true);
         // On redirige vers l'accueil après la déconnexion
-        await signOut(() => router.push("/"));
+        await authClient.signOut();
+        router.push("/");
+        router.refresh();
     };
 
     return (

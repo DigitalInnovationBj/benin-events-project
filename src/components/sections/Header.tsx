@@ -1,26 +1,17 @@
-import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/permissions";
 import NavbarClient from "./NavbarClient";
 
 export default async function Header() {
-    const { userId } = await auth();
+    const sessionUser = await getCurrentUser();
 
-    let user: {
-        name: string | null;
-        email: string;
-        image: string | null;
-        role: string;
-    } | null = null;
-
-    if (userId) {
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-            select: { name: true, email: true, image: true, role: true },
-        });
-        if (dbUser) {
-            user = dbUser;
-        }
-    }
+    const user = sessionUser
+        ? {
+              name: sessionUser.name,
+              email: sessionUser.email,
+              image: sessionUser.image,
+              role: sessionUser.role as string,
+          }
+        : null;
 
     return <NavbarClient user={user} />;
 }

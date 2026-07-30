@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
-import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/permissions";
 import DashboardNavClient from "@/components/sections/DashboardNavClient";
 
 export default async function AdminLayout({
@@ -9,37 +8,23 @@ export default async function AdminLayout({
 }: {
     children: ReactNode;
 }) {
-    const user = await currentUser();
+    const user = await getCurrentUser();
 
     if (!user) {
         redirect("/sign-in");
     }
 
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: user.id },
-    });
-
-    if (dbUser?.role !== "ADMIN") {
+    if (user.role !== "ADMIN") {
         redirect("/dashboard");
     }
-
-    const displayName =
-        dbUser?.name ||
-        user.firstName ||
-        user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
-        "Administrateur";
-
-    const email = dbUser?.email || user.emailAddresses?.[0]?.emailAddress || "";
-
-    const imageUrl = dbUser?.image || user.imageUrl || undefined;
 
     return (
         <div className="min-h-screen bg-background">
             <DashboardNavClient
                 user={{
-                    name: displayName,
-                    email,
-                    imageUrl,
+                    name: user.name || user.email.split("@")[0],
+                    email: user.email,
+                    imageUrl: user.image ?? undefined,
                     role: "ADMIN",
                 }}
             />

@@ -69,6 +69,12 @@ export default function NavbarClient({ user }: NavbarClientProps) {
     const pathname = usePathname();
     const router = useRouter();
 
+    // Après connexion/inscription, revenir sur la page courante
+    const authRedirect =
+        pathname && pathname !== "/"
+            ? `?redirect_url=${encodeURIComponent(pathname)}`
+            : "";
+
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -213,14 +219,14 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                     size="sm"
                                     className="rounded-xl"
                                 >
-                                    <Link href="/sign-in">Se connecter</Link>
+                                    <Link href={`/sign-in${authRedirect}`}>Se connecter</Link>
                                 </Button>
                                 <Button
                                     asChild
                                     size="sm"
                                     className="rounded-xl"
                                 >
-                                    <Link href="/sign-up">S&apos;inscrire</Link>
+                                    <Link href={`/sign-up${authRedirect}`}>S&apos;inscrire</Link>
                                 </Button>
                             </>
                         )}
@@ -380,7 +386,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     asChild
                                                     className="w-full rounded-xl gap-2"
                                                 >
-                                                    <Link href="/sign-in">
+                                                    <Link href={`/sign-in${authRedirect}`}>
                                                         <LogIn className="w-4 h-4" />
                                                         Se connecter
                                                     </Link>
@@ -392,7 +398,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     variant="outline"
                                                     className="w-full rounded-xl gap-2"
                                                 >
-                                                    <Link href="/sign-up">
+                                                    <Link href={`/sign-up${authRedirect}`}>
                                                         <UserRoundPlus className="w-4 h-4" />
                                                         S&apos;inscrire
                                                     </Link>

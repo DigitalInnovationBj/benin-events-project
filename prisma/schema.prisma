@@ -80,14 +80,20 @@ enum TicketTemplate {
 
 model User {
   id                String             @id @default(cuid())
-  clerkId           String             @unique
+  /// Héritage Clerk — rendu optionnel pendant la transition, supprimé par une
+  /// migration ultérieure une fois le déploiement better-auth validé.
+  clerkId           String?            @unique
   email             String             @unique
-  name              String?
+  name              String
+  emailVerified     Boolean            @default(false)
   image             String?
   role              Role               @default(USER)
 
   // Consentement newsletter (digests lundi/mercredi/vendredi)
   newsletterOptIn   Boolean            @default(true)
+
+  sessions          Session[]
+  accounts          Account[]
 
   organizerRequests OrganizerRequest[]
   events            Event[]
@@ -101,8 +107,54 @@ model User {
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+}
 
-  @@index([clerkId])
+// ─────────────────────────────────────────────
+// Auth (better-auth)
+// ─────────────────────────────────────────────
+
+model Session {
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  userId                String
+  providerId            String
+  accountId             String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model ContactMessage {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs";
+import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import {
     DropdownMenu,
@@ -32,14 +32,15 @@ interface Props {
 }
 
 export function UserProfileMenu({ name, email, imageUrl }: Props) {
-    const { signOut } = useClerk();
     const router = useRouter();
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignOut = async () => {
         setIsLoading(true);
-        await signOut(() => router.push("/"));
+        await authClient.signOut();
+        router.push("/");
+        router.refresh();
     };
 
     // Utilisation de la partie locale de l'email si aucun nom n'est fourni

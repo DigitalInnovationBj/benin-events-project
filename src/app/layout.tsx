@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import CookieBanner from "@/components/CookieBanner";
@@ -122,24 +121,22 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <ClerkProvider>
-            <html lang="fr" suppressHydrationWarning className="scroll-smooth">
-                <body
-                    className={`${spaceGrotesk.variable} ${afolkalips.variable} font-sans antialiased`}
+        <html lang="fr" suppressHydrationWarning className="scroll-smooth">
+            <body
+                className={`${spaceGrotesk.variable} ${afolkalips.variable} font-sans antialiased`}
+            >
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="dark"
+                    enableSystem={false}
+                    disableTransitionOnChange
                 >
-                    <ThemeProvider
-                        attribute="class"
-                        defaultTheme="dark"
-                        enableSystem={false}
-                        disableTransitionOnChange
-                    >
-                        {children}
-                        <Toaster position="top-center" />
-                        <CookieBanner />
-                        {/* <AskAIButton /> */}
-                    </ThemeProvider>
-                </body>
-            </html>
-        </ClerkProvider>
+                    {children}
+                    <Toaster position="top-center" />
+                    <CookieBanner />
+                    {/* <AskAIButton /> */}
+                </ThemeProvider>
+            </body>
+        </html>
     );
 }

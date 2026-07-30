@@ -1,17 +1,17 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { sendOrganizerRequestAdminEmail } from "@/lib/email";
 
 export async function createOrganizerRequest(formData: FormData) {
-    const user = await currentUser();
-    if (!user) return { error: "Non authentifié" };
+    const sessionUser = await getCurrentUser();
+    if (!sessionUser) return { error: "Non authentifié" };
 
     try {
         const dbUser = await prisma.user.findUnique({
-            where: { clerkId: user.id },
+            where: { id: sessionUser.id },
             include: { organizerRequests: true },
         });
 

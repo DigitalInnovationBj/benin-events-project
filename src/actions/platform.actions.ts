@@ -1,17 +1,14 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/geniuspay";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function initiateFeaturedEventPayment(eventId: string) {
-    const { userId } = await auth();
-    if (!userId) return { error: "Non authentifié" };
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) return { error: "Utilisateur introuvable" };
+    const dbUser = await getCurrentUser();
+    if (!dbUser) return { error: "Non authentifié" };
     if (dbUser.role !== "ORGANIZER") return { error: "Réservé aux organisateurs" };
 
     const event = await prisma.event.findUnique({

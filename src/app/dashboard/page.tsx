@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -87,20 +87,10 @@ const statusColor: Record<string, string> = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
-    const user = await currentUser();
-    if (!user) redirect("/sign-in");
-
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: user.id },
-    });
-
+    const dbUser = await getCurrentUser();
     if (!dbUser) redirect("/sign-in");
 
-    const displayName =
-        dbUser.name ||
-        user.firstName ||
-        user.emailAddresses?.[0]?.emailAddress?.split("@")[0] ||
-        "Utilisateur";
+    const displayName = dbUser.name || dbUser.email.split("@")[0];
 
     const role = dbUser.role;
 

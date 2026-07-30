@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import {
     Calendar,
     Ticket as TicketIcon,
@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicEventPage({ params }: Props) {
     const { slug } = await params;
-    const { userId } = await auth();
+    const sessionUser = await getCurrentUser();
 
     // ── Fetch event ────────────────────────────────────────────────────────
     const event = await prisma.event.findUnique({
@@ -111,43 +111,36 @@ export default async function PublicEventPage({ params }: Props) {
     let buyerEmail: string | undefined;
     let hasExistingTicket = false;
 
-    if (userId) {
+    if (sessionUser) {
         isLoggedIn = true;
-        const dbUser = await prisma.user.findUnique({
-            where: { clerkId: userId },
-            select: { id: true, name: true, email: true },
-        });
+        buyerName = sessionUser.name;
+        buyerEmail = sessionUser.email;
 
-        if (dbUser) {
-            buyerName = dbUser.name ?? undefined;
-            buyerEmail = dbUser.email;
+        const [like, favorite, attendeeItem, legacyOrder] = await Promise.all([
+            prisma.like.findUnique({
+                where: { userId_eventId: { userId: sessionUser.id, eventId: event.id } },
+            }),
+            prisma.favorite.findUnique({
+                where: { userId_eventId: { userId: sessionUser.id, eventId: event.id } },
+            }),
+            // Ticket via attendeeEmail (nouveau système)
+            prisma.orderItem.findFirst({
+                where: {
+                    attendeeEmail: sessionUser.email,
+                    order: { eventId: event.id, status: "COMPLETED" },
+                },
+                select: { id: true },
+            }),
+            // Ticket via userId (ancien système ou achat sans attendeeEmail)
+            prisma.order.findFirst({
+                where: { userId: sessionUser.id, eventId: event.id, status: "COMPLETED" },
+                select: { id: true },
+            }),
+        ]);
 
-            const [like, favorite, attendeeItem, legacyOrder] = await Promise.all([
-                prisma.like.findUnique({
-                    where: { userId_eventId: { userId: dbUser.id, eventId: event.id } },
-                }),
-                prisma.favorite.findUnique({
-                    where: { userId_eventId: { userId: dbUser.id, eventId: event.id } },
-                }),
-                // Ticket via attendeeEmail (nouveau système)
-                prisma.orderItem.findFirst({
-                    where: {
-                        attendeeEmail: dbUser.email,
-                        order: { eventId: event.id, status: "COMPLETED" },
-                    },
-                    select: { id: true },
-                }),
-                // Ticket via userId (ancien système ou achat sans attendeeEmail)
-                prisma.order.findFirst({
-                    where: { userId: dbUser.id, eventId: event.id, status: "COMPLETED" },
-                    select: { id: true },
-                }),
-            ]);
-
-            isLiked = !!like;
-            isFavorited = !!favorite;
-            hasExistingTicket = !!(attendeeItem || legacyOrder);
-        }
+        isLiked = !!like;
+        isFavorited = !!favorite;
+        hasExistingTicket = !!(attendeeItem || legacyOrder);
     }
 
     // ── Données organisateur ───────────────────────────────────────────────

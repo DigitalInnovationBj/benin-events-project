@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import prisma from "@/lib/prisma";
@@ -13,11 +13,10 @@ import { fr } from "date-fns/locale";
 // ─────────────────────────────────────────────
 
 export async function inviteAgent(eventId: string, userEmail: string) {
-    const { userId } = await auth();
-    if (!userId) return { error: "Non authentifié" };
+    const caller = await getCurrentUser();
+    if (!caller) return { error: "Non authentifié" };
 
-    const caller = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!caller || (caller.role !== "ORGANIZER" && caller.role !== "ADMIN")) {
+    if (caller.role !== "ORGANIZER" && caller.role !== "ADMIN") {
         return { error: "Accès refusé" };
     }
 
@@ -70,11 +69,8 @@ export async function inviteAgent(eventId: string, userEmail: string) {
 // ─────────────────────────────────────────────
 
 export async function confirmAgent(token: string) {
-    const { userId } = await auth();
-    if (!userId) return { error: "Non authentifié" };
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) return { error: "Utilisateur introuvable" };
+    const dbUser = await getCurrentUser();
+    if (!dbUser) return { error: "Non authentifié" };
 
     const agent = await prisma.eventAgent.findUnique({ where: { token } });
     if (!agent) return { error: "Lien invalide ou expiré" };
@@ -100,11 +96,10 @@ export async function confirmAgent(token: string) {
 // ─────────────────────────────────────────────
 
 export async function revokeAgent(eventId: string, targetUserId: string) {
-    const { userId } = await auth();
-    if (!userId) return { error: "Non authentifié" };
+    const caller = await getCurrentUser();
+    if (!caller) return { error: "Non authentifié" };
 
-    const caller = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!caller || (caller.role !== "ORGANIZER" && caller.role !== "ADMIN")) {
+    if (caller.role !== "ORGANIZER" && caller.role !== "ADMIN") {
         return { error: "Accès refusé" };
     }
 

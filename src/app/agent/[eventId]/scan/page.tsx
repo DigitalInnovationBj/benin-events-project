@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { QrScanner } from "@/components/agent/qr-scanner";
@@ -10,11 +10,8 @@ export default async function AgentScanPage({
     params: Promise<{ eventId: string }>;
 }) {
     const { eventId } = await params;
-    const { userId } = await auth();
-    if (!userId) redirect(`/sign-in?redirect_url=/agent/${eventId}/scan`);
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) redirect("/sign-in");
+    const dbUser = await getCurrentUser();
+    if (!dbUser) redirect(`/sign-in?redirect_url=/agent/${eventId}/scan`);
 
     const agent = await prisma.eventAgent.findUnique({
         where: { eventId_userId: { eventId, userId: dbUser.id } },

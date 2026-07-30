@@ -1,6 +1,7 @@
 "use client";
 
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { authClient, useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -24,10 +25,10 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 
 export default function ProfilePage() {
-    const { isLoaded, user } = useUser();
-    const { signOut } = useClerk();
+    const router = useRouter();
+    const { data: session, isPending } = useSession();
 
-    if (!isLoaded) {
+    if (isPending) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <IconLoader2 className="w-8 h-8 animate-spin text-primary" />
@@ -35,7 +36,7 @@ export default function ProfilePage() {
         );
     }
 
-    if (!user) {
+    if (!session) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background px-4">
                 <Card className="w-full max-w-md border-2 shadow-xl bg-white/5 backdrop-blur-xl border-white/10 text-center p-8">
@@ -52,12 +53,20 @@ export default function ProfilePage() {
                         asChild
                         className="w-full h-12 text-lg font-semibold"
                     >
-                        <Link href="/sign-in">Se connecter</Link>
+                        <Link href="/sign-in?redirect_url=%2Fdashboard%2Fprofile">Se connecter</Link>
                     </Button>
                 </Card>
             </div>
         );
     }
+
+    const user = session.user;
+
+    const handleSignOut = async () => {
+        await authClient.signOut();
+        router.push("/");
+        router.refresh();
+    };
 
     return (
         <div className="min-h-screen bg-background py-12 px-4 relative overflow-hidden">
@@ -88,12 +97,9 @@ export default function ProfilePage() {
                     <div className="h-32 bg-gradient-to-r from-primary/40 to-primary/10 relative">
                         <div className="absolute -bottom-12 left-10">
                             <Avatar className="h-28 w-28 border-4 border-background shadow-2xl ring-4 ring-white/5">
-                                <AvatarImage src={user.imageUrl} />
+                                {user.image && <AvatarImage src={user.image} />}
                                 <AvatarFallback className="text-2xl bg-primary/20 text-primary">
-                                    {user.firstName?.charAt(0) ||
-                                        user.emailAddresses[0]?.emailAddress.charAt(
-                                            0,
-                                        )}
+                                    {(user.name || user.email).charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                         </div>
@@ -102,12 +108,10 @@ export default function ProfilePage() {
                     <CardHeader className="pt-16 pb-6 px-10">
                         <div>
                             <CardTitle className="text-3xl font-bold text-foreground">
-                                {user.fullName || "Utilisateur"}
+                                {user.name || "Utilisateur"}
                             </CardTitle>
                             <CardDescription className="text-base text-primary font-medium">
-                                {user.username
-                                    ? `@${user.username}`
-                                    : user.emailAddresses[0]?.emailAddress}
+                                {user.email}
                             </CardDescription>
                         </div>
                     </CardHeader>
@@ -120,7 +124,7 @@ export default function ProfilePage() {
                                     Adresse Email
                                 </Label>
                                 <div className="px-5 py-4 bg-white/5 rounded-2xl border border-white/10 font-medium text-foreground">
-                                    {user.emailAddresses[0]?.emailAddress}
+                                    {user.email}
                                 </div>
                             </div>
 
@@ -130,13 +134,14 @@ export default function ProfilePage() {
                                     Date d'inscription
                                 </Label>
                                 <div className="px-5 py-4 bg-white/5 rounded-2xl border border-white/10 font-medium text-foreground">
-                                    {new Date(
-                                        user.createdAt!,
-                                    ).toLocaleDateString("fr-FR", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    })}
+                                    {new Date(user.createdAt).toLocaleDateString(
+                                        "fr-FR",
+                                        {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        },
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -149,16 +154,13 @@ export default function ProfilePage() {
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Button
+                                    asChild
                                     variant="secondary"
                                     className="h-14 rounded-2xl bg-white/10 hover:bg-white/15 border-white/10 text-base"
                                 >
-                                    Changer le mot de passe
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    className="h-14 rounded-2xl bg-white/10 hover:bg-white/15 border-white/10 text-base"
-                                >
-                                    Méthodes de connexion
+                                    <Link href="/forgot-password">
+                                        Changer le mot de passe
+                                    </Link>
                                 </Button>
                             </div>
                         </div>
@@ -175,7 +177,7 @@ export default function ProfilePage() {
                         </div>
                         <Button
                             variant="destructive"
-                            onClick={() => signOut({ redirectUrl: "/" })}
+                            onClick={handleSignOut}
                             className="h-12 px-8 rounded-xl font-bold text-base shadow-lg shadow-destructive/20"
                         >
                             <IconLogout className="w-5 h-5 mr-2" />

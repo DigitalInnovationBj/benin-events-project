@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { EventEditForm } from "./event-edit-form";
@@ -9,14 +9,10 @@ export default async function EditEventPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const { userId } = await auth();
-    if (!userId) redirect("/sign-in");
+    const dbUser = await getCurrentUser();
+    if (!dbUser) redirect("/sign-in");
 
-    const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-    });
-
-    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
+    if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
         redirect("/dashboard");
     }
 

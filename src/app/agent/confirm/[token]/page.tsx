@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,9 @@ export default async function AgentConfirmPage({
     params: Promise<{ token: string }>;
 }) {
     const { token } = await params;
-    const { userId } = await auth();
+    const sessionUser = await getCurrentUser();
 
-    if (!userId) {
+    if (!sessionUser) {
         redirect(`/sign-in?redirect_url=/agent/confirm/${token}`);
     }
 

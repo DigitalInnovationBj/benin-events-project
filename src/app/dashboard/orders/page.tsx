@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -22,10 +22,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default async function OrdersPage() {
-    const { userId } = await auth();
-    if (!userId) redirect("/sign-in");
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const dbUser = await getCurrentUser();
     if (!dbUser) redirect("/sign-in");
 
     // Lier les éventuelles commandes invitées passées sous cet email

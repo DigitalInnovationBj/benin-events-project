@@ -1,8 +1,7 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
-import { ensureDbUser } from "@/lib/sync-user";
 import { createPayment } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
@@ -32,21 +31,17 @@ export type PaymentInput = {
 };
 
 export async function initiateTicketPayment(input: PaymentInput) {
-    const { userId } = await auth();
+    const sessionUser = await getCurrentUser();
 
     // ── Identification de l'acheteur ──────────────────────────────────────
     let buyerEmail: string;
     let buyerName: string | undefined;
     let dbUserId: string | undefined;
 
-    if (userId) {
-        // Crée l'utilisateur en base s'il n'existe pas encore (ex. connecté
-        // sans jamais être passé par le dashboard)
-        const dbUser = await ensureDbUser();
-        if (!dbUser) return { error: "Utilisateur introuvable." };
-        buyerEmail = dbUser.email;
-        buyerName = dbUser.name ?? undefined;
-        dbUserId = dbUser.id;
+    if (sessionUser) {
+        buyerEmail = sessionUser.email;
+        buyerName = sessionUser.name;
+        dbUserId = sessionUser.id;
     } else {
         const email = input.guestEmail?.trim().toLowerCase() ?? "";
         const name = input.guestName?.trim() ?? "";
@@ -250,14 +245,11 @@ export async function initiateTicketPayment(input: PaymentInput) {
 }
 
 export async function getUserOrders() {
-    const { userId } = await auth();
-    if (!userId) return { orders: [] };
-
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser) return { orders: [] };
+    const sessionUser = await getCurrentUser();
+    if (!sessionUser) return { orders: [] };
 
     const orders = await prisma.order.findMany({
-        where: { userId: dbUser.id },
+        where: { userId: sessionUser.id },
         include: {
             event: {
                 select: { title: true, slug: true, imageUrl: true, startDate: true },

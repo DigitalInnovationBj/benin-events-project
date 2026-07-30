@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { getSettings } from "@/actions/settings.actions";
@@ -9,11 +9,10 @@ export default async function NewEventPage({
 }: {
     searchParams: Promise<{ payment_error?: string }>;
 }) {
-    const { userId } = await auth();
-    if (!userId) redirect("/sign-in");
+    const dbUser = await getCurrentUser();
+    if (!dbUser) redirect("/sign-in");
 
-    const dbUser = await prisma.user.findUnique({ where: { clerkId: userId } });
-    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
+    if (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN") {
         redirect("/dashboard");
     }
 

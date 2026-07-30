@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,12 @@ interface Props {
 
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
     const { orderId } = await searchParams;
-    const { userId } = await auth();
+    const dbUser = await getCurrentUser();
 
     let order = null;
     let isGuest = false;
 
     if (orderId) {
-        const dbUser = userId
-            ? await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } })
-            : null;
-
         if (dbUser) {
             // Utilisateur connecté : on vérifie la propriété
             order = await prisma.order.findFirst({
@@ -121,19 +117,19 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                     <p className="text-muted-foreground">
                         Votre paiement est en cours de traitement. Vous
                         recevrez une confirmation dès qu&apos;il sera validé.
-                        {!userId && " Vérifiez votre boîte email dans quelques instants."}
-                        {userId && " Vérifiez vos commandes dans quelques instants."}
+                        {!dbUser && " Vérifiez votre boîte email dans quelques instants."}
+                        {dbUser && " Vérifiez vos commandes dans quelques instants."}
                     </p>
                 )}
 
                 <div className="flex flex-col gap-3 pt-2">
-                    {userId ? (
+                    {dbUser ? (
                         <Button asChild variant="secondary">
                             <Link href="/dashboard/orders">Mes commandes</Link>
                         </Button>
                     ) : (
                         <Button asChild variant="secondary">
-                            <Link href="/sign-in">Se connecter pour voir mes commandes</Link>
+                            <Link href="/sign-in?redirect_url=%2Fdashboard%2Forders">Se connecter pour voir mes commandes</Link>
                         </Button>
                     )}
                     <Button asChild variant="outline">
