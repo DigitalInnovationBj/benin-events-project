@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Bookmark, Share2 } from "lucide-react";
+import { Heart, Bookmark } from "lucide-react";
+import { IconShare2 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import {
-    toggleLike,
-    toggleFavorite,
-    incrementShareCount,
-} from "@/actions/event.actions";
+import { toggleLike, toggleFavorite } from "@/actions/event.actions";
+import ShareEventDialog from "./share-event-dialog";
 
 interface EventInteractionsProps {
     eventId: string;
@@ -45,6 +43,7 @@ export default function EventInteractions({
     const [isFavorited, setIsFavorited] = useState(initialIsFavorited);
     const [isLikeLoading, setIsLikeLoading] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
+    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
     // ── Like ────────────────────────────────────────────────────────────────
 
@@ -112,57 +111,6 @@ export default function EventInteractions({
         }
     };
 
-    // ── Partage ─────────────────────────────────────────────────────────────
-
-    const handleShare = async () => {
-        const url = window.location.href;
-        const eventDate = new Date(startDate);
-
-        const dateLabel = eventDate.toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            timeZone: "Africa/Porto-Novo",
-        });
-        const timeLabel = eventDate.toLocaleTimeString("fr-FR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: "Africa/Porto-Novo",
-        });
-
-        const locationText =
-            eventType === "ONLINE"
-                ? onlineUrl ?? "En ligne"
-                : location ?? "Lieu à confirmer";
-
-        const locationIcon = eventType === "ONLINE" ? "🌐" : "📍";
-
-        const shareText = [
-            `🎉 ${title}`,
-            `📅 ${dateLabel} à ${timeLabel}`,
-            `${locationIcon} ${locationText}`,
-            `🎟 Infos & billetterie :`,
-        ].join("\n");
-
-        try {
-            if (navigator.share) {
-                await navigator.share({ title, text: shareText, url });
-            } else {
-                await navigator.clipboard.writeText(
-                    `${shareText}\n🔗 ${url}`,
-                );
-                toast.success("Texte de partage copié !");
-            }
-            // Incrémenter le compteur côté serveur (best-effort)
-            await incrementShareCount(eventId);
-        } catch (err) {
-            // Ignorer l'annulation volontaire de l'utilisateur
-            if ((err as Error)?.name !== "AbortError") {
-                toast.error("Impossible de partager cet évènement.");
-            }
-        }
-    };
-
     // ── Render ──────────────────────────────────────────────────────────────
 
     return (
@@ -224,13 +172,24 @@ export default function EventInteractions({
             {/* Partager */}
             <button
                 type="button"
-                onClick={handleShare}
+                onClick={() => setIsShareDialogOpen(true)}
                 aria-label="Partager cet évènement"
                 className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all backdrop-blur-sm select-none bg-background/80 border border-border text-foreground hover:bg-background hover:border-foreground/40"
             >
-                <Share2 className="w-4 h-4" />
+                <IconShare2 className="w-4 h-4" stroke={1.75} />
                 <span>Partager</span>
             </button>
+
+            <ShareEventDialog
+                open={isShareDialogOpen}
+                onOpenChange={setIsShareDialogOpen}
+                eventId={eventId}
+                title={title}
+                startDate={startDate}
+                eventType={eventType}
+                location={location}
+                onlineUrl={onlineUrl}
+            />
         </div>
     );
 }
