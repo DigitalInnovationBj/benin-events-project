@@ -9,6 +9,24 @@ import {
     Section,
     Text,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    bodyText,
+    container,
+    divider,
+    footer,
+    footerCopyright,
+    h1,
+    header,
+    heroSection,
+    logo,
+    logoSub,
+    section,
+    subtitle,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export interface RefundConfirmationEmailProps {
     recipientName: string;
@@ -37,11 +55,12 @@ export function RefundConfirmationEmail({
 
                 <Container style={container}>
                     <Section style={heroSection}>
-                        <Text style={badge}>✓ Remboursement effectué</Text>
+                        <Text style={badge("success")}>✓ Remboursement effectué</Text>
                         <Heading style={h1}>C&apos;est fait, {recipientName} !</Heading>
                         <Text style={subtitle}>
                             Le remboursement de votre billet pour «{" "}
-                            {eventTitle} » a été traité.
+                            {eventTitle} » a bien été traité. L&apos;argent
+                            est en route vers vous 💸
                         </Text>
                     </Section>
 
@@ -55,10 +74,10 @@ export function RefundConfirmationEmail({
                             <strong>Montant remboursé :</strong>{" "}
                             {totalAmount.toLocaleString("fr-FR")} FCFA
                         </Text>
-                        <Text style={bodyText}>
-                            Selon votre moyen de paiement, le délai de
-                            réception peut varier de quelques minutes à
-                            quelques jours ouvrés.
+                        <Text style={{ ...bodyText, margin: "12px 0 0" }}>
+                            Selon votre moyen de paiement, comptez de quelques
+                            minutes à quelques jours ouvrés avant de le voir
+                            apparaître. Merci pour votre patience !
                         </Text>
                     </Section>
 
@@ -74,104 +93,12 @@ export function RefundConfirmationEmail({
     );
 }
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f3f4f6",
-    fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0,
-    padding: 0,
-};
+// ─────────────────────────────────────────────
+// Styles spécifiques à cet email
+// ─────────────────────────────────────────────
 
-const header: React.CSSProperties = {
-    backgroundColor: "#000",
-    padding: "20px 0",
-};
-
-const logo: React.CSSProperties = {
-    color: "#d4af37",
-    fontSize: "28px",
-    fontWeight: "900",
-    margin: 0,
-    letterSpacing: "2px",
-    textAlign: "center",
-};
-
-const logoSub: React.CSSProperties = {
-    color: "#9ca3af",
-    fontSize: "11px",
-    margin: "2px 0 0",
-    letterSpacing: "3px",
-    textTransform: "uppercase",
-    textAlign: "center",
-};
-
-const container: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    maxWidth: "600px",
-    margin: "0 auto",
-};
-
-const heroSection: React.CSSProperties = {
-    padding: "40px 40px 32px",
-    textAlign: "center",
-};
-
-const badge: React.CSSProperties = {
-    display: "inline-block",
-    backgroundColor: "#d1fae5",
-    color: "#065f46",
-    fontSize: "13px",
-    fontWeight: "700",
-    padding: "6px 16px",
-    borderRadius: "999px",
-    margin: "0 0 20px",
-};
-
-const h1: React.CSSProperties = {
-    color: "#111827",
-    fontSize: "24px",
-    fontWeight: "800",
-    margin: "0 0 12px",
-    lineHeight: "1.3",
-};
-
-const subtitle: React.CSSProperties = {
-    color: "#6b7280",
-    fontSize: "15px",
-    margin: 0,
-    lineHeight: "1.6",
-};
-
-const divider: React.CSSProperties = {
-    borderColor: "#f3f4f6",
-    margin: 0,
-};
-
-const section: React.CSSProperties = {
-    padding: "32px 40px",
-};
-
-const line: React.CSSProperties = {
-    color: "#374151",
+const line: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "14px",
     margin: "0 0 8px",
-};
-
-const bodyText: React.CSSProperties = {
-    color: "#6b7280",
-    fontSize: "14px",
-    lineHeight: "1.7",
-    margin: "12px 0 0",
-};
-
-const footer: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
-    padding: "24px 40px",
-    textAlign: "center",
-};
-
-const footerCopyright: React.CSSProperties = {
-    color: "#d1d5db",
-    fontSize: "11px",
-    margin: 0,
 };

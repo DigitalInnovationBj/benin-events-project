@@ -11,6 +11,19 @@ import {
     Section,
     Text,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    containerCard,
+    ctaButtonPrimary,
+    ctaButtonSecondary,
+    footerLink,
+    header,
+    logo,
+    logoSub,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export type DigestType = "recommendations" | "weekend" | "week";
 
@@ -34,22 +47,22 @@ export interface EventDigestEmailProps {
     unsubscribeUrl?: string;
 }
 
-const CONFIG: Record<DigestType, { preview: string; badge: string; heading: string; intro: string }> = {
+const CONFIG: Record<DigestType, { preview: string; badgeLabel: string; heading: string; intro: string }> = {
     recommendations: {
         preview: "Des évènements sélectionnés pour vous",
-        badge: "🎯 Recommandations personnalisées",
+        badgeLabel: "🎯 Recommandations personnalisées",
         heading: "Sélectionnés pour vous",
         intro: "Basé sur vos centres d'intérêt, voici les évènements à ne pas manquer :",
     },
     weekend: {
         preview: "Ce qui se passe ce week-end",
-        badge: "🌅 Programme du week-end",
+        badgeLabel: "🌅 Programme du week-end",
         heading: "Ce week-end à Bénin Events",
         intro: "Voici les évènements qui ont lieu ce week-end :",
     },
     week: {
         preview: "Les évènements de la semaine",
-        badge: "📅 Programme de la semaine",
+        badgeLabel: "📅 Programme de la semaine",
         heading: "Cette semaine sur Bénin Events",
         intro: "Découvrez ce qui se passe cette semaine :",
     },
@@ -71,8 +84,8 @@ export function EventDigestEmail({ userName, digestType, events, appUrl, unsubsc
                     </Container>
                 </Section>
 
-                <Container style={container}>
-                    <Text style={badge}>{cfg.badge}</Text>
+                <Container style={containerCard}>
+                    <Text style={badge("brand")}>{cfg.badgeLabel}</Text>
                     <Heading style={heading}>Bonjour {userName} 👋</Heading>
                     <Text style={subtitle}>{cfg.intro}</Text>
 
@@ -110,7 +123,7 @@ export function EventDigestEmail({ userName, digestType, events, appUrl, unsubsc
                                     : `🎟 À partir de ${event.minPrice.toLocaleString("fr-FR")} FCFA`}
                             </Text>
                             <Button href={`${appUrl}/events/${event.slug}`} style={ctaBtn}>
-                                Voir l'évènement →
+                                Voir l&apos;évènement →
                             </Button>
                         </Section>
                     ))}
@@ -118,25 +131,25 @@ export function EventDigestEmail({ userName, digestType, events, appUrl, unsubsc
                     <Hr style={divider} />
 
                     <Section style={{ textAlign: "center", paddingBottom: "8px" }}>
-                        <Button href={`${appUrl}/events`} style={allEventsBtn}>
+                        <Button href={`${appUrl}/events`} style={ctaButtonPrimary}>
                             Voir tous les évènements
                         </Button>
                     </Section>
 
                     <Text style={footer}>
                         Vous recevez cet email parce que vous êtes inscrit sur{" "}
-                        <a href={appUrl} style={link}>beninevents.com</a>.
+                        <a href={appUrl} style={footerLink}>beninevents.com</a>.
                         {unsubscribeUrl ? (
                             <>
                                 {" "}Pour ne plus recevoir ces emails,{" "}
-                                <a href={unsubscribeUrl} style={link}>
+                                <a href={unsubscribeUrl} style={footerLink}>
                                     cliquez ici pour vous désinscrire
                                 </a>.
                             </>
                         ) : (
                             <>
                                 {" "}Pour ne plus recevoir ces notifications, écrivez-nous à{" "}
-                                <a href="mailto:support@beninevents.com" style={link}>
+                                <a href="mailto:support@beninevents.com" style={footerLink}>
                                     support@beninevents.com
                                 </a>.
                             </>
@@ -148,71 +161,35 @@ export function EventDigestEmail({ userName, digestType, events, appUrl, unsubsc
     );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Styles spécifiques à cet email
+// ─────────────────────────────────────────────
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f4f4f5",
-    fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
-    margin: 0,
-    padding: 0,
-};
-const header: React.CSSProperties = {
-    backgroundColor: "#09090b",
-    padding: "24px 0",
-    textAlign: "center",
-};
-const logo: React.CSSProperties = {
-    color: "#d4af37",
-    fontSize: "28px",
-    fontWeight: "900",
-    letterSpacing: "4px",
-    margin: "0 0 2px 0",
-};
-const logoSub: React.CSSProperties = {
-    color: "#a1a1aa",
-    fontSize: "11px",
-    letterSpacing: "3px",
-    textTransform: "uppercase",
-    margin: 0,
-};
-const container: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    borderRadius: "16px",
-    margin: "24px auto",
-    maxWidth: "580px",
-    padding: "32px 40px",
-};
-const badge: React.CSSProperties = {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#52525b",
-    margin: "0 0 10px 0",
-};
-const heading: React.CSSProperties = {
-    color: "#09090b",
+const heading: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "22px",
     fontWeight: "700",
-    margin: "0 0 8px 0",
+    margin: "0 0 8px",
 };
-const subtitle: React.CSSProperties = {
-    color: "#52525b",
+const subtitle: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "14px",
     lineHeight: "1.6",
-    margin: "0 0 4px 0",
+    margin: "0 0 4px",
 };
-const divider: React.CSSProperties = {
-    borderColor: "#e4e4e7",
+const divider: CSSProperties = {
+    borderColor: COLORS.border,
     margin: "24px 0",
 };
-const card: React.CSSProperties = {
-    backgroundColor: "#fafafa",
-    border: "1px solid #e4e4e7",
+const card: CSSProperties = {
+    backgroundColor: COLORS.muted,
+    border: `1px solid ${COLORS.border}`,
     borderRadius: "12px",
     padding: "20px",
     marginBottom: "16px",
     overflow: "hidden",
 };
-const cardImg: React.CSSProperties = {
+const cardImg: CSSProperties = {
     width: "100%",
     height: "180px",
     objectFit: "cover",
@@ -220,57 +197,37 @@ const cardImg: React.CSSProperties = {
     marginBottom: "14px",
     display: "block",
 };
-const cardTitle: React.CSSProperties = {
-    color: "#09090b",
+const cardTitle: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "17px",
     fontWeight: "700",
-    margin: "0 0 6px 0",
+    margin: "0 0 6px",
     lineHeight: "1.3",
 };
-const cardMeta: React.CSSProperties = {
-    color: "#52525b",
+const cardMeta: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "13px",
-    margin: "0 0 4px 0",
+    margin: "0 0 4px",
 };
-const cardCats: React.CSSProperties = {
-    color: "#d4af37",
+const cardCats: CSSProperties = {
+    color: COLORS.primary,
     fontSize: "12px",
     fontWeight: "600",
     margin: "6px 0",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
 };
-const cardPrice: React.CSSProperties = {
-    color: "#3f3f46",
+const cardPrice: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "13px",
     fontWeight: "600",
-    margin: "8px 0 14px 0",
+    margin: "8px 0 14px",
 };
-const ctaBtn: React.CSSProperties = {
-    backgroundColor: "#d4af37",
-    borderRadius: "8px",
-    color: "#09090b",
-    display: "inline-block",
-    fontSize: "13px",
-    fontWeight: "700",
-    padding: "10px 20px",
-    textDecoration: "none",
-};
-const allEventsBtn: React.CSSProperties = {
-    backgroundColor: "#09090b",
-    borderRadius: "8px",
-    color: "#ffffff",
-    display: "inline-block",
-    fontSize: "13px",
-    fontWeight: "600",
-    padding: "10px 24px",
-    textDecoration: "none",
-};
-const footer: React.CSSProperties = {
-    color: "#a1a1aa",
+const ctaBtn: CSSProperties = { ...ctaButtonSecondary, fontSize: "13px", padding: "10px 20px", borderRadius: "8px" };
+const footer: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "11px",
     lineHeight: "1.6",
     marginTop: "24px",
     textAlign: "center",
 };
-const link: React.CSSProperties = { color: "#d4af37", textDecoration: "none" };

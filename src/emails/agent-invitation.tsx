@@ -12,6 +12,19 @@ import {
     Row,
     Column,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    containerCard,
+    ctaButtonPrimary,
+    footerLink,
+    h2,
+    header,
+    logo,
+    logoSub,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export interface AgentInvitationEmailProps {
     recipientName: string;
@@ -46,9 +59,9 @@ export function AgentInvitationEmail({
                     </Container>
                 </Section>
 
-                <Container style={container}>
+                <Container style={containerCard}>
                     <Section style={heroSection}>
-                        <Text style={badge}>🎟️ Invitation Agent</Text>
+                        <Text style={badge("brand")}>🎟️ Invitation Agent</Text>
                         <Heading style={heading}>
                             Vous êtes invité à rejoindre l&apos;équipe
                         </Heading>
@@ -63,7 +76,7 @@ export function AgentInvitationEmail({
 
                     {/* Event details */}
                     <Section style={detailsSection}>
-                        <Heading as="h2" style={sectionTitle}>
+                        <Heading as="h2" style={h2}>
                             Détails de l&apos;évènement
                         </Heading>
 
@@ -115,7 +128,7 @@ export function AgentInvitationEmail({
 
                     {/* Role description */}
                     <Section style={{ marginBottom: "32px" }}>
-                        <Heading as="h2" style={sectionTitle}>
+                        <Heading as="h2" style={h2}>
                             Votre rôle en tant qu&apos;agent
                         </Heading>
                         <Text style={roleItem}>
@@ -136,21 +149,21 @@ export function AgentInvitationEmail({
                             Cliquez sur le bouton ci-dessous pour confirmer
                             votre participation. Ce lien est valable 48 heures.
                         </Text>
-                        <Button href={confirmUrl} style={ctaButton}>
+                        <Button href={confirmUrl} style={ctaButtonPrimary}>
                             Confirmer ma participation
                         </Button>
                     </Section>
 
                     <Hr style={divider} />
 
-                    <Text style={footer}>
+                    <Text style={footerLine}>
                         Si vous n&apos;êtes pas concerné par cette invitation,
                         ignorez simplement cet email. Aucune action de votre
                         part n&apos;est requise.
                     </Text>
-                    <Text style={footerLinks}>
+                    <Text style={footerLine}>
                         Benin Events · Pour toute question :{" "}
-                        <a href="mailto:contact@beninevents.com" style={link}>
+                        <a href="mailto:contact@beninevents.com" style={footerLink}>
                             contact@beninevents.com
                         </a>
                     </Text>
@@ -160,165 +173,86 @@ export function AgentInvitationEmail({
     );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Styles spécifiques à cet email
+// ─────────────────────────────────────────────
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f4f4f5",
-    fontFamily:
-        "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
-    margin: 0,
-    padding: 0,
-};
-
-const header: React.CSSProperties = {
-    backgroundColor: "#09090b",
-    padding: "24px 0",
-    textAlign: "center",
-};
-
-const logo: React.CSSProperties = {
-    color: "#d4af37",
-    fontSize: "28px",
-    fontWeight: "900",
-    letterSpacing: "4px",
-    margin: "0 0 2px 0",
-};
-
-const logoSub: React.CSSProperties = {
-    color: "#a1a1aa",
-    fontSize: "11px",
-    letterSpacing: "3px",
-    textTransform: "uppercase",
-    margin: 0,
-};
-
-const container: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    borderRadius: "16px",
-    margin: "24px auto",
-    maxWidth: "560px",
-    padding: "40px 48px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-};
-
-const heroSection: React.CSSProperties = {
+const heroSection: CSSProperties = {
     textAlign: "center",
     marginBottom: "32px",
 };
 
-const badge: React.CSSProperties = {
-    display: "inline-block",
-    backgroundColor: "#fef3c7",
-    color: "#92400e",
-    fontSize: "13px",
-    fontWeight: "600",
-    padding: "6px 16px",
-    borderRadius: "100px",
-    margin: "0 0 16px 0",
-};
-
-const heading: React.CSSProperties = {
-    color: "#09090b",
+const heading: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "22px",
     fontWeight: "700",
     lineHeight: "1.3",
-    margin: "0 0 12px 0",
+    margin: "0 0 12px",
 };
 
-const subtitle: React.CSSProperties = {
-    color: "#52525b",
+const subtitle: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "15px",
     lineHeight: "1.6",
     margin: 0,
 };
 
-const divider: React.CSSProperties = {
-    borderColor: "#e4e4e7",
+const divider: CSSProperties = {
+    borderColor: COLORS.border,
     margin: "28px 0",
 };
 
-const detailsSection: React.CSSProperties = {
+const detailsSection: CSSProperties = {
     marginBottom: "32px",
 };
 
-const sectionTitle: React.CSSProperties = {
-    color: "#09090b",
-    fontSize: "15px",
-    fontWeight: "700",
-    margin: "0 0 16px 0",
-    textTransform: "uppercase",
-    letterSpacing: "0.5px",
-};
-
-const detailsCard: React.CSSProperties = {
-    backgroundColor: "#fafafa",
-    border: "1px solid #e4e4e7",
+const detailsCard: CSSProperties = {
+    backgroundColor: COLORS.muted,
+    border: `1px solid ${COLORS.border}`,
     borderRadius: "12px",
     padding: "20px 24px",
 };
 
-const detailLabelCol: React.CSSProperties = {
+const detailLabelCol: CSSProperties = {
     width: "100px",
     verticalAlign: "top",
 };
 
-const detailLabel: React.CSSProperties = {
-    color: "#71717a",
+const detailLabel: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "13px",
     margin: 0,
 };
 
-const detailValue: React.CSSProperties = {
-    color: "#09090b",
+const detailValue: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "14px",
     fontWeight: "500",
     margin: 0,
 };
 
-const roleItem: React.CSSProperties = {
-    color: "#3f3f46",
+const roleItem: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "14px",
-    margin: "0 0 8px 0",
+    margin: "0 0 8px",
     lineHeight: "1.5",
 };
 
-const ctaSection: React.CSSProperties = {
+const ctaSection: CSSProperties = {
     textAlign: "center",
     marginBottom: "8px",
 };
 
-const ctaText: React.CSSProperties = {
-    color: "#52525b",
+const ctaText: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "14px",
     lineHeight: "1.6",
-    margin: "0 0 20px 0",
+    margin: "0 0 20px",
 };
 
-const ctaButton: React.CSSProperties = {
-    backgroundColor: "#d4af37",
-    borderRadius: "10px",
-    color: "#09090b",
-    display: "inline-block",
-    fontSize: "15px",
-    fontWeight: "700",
-    padding: "14px 36px",
-    textDecoration: "none",
-};
-
-const footer: React.CSSProperties = {
-    color: "#a1a1aa",
+const footerLine: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "12px",
     lineHeight: "1.5",
-    margin: "0 0 8px 0",
-};
-
-const footerLinks: React.CSSProperties = {
-    color: "#a1a1aa",
-    fontSize: "12px",
-    margin: 0,
-};
-
-const link: React.CSSProperties = {
-    color: "#d4af37",
-    textDecoration: "none",
+    margin: "0 0 8px",
 };

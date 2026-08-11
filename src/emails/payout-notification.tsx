@@ -2,6 +2,28 @@ import {
     Body, Container, Head, Heading, Hr, Html,
     Preview, Section, Text, Button,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    container,
+    ctaButtonPrimary,
+    divider,
+    footer,
+    footerCopyright,
+    footerLink,
+    footerText,
+    h1,
+    h2,
+    header,
+    heroSection,
+    logo,
+    logoSub,
+    section,
+    subtitle,
+    COLORS,
+    type BadgeTone,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export type PayoutNotifType = "REQUESTED" | "PROCESSING" | "PAID" | "REJECTED";
 
@@ -15,30 +37,30 @@ export interface PayoutNotificationEmailProps {
     appUrl: string;
 }
 
-const CONFIG: Record<PayoutNotifType, { badge: string; badgeStyle: React.CSSProperties; title: string; body: string }> = {
+const CONFIG: Record<PayoutNotifType, { badgeLabel: string; tone: BadgeTone; title: string; body: string }> = {
     REQUESTED: {
-        badge: "⏳ Demande reçue",
-        badgeStyle: { backgroundColor: "#fef9c3", color: "#854d0e" },
-        title: "Votre demande de reversement a bien été reçue",
-        body: "Nous avons bien reçu votre demande. Elle sera traitée dans les plus brefs délais.",
+        badgeLabel: "⏳ Demande reçue",
+        tone: "warning",
+        title: "Demande de reversement reçue !",
+        body: "C'est noté ! Elle vient d'entrer dans la file de traitement — on s'en occupe rapidement.",
     },
     PROCESSING: {
-        badge: "🔄 En cours",
-        badgeStyle: { backgroundColor: "#dbeafe", color: "#1e40af" },
-        title: "Votre reversement est en cours de traitement",
-        body: "Le virement est en cours. Vous recevrez un email de confirmation dès qu'il sera effectué.",
+        badgeLabel: "🔄 En cours",
+        tone: "info",
+        title: "Ça bouge, votre reversement arrive !",
+        body: "Le virement est en route vers votre compte. Vous recevrez un email de confirmation dès qu'il sera arrivé à destination.",
     },
     PAID: {
-        badge: "✅ Reversement effectué",
-        badgeStyle: { backgroundColor: "#d1fae5", color: "#065f46" },
-        title: "Votre reversement a été effectué !",
-        body: "Le montant a été envoyé selon vos coordonnées de paiement enregistrées.",
+        badgeLabel: "✅ Reversement effectué",
+        tone: "success",
+        title: "Reversement envoyé, bravo pour cet évènement 🎉",
+        body: "Le montant a été envoyé selon vos coordonnées de paiement enregistrées. Merci de faire vivre les évènements au Bénin avec nous !",
     },
     REJECTED: {
-        badge: "✗ Demande rejetée",
-        badgeStyle: { backgroundColor: "#fee2e2", color: "#991b1b" },
-        title: "Votre demande de reversement n'a pas abouti",
-        body: "Votre demande n'a pas pu être traitée. Contactez le support si vous avez des questions.",
+        badgeLabel: "✗ Demande rejetée",
+        tone: "danger",
+        title: "Petit souci avec votre demande",
+        body: "Elle n'a pas pu être traitée cette fois. Regardez le motif ci-dessous, et n'hésitez pas à nous contacter pour la corriger.",
     },
 };
 
@@ -67,7 +89,7 @@ export function PayoutNotificationEmail({
 
                 <Container style={container}>
                     <Section style={heroSection}>
-                        <Text style={{ ...badge, ...cfg.badgeStyle }}>{cfg.badge}</Text>
+                        <Text style={badge(cfg.tone)}>{cfg.badgeLabel}</Text>
                         <Heading style={h1}>{cfg.title}</Heading>
                         <Text style={subtitle}>
                             Bonjour {organizerName}, {cfg.body}
@@ -96,21 +118,21 @@ export function PayoutNotificationEmail({
                             {commissionRate === 0 && (
                                 <Text style={cardRow}>
                                     <span style={cardLabel}>Commission</span>
-                                    <span style={{ ...cardValue, color: "#059669" }}>Offerte (0%)</span>
+                                    <span style={{ ...cardValue, color: COLORS.success }}>Offerte (0%)</span>
                                 </Text>
                             )}
                         </Section>
 
                         {adminNote && type === "REJECTED" && (
-                            <Section style={{ ...card, backgroundColor: "#fef2f2", borderColor: "#fca5a5", marginTop: "12px" }}>
-                                <Text style={{ color: "#991b1b", fontSize: "13px", margin: 0 }}>
+                            <Section style={{ ...card, backgroundColor: COLORS.dangerBg, borderColor: COLORS.danger, marginTop: "12px" }}>
+                                <Text style={{ color: COLORS.danger, fontSize: "13px", margin: 0 }}>
                                     <strong>Motif :</strong> {adminNote}
                                 </Text>
                             </Section>
                         )}
 
                         <Section style={{ textAlign: "center", marginTop: "28px" }}>
-                            <Button href={`${appUrl}/dashboard/payout`} style={ctaButton}>
+                            <Button href={`${appUrl}/dashboard/payout`} style={ctaButtonPrimary}>
                                 Voir mes reversements →
                             </Button>
                         </Section>
@@ -131,30 +153,16 @@ export function PayoutNotificationEmail({
     );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Styles spécifiques à cet email
+// ─────────────────────────────────────────────
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f3f4f6",
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0, padding: 0,
+const card: CSSProperties = {
+    backgroundColor: COLORS.muted,
+    borderRadius: "12px",
+    padding: "16px 20px",
+    border: `1px solid ${COLORS.border}`,
 };
-const header: React.CSSProperties = { backgroundColor: "#000", padding: "20px 0" };
-const logo: React.CSSProperties = { color: "#d4af37", fontSize: "28px", fontWeight: "900", margin: 0, letterSpacing: "2px", textAlign: "center" };
-const logoSub: React.CSSProperties = { color: "#9ca3af", fontSize: "11px", margin: "2px 0 0", letterSpacing: "3px", textTransform: "uppercase", textAlign: "center" };
-const container: React.CSSProperties = { backgroundColor: "#ffffff", maxWidth: "600px", margin: "0 auto" };
-const heroSection: React.CSSProperties = { padding: "40px 40px 32px", textAlign: "center" };
-const badge: React.CSSProperties = { display: "inline-block", fontSize: "13px", fontWeight: "700", padding: "6px 16px", borderRadius: "999px", margin: "0 0 20px" };
-const h1: React.CSSProperties = { color: "#111827", fontSize: "24px", fontWeight: "800", margin: "0 0 12px", lineHeight: "1.3" };
-const subtitle: React.CSSProperties = { color: "#6b7280", fontSize: "15px", margin: 0, lineHeight: "1.6" };
-const divider: React.CSSProperties = { borderColor: "#f3f4f6", margin: 0 };
-const section: React.CSSProperties = { padding: "32px 40px" };
-const h2: React.CSSProperties = { color: "#111827", fontSize: "17px", fontWeight: "700", margin: "0 0 16px" };
-const card: React.CSSProperties = { backgroundColor: "#f9fafb", borderRadius: "12px", padding: "16px 20px", border: "1px solid #e5e7eb" };
-const cardRow: React.CSSProperties = { display: "flex", justifyContent: "space-between", fontSize: "14px", margin: "0 0 8px", color: "#374151" };
-const cardLabel: React.CSSProperties = { color: "#6b7280" };
-const cardValue: React.CSSProperties = { fontWeight: "700", color: "#111827" };
-const ctaButton: React.CSSProperties = { backgroundColor: "#d4af37", color: "#000", fontSize: "14px", fontWeight: "700", padding: "14px 28px", borderRadius: "8px", textDecoration: "none", display: "inline-block" };
-const footer: React.CSSProperties = { backgroundColor: "#f9fafb", padding: "24px 40px", textAlign: "center" };
-const footerText: React.CSSProperties = { color: "#9ca3af", fontSize: "12px", margin: "0 0 4px" };
-const footerLink: React.CSSProperties = { color: "#d4af37", textDecoration: "underline" };
-const footerCopyright: React.CSSProperties = { color: "#d1d5db", fontSize: "11px", margin: "12px 0 0" };
+const cardRow: CSSProperties = { display: "flex", justifyContent: "space-between", fontSize: "14px", margin: "0 0 8px", color: COLORS.foreground };
+const cardLabel: CSSProperties = { color: COLORS.mutedForeground };
+const cardValue: CSSProperties = { fontWeight: "700", color: COLORS.foreground };

@@ -12,6 +12,30 @@ import {
     Row,
     Column,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    card,
+    container,
+    divider,
+    footer,
+    footerCopyright,
+    footerLink,
+    footerText,
+    h1,
+    h2,
+    header,
+    heroSection,
+    infoLabel,
+    infoValue,
+    innerDivider,
+    logo,
+    logoSub,
+    section,
+    subtitle,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export interface OrderItem {
     id: string;
@@ -51,7 +75,7 @@ export function OrderConfirmationEmail({
             <Body style={body}>
                 {/* ── Header ─────────────────────────────────────────── */}
                 <Section style={header}>
-                    <Container style={headerInner}>
+                    <Container style={{ textAlign: "center" }}>
                         <Text style={logo}>BE</Text>
                         <Text style={logoSub}>Benin Events</Text>
                     </Container>
@@ -60,7 +84,7 @@ export function OrderConfirmationEmail({
                 <Container style={container}>
                     {/* ── Hero ───────────────────────────────────────── */}
                     <Section style={heroSection}>
-                        <Text style={successBadge}>✓ Commande confirmée</Text>
+                        <Text style={badge("success")}>✓ Commande confirmée</Text>
                         <Heading style={h1}>
                             Vos billets sont prêts !
                         </Heading>
@@ -75,7 +99,7 @@ export function OrderConfirmationEmail({
                     {/* ── Event info ─────────────────────────────────── */}
                     <Section style={section}>
                         <Heading style={h2}>Détails de l&apos;évènement</Heading>
-                        <Section style={infoCard}>
+                        <Section style={card}>
                             <Row>
                                 <Column style={infoIcon}>🎪</Column>
                                 <Column>
@@ -180,7 +204,7 @@ export function OrderConfirmationEmail({
                     {/* ── Order summary ──────────────────────────────── */}
                     <Section style={section}>
                         <Heading style={h2}>Récapitulatif</Heading>
-                        <Section style={summaryCard}>
+                        <Section style={card}>
                             <Row>
                                 <Column>
                                     <Text style={summaryLabel}>
@@ -193,7 +217,7 @@ export function OrderConfirmationEmail({
                                     </Text>
                                 </Column>
                             </Row>
-                            <Hr style={{ margin: "8px 0", borderColor: "#e5e7eb" }} />
+                            <Hr style={innerDivider} />
                             <Row>
                                 <Column>
                                     <Text style={summaryTotal}>
@@ -243,142 +267,33 @@ export function OrderConfirmationEmail({
 }
 
 // ─────────────────────────────────────────────
-// Styles
+// Styles spécifiques à cet email
 // ─────────────────────────────────────────────
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f3f4f6",
-    fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0,
-    padding: 0,
-};
-
-const header: React.CSSProperties = {
-    backgroundColor: "#000",
-    padding: "20px 0",
-};
-
-const headerInner: React.CSSProperties = {
-    textAlign: "center",
-};
-
-const logo: React.CSSProperties = {
-    color: "#d4af37",
-    fontSize: "28px",
-    fontWeight: "900",
-    margin: 0,
-    letterSpacing: "2px",
-};
-
-const logoSub: React.CSSProperties = {
-    color: "#9ca3af",
-    fontSize: "11px",
-    margin: "2px 0 0",
-    letterSpacing: "3px",
-    textTransform: "uppercase",
-};
-
-const container: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    maxWidth: "600px",
-    margin: "0 auto",
-};
-
-const heroSection: React.CSSProperties = {
-    padding: "40px 40px 32px",
-    textAlign: "center",
-};
-
-const successBadge: React.CSSProperties = {
-    display: "inline-block",
-    backgroundColor: "#d1fae5",
-    color: "#065f46",
-    fontSize: "13px",
-    fontWeight: "700",
-    padding: "6px 16px",
-    borderRadius: "999px",
-    margin: "0 0 20px",
-};
-
-const h1: React.CSSProperties = {
-    color: "#111827",
-    fontSize: "28px",
-    fontWeight: "800",
-    margin: "0 0 12px",
-    lineHeight: "1.3",
-};
-
-const subtitle: React.CSSProperties = {
-    color: "#6b7280",
-    fontSize: "15px",
-    margin: 0,
-    lineHeight: "1.6",
-};
-
-const divider: React.CSSProperties = {
-    borderColor: "#f3f4f6",
-    margin: 0,
-};
-
-const section: React.CSSProperties = {
-    padding: "32px 40px",
-};
-
-const h2: React.CSSProperties = {
-    color: "#111827",
-    fontSize: "18px",
-    fontWeight: "700",
-    margin: "0 0 16px",
-};
-
-const infoCard: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
-    borderRadius: "12px",
-    padding: "20px",
-    border: "1px solid #e5e7eb",
-};
-
-const infoIcon: React.CSSProperties = {
+const infoIcon: CSSProperties = {
     width: "32px",
     fontSize: "18px",
     verticalAlign: "top",
     paddingTop: "2px",
 };
 
-const infoLabel: React.CSSProperties = {
-    color: "#9ca3af",
-    fontSize: "11px",
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: "0.8px",
-    margin: "0 0 2px",
-};
-
-const infoValue: React.CSSProperties = {
-    color: "#111827",
-    fontSize: "15px",
-    fontWeight: "600",
-    margin: 0,
-};
-
-const qrInstruction: React.CSSProperties = {
-    color: "#6b7280",
+const qrInstruction: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "13px",
     margin: "0 0 20px",
     lineHeight: "1.5",
 };
 
-const ticketCard: React.CSSProperties = {
-    backgroundColor: "#fafafa",
-    border: "2px solid #e5e7eb",
+const ticketCard: CSSProperties = {
+    backgroundColor: COLORS.card,
+    border: `2px solid ${COLORS.border}`,
     borderRadius: "16px",
     padding: "24px",
     marginBottom: "16px",
 };
 
-const ticketBadge: React.CSSProperties = {
-    color: "#6b7280",
+const ticketBadge: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "12px",
     fontWeight: "600",
     textTransform: "uppercase",
@@ -386,87 +301,57 @@ const ticketBadge: React.CSSProperties = {
     margin: "0 0 8px",
 };
 
-const ticketTitle: React.CSSProperties = {
-    color: "#111827",
+const ticketTitle: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "18px",
     fontWeight: "700",
     margin: "0 0 4px",
 };
 
-const ticketMeta: React.CSSProperties = {
-    color: "#6b7280",
+const ticketMeta: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "13px",
     margin: 0,
 };
 
-const qrCode: React.CSSProperties = {
+const qrCode: CSSProperties = {
     borderRadius: "12px",
-    border: "4px solid #111827",
+    border: `4px solid ${COLORS.primary}`,
     display: "block",
     margin: "0 auto",
 };
 
-const qrCaption: React.CSSProperties = {
-    color: "#9ca3af",
+const qrCaption: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "11px",
     margin: "8px 0 0",
     textAlign: "center",
 };
 
-const summaryCard: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
-    borderRadius: "12px",
-    padding: "20px",
-    border: "1px solid #e5e7eb",
-};
-
-const summaryLabel: React.CSSProperties = {
-    color: "#6b7280",
+const summaryLabel: CSSProperties = {
+    color: COLORS.mutedForeground,
     fontSize: "13px",
     margin: 0,
 };
 
-const summaryRef: React.CSSProperties = {
-    color: "#111827",
+const summaryRef: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "13px",
     fontWeight: "600",
     fontFamily: "monospace",
     margin: 0,
 };
 
-const summaryTotal: React.CSSProperties = {
-    color: "#111827",
+const summaryTotal: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "15px",
     fontWeight: "700",
     margin: 0,
 };
 
-const summaryTotalValue: React.CSSProperties = {
-    color: "#d4af37",
+const summaryTotalValue: CSSProperties = {
+    color: COLORS.primary,
     fontSize: "18px",
     fontWeight: "800",
     margin: 0,
-};
-
-const footer: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
-    padding: "28px 40px",
-    textAlign: "center",
-};
-
-const footerText: React.CSSProperties = {
-    color: "#9ca3af",
-    fontSize: "13px",
-    margin: "0 0 6px",
-};
-
-const footerLink: React.CSSProperties = {
-    color: "#d4af37",
-    textDecoration: "underline",
-};
-
-const footerCopyright: React.CSSProperties = {
-    color: "#d1d5db",
-    fontSize: "11px",
-    margin: "16px 0 0",
 };

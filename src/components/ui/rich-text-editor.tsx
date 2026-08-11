@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Link from "@tiptap/extension-link";
 import {
     Bold,
     Italic,
@@ -13,7 +15,14 @@ import {
     Undo,
     Redo,
 } from "lucide-react";
+import { IconLink } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Props {
     content?: string;
@@ -28,6 +37,17 @@ export function RichTextEditor({ content = "", onChange, placeholder, className 
             StarterKit,
             Placeholder.configure({
                 placeholder: placeholder ?? "Décrivez votre évènement en détail…",
+            }),
+            Link.configure({
+                openOnClick: false,
+                autolink: true,
+                linkOnPaste: true,
+                protocols: ["http", "https", "mailto", "tel"],
+                HTMLAttributes: {
+                    rel: "noopener noreferrer nofollow",
+                    target: "_blank",
+                    class: "text-primary underline underline-offset-2",
+                },
             }),
         ],
         content,
@@ -44,7 +64,33 @@ export function RichTextEditor({ content = "", onChange, placeholder, className 
         immediatelyRender: false,
     });
 
+    const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+    const [linkUrl, setLinkUrl] = useState("");
+
     if (!editor) return null;
+
+    const isLinkActive = editor.isActive("link");
+    const canEditLink = !editor.state.selection.empty || isLinkActive;
+
+    const openLinkPopover = () => {
+        setLinkUrl(editor.getAttributes("link").href ?? "");
+        setLinkPopoverOpen(true);
+    };
+
+    const applyLink = () => {
+        const trimmed = linkUrl.trim();
+        if (!trimmed) return;
+        const href = /^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+            ? trimmed
+            : `https://${trimmed}`;
+        editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
+        setLinkPopoverOpen(false);
+    };
+
+    const removeLink = () => {
+        editor.chain().focus().extendMarkRange("link").unsetLink().run();
+        setLinkPopoverOpen(false);
+    };
 
     return (
         <div className={cn("border rounded-xl overflow-hidden bg-background", className)}>
@@ -98,6 +144,68 @@ export function RichTextEditor({ content = "", onChange, placeholder, className 
                 >
                     <ListOrdered className="w-4 h-4" />
                 </ToolBtn>
+
+                <Sep />
+
+                <Popover open={linkPopoverOpen} onOpenChange={setLinkPopoverOpen}>
+                    <PopoverTrigger
+                        type="button"
+                        onClick={openLinkPopover}
+                        disabled={!canEditLink}
+                        title={
+                            canEditLink
+                                ? "Insérer un lien"
+                                : "Sélectionnez du texte pour ajouter un lien"
+                        }
+                        className={cn(
+                            "p-1.5 rounded transition-colors",
+                            isLinkActive
+                                ? "bg-foreground text-background"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                            !canEditLink && "opacity-30 pointer-events-none",
+                        )}
+                    >
+                        <IconLink className="w-4 h-4" stroke={1.75} />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72" align="start">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-medium text-muted-foreground">
+                                URL du lien
+                            </label>
+                            <Input
+                                autoFocus
+                                value={linkUrl}
+                                onChange={(e) => setLinkUrl(e.target.value)}
+                                placeholder="https://chat.whatsapp.com/…"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        applyLink();
+                                    }
+                                }}
+                            />
+                            <div className="flex items-center justify-end gap-3 pt-1">
+                                {isLinkActive && (
+                                    <button
+                                        type="button"
+                                        onClick={removeLink}
+                                        className="text-xs font-medium text-destructive hover:underline"
+                                    >
+                                        Retirer
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={applyLink}
+                                    disabled={!linkUrl.trim()}
+                                    className="text-xs font-medium px-3 py-1.5 rounded-md bg-foreground text-background hover:opacity-90 disabled:opacity-40 disabled:pointer-events-none"
+                                >
+                                    {isLinkActive ? "Modifier" : "Ajouter"}
+                                </button>
+                            </div>
+                        </div>
+                    </PopoverContent>
+                </Popover>
 
                 <div className="ml-auto flex items-center gap-0.5">
                     <ToolBtn

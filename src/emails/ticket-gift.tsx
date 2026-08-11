@@ -2,6 +2,21 @@ import {
     Body, Container, Head, Heading, Hr, Html,
     Img, Preview, Section, Text,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    card,
+    container,
+    divider,
+    footer,
+    header,
+    h1,
+    h2,
+    logo,
+    logoSub,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export interface TicketGiftEmailProps {
     recipientName: string;
@@ -36,13 +51,14 @@ export function TicketGiftEmail({
                 {/* Header */}
                 <Section style={header}>
                     <Container style={{ textAlign: "center" }}>
-                        <Text style={logo}>Benin Events</Text>
+                        <Text style={logo}>BE</Text>
+                        <Text style={logoSub}>Benin Events</Text>
                     </Container>
                 </Section>
 
                 <Container style={container}>
                     <Section style={{ padding: "40px 40px 24px" }}>
-                        <Text style={badge}>🎁 Vous avez reçu un billet</Text>
+                        <Text style={badge("gold")}>🎁 Vous avez reçu un billet</Text>
                         <Heading style={h1}>Bonjour {recipientName} !</Heading>
                         <Text style={intro}>
                             <strong>{senderName}</strong> vous offre un billet pour assister à{" "}
@@ -101,22 +117,16 @@ export function TicketGiftEmail({
     );
 }
 
-const body: React.CSSProperties = { backgroundColor: "#f3f4f6", fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', margin: 0, padding: 0 };
-const header: React.CSSProperties = { backgroundColor: "#000", padding: "20px 0" };
-const logo: React.CSSProperties = { color: "#d4af37", fontSize: "28px", fontWeight: "900", margin: 0, letterSpacing: "2px", textAlign: "center" };
-const container: React.CSSProperties = { backgroundColor: "#ffffff", maxWidth: "600px", margin: "0 auto" };
-const badge: React.CSSProperties = { display: "inline-block", backgroundColor: "#fef9c3", color: "#854d0e", fontSize: "13px", fontWeight: "700", padding: "6px 16px", borderRadius: "999px", margin: "0 0 20px" };
-const h1: React.CSSProperties = { color: "#111827", fontSize: "24px", fontWeight: "800", margin: "0 0 12px" };
-const intro: React.CSSProperties = { color: "#374151", fontSize: "15px", lineHeight: "1.6", margin: 0 };
-const divider: React.CSSProperties = { borderColor: "#f3f4f6", margin: 0 };
-const h2: React.CSSProperties = { color: "#111827", fontSize: "17px", fontWeight: "700", margin: "0 0 12px" };
-const card: React.CSSProperties = { backgroundColor: "#f9fafb", borderRadius: "12px", padding: "16px 20px", border: "1px solid #e5e7eb" };
-const row: React.CSSProperties = { display: "flex", justifyContent: "space-between", fontSize: "14px", margin: "0 0 8px", color: "#374151" };
-const labelStyle: React.CSSProperties = { color: "#6b7280" };
-const valueStyle: React.CSSProperties = { fontWeight: "600", color: "#111827" };
-const qrHint: React.CSSProperties = { color: "#6b7280", fontSize: "13px", margin: "0 0 20px" };
-const qrImg: React.CSSProperties = { border: "1px solid #e5e7eb", borderRadius: "12px", padding: "8px", backgroundColor: "#fff" };
-const footer: React.CSSProperties = { padding: "24px 40px", textAlign: "center", backgroundColor: "#f9fafb" };
-const footerText: React.CSSProperties = { color: "#6b7280", fontSize: "13px", margin: "0 0 8px" };
-const footerCopy: React.CSSProperties = { color: "#d1d5db", fontSize: "11px", margin: 0 };
-const link: React.CSSProperties = { color: "#d4af37", textDecoration: "none" };
+// ─────────────────────────────────────────────
+// Styles spécifiques à cet email
+// ─────────────────────────────────────────────
+
+const intro: CSSProperties = { color: COLORS.foreground, fontSize: "15px", lineHeight: "1.6", margin: 0 };
+const row: CSSProperties = { display: "flex", justifyContent: "space-between", fontSize: "14px", margin: "0 0 8px", color: COLORS.foreground };
+const labelStyle: CSSProperties = { color: COLORS.mutedForeground };
+const valueStyle: CSSProperties = { fontWeight: "600", color: COLORS.foreground };
+const qrHint: CSSProperties = { color: COLORS.mutedForeground, fontSize: "13px", margin: "0 0 20px" };
+const qrImg: CSSProperties = { border: `4px solid ${COLORS.primary}`, borderRadius: "12px", padding: "8px", backgroundColor: COLORS.card };
+const footerText: CSSProperties = { color: COLORS.mutedForeground, fontSize: "13px", margin: "0 0 8px" };
+const footerCopy: CSSProperties = { color: "#a3a3a3", fontSize: "11px", margin: 0 };
+const link: CSSProperties = { color: COLORS.primary, fontWeight: 600, textDecoration: "none" };

@@ -9,6 +9,24 @@ import {
     Section,
     Text,
 } from "@react-email/components";
+import {
+    badge,
+    body,
+    bodyText,
+    container,
+    divider,
+    footer,
+    footerCopyright,
+    h1,
+    header,
+    heroSection,
+    logo,
+    logoSub,
+    section,
+    subtitle,
+    COLORS,
+} from "./_theme";
+import type { CSSProperties } from "react";
 
 export interface AuthVerificationEmailProps {
     otp: string;
@@ -35,32 +53,34 @@ export function AuthVerificationEmail({ otp, type }: AuthVerificationEmailProps)
 
                 <Container style={container}>
                     <Section style={heroSection}>
+                        <Text style={badge("brand")}>
+                            {isReset ? "🔑 Réinitialisation" : "✉️ Vérification"}
+                        </Text>
                         <Heading style={h1}>
                             {isReset
-                                ? "Réinitialisation de votre mot de passe"
-                                : "Vérifiez votre adresse email"}
+                                ? "On vous aide à revenir"
+                                : "Plus qu'une étape !"}
                         </Heading>
                         <Text style={subtitle}>
                             {isReset
-                                ? "Utilisez le code ci-dessous pour réinitialiser votre mot de passe."
-                                : "Utilisez le code ci-dessous pour confirmer votre adresse email et activer votre compte."}
+                                ? "Ça arrive à tout le monde. Entrez le code ci-dessous pour choisir un nouveau mot de passe."
+                                : "Entrez le code ci-dessous pour confirmer votre adresse email et rejoindre la communauté des passionnés d'évènements au Bénin."}
                         </Text>
                     </Section>
 
                     <Hr style={divider} />
 
-                    <Section style={section}>
+                    <Section style={{ ...section, textAlign: "center" }}>
                         <Section style={otpBox}>
                             <Text style={otpText}>{otp}</Text>
                         </Section>
                         <Text style={expiry}>
-                            Ce code expire dans 5 minutes.
+                            ⏱ Ce code expire dans 5 minutes — faites vite !
                         </Text>
                         <Text style={bodyText}>
-                            Si vous n&apos;êtes pas à l&apos;origine de cette
-                            demande, vous pouvez ignorer cet email en toute
-                            sécurité — aucun changement ne sera effectué sur
-                            votre compte.
+                            Vous n&apos;êtes pas à l&apos;origine de cette
+                            demande ? Aucun souci, ignorez simplement cet
+                            email : votre compte reste protégé.
                         </Text>
                     </Section>
 
@@ -77,85 +97,18 @@ export function AuthVerificationEmail({ otp, type }: AuthVerificationEmailProps)
 }
 
 // ─────────────────────────────────────────────
-// Styles
+// Styles spécifiques à cet email
 // ─────────────────────────────────────────────
 
-const body: React.CSSProperties = {
-    backgroundColor: "#f3f4f6",
-    fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    margin: 0,
-    padding: 0,
-};
-
-const header: React.CSSProperties = {
-    backgroundColor: "#000",
-    padding: "20px 0",
-};
-
-const logo: React.CSSProperties = {
-    color: "#d4af37",
-    fontSize: "28px",
-    fontWeight: "900",
-    margin: 0,
-    letterSpacing: "2px",
-    textAlign: "center",
-};
-
-const logoSub: React.CSSProperties = {
-    color: "#9ca3af",
-    fontSize: "11px",
-    margin: "2px 0 0",
-    letterSpacing: "3px",
-    textTransform: "uppercase",
-    textAlign: "center",
-};
-
-const container: React.CSSProperties = {
-    backgroundColor: "#ffffff",
-    maxWidth: "600px",
-    margin: "0 auto",
-};
-
-const heroSection: React.CSSProperties = {
-    padding: "40px 40px 32px",
-    textAlign: "center",
-};
-
-const h1: React.CSSProperties = {
-    color: "#111827",
-    fontSize: "26px",
-    fontWeight: "800",
-    margin: "0 0 12px",
-    lineHeight: "1.3",
-};
-
-const subtitle: React.CSSProperties = {
-    color: "#6b7280",
-    fontSize: "15px",
-    margin: 0,
-    lineHeight: "1.6",
-};
-
-const divider: React.CSSProperties = {
-    borderColor: "#f3f4f6",
-    margin: 0,
-};
-
-const section: React.CSSProperties = {
-    padding: "32px 40px",
-    textAlign: "center",
-};
-
-const otpBox: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
+const otpBox: CSSProperties = {
+    backgroundColor: COLORS.muted,
     borderRadius: "12px",
     padding: "24px",
-    border: "1px solid #e5e7eb",
+    border: `1px solid ${COLORS.border}`,
 };
 
-const otpText: React.CSSProperties = {
-    color: "#111827",
+const otpText: CSSProperties = {
+    color: COLORS.foreground,
     fontSize: "36px",
     fontWeight: "800",
     letterSpacing: "12px",
@@ -163,28 +116,9 @@ const otpText: React.CSSProperties = {
     textAlign: "center",
 };
 
-const expiry: React.CSSProperties = {
-    color: "#92400e",
+const expiry: CSSProperties = {
+    color: COLORS.warning,
     fontSize: "13px",
     fontWeight: "600",
     margin: "16px 0 20px",
-};
-
-const bodyText: React.CSSProperties = {
-    color: "#6b7280",
-    fontSize: "14px",
-    lineHeight: "1.7",
-    margin: 0,
-};
-
-const footer: React.CSSProperties = {
-    backgroundColor: "#f9fafb",
-    padding: "24px 40px",
-    textAlign: "center",
-};
-
-const footerCopyright: React.CSSProperties = {
-    color: "#d1d5db",
-    fontSize: "11px",
-    margin: 0,
 };
