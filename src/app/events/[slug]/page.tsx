@@ -485,6 +485,7 @@ export default async function PublicEventPage({ params }: Props) {
                                                     </Button>
                                                 ) : (
                                                     <BuyTicketButton
+                                                        eventId={event.id}
                                                         ticket={ticket}
                                                         isLoggedIn={isLoggedIn}
                                                         remainingStock={ticket.remainingStock}

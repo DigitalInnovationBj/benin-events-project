@@ -8,6 +8,7 @@ import {
     Banknote,
     CalendarRange,
     ChevronsUpDown,
+    Handshake,
     LayoutDashboard,
     Loader2,
     LogOut,
@@ -88,10 +89,12 @@ const ORGANIZER_NAV: NavItem[] = [
     { title: "Mes évènements", url: "/dashboard/events", icon: CalendarRange, exact: true },
     { title: "Créer un évènement", url: "/dashboard/events/new", icon: PlusCircle, exact: true },
     { title: "Reversements", url: "/dashboard/payout", icon: Banknote },
+    { title: "Devenir partenaire", url: "/devenir-partenaire", icon: Handshake },
 ];
 
 const ADMIN_NAV: NavItem[] = [
     { title: "Demandes", url: "/admin/requests", icon: ShieldCheck },
+    { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: Handshake },
     { title: "Reversements", url: "/admin/payouts", icon: Banknote },
     { title: "Paramètres", url: "/admin/settings", icon: Settings },
 ];

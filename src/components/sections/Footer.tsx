@@ -14,6 +14,7 @@ import {
     CalendarRange,
     HelpCircle,
     Mail,
+    Handshake,
 } from "lucide-react";
 import { SOCIAL_LINKS } from "@/lib/socials";
 
@@ -26,6 +27,7 @@ const PLATEFORME_LINKS = [
     { label: "Évènements", href: "/events", icon: CalendarRange },
     { label: "FAQ", href: "/faq", icon: HelpCircle },
     { label: "Contact", href: "/contact", icon: Mail },
+    { label: "Devenir partenaire", href: "/devenir-partenaire", icon: Handshake },
 ];
 
 const ORGANISATEURS_LINKS = [

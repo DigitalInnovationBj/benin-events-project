@@ -12,10 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { initiateTicketPayment } from "@/actions/payment.actions";
 import type { TicketAssignment } from "@/actions/payment.actions";
+import { validatePromoCode } from "@/actions/eventPartner.actions";
 import { toast } from "sonner";
-import { Minus, Plus, Loader2, Ticket, User, Users } from "lucide-react";
+import { Minus, Plus, Loader2, Ticket, User, Users, Tag, X } from "lucide-react";
 
 interface Props {
+    eventId: string;
     ticket: {
         id: string;
         title: string;
@@ -29,9 +31,17 @@ interface Props {
     hasExistingTicket?: boolean;
 }
 
+type AppliedPromo = {
+    code: string;
+    name: string;
+    discountType: "PERCENTAGE" | "FIXED";
+    discountValue: number;
+};
+
 type Assignment = { forSelf: boolean; name: string; email: string };
 
 export function BuyTicketButton({
+    eventId,
     ticket,
     isLoggedIn,
     remainingStock,
@@ -46,6 +56,11 @@ export function BuyTicketButton({
     // Infos acheteur invité
     const [guestName, setGuestName] = useState("");
     const [guestEmail, setGuestEmail] = useState("");
+
+    // Code promo partenaire
+    const [promoInput, setPromoInput] = useState("");
+    const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+    const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
     // Attribution : 1 entrée par billet
     const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -70,7 +85,33 @@ export function BuyTicketButton({
         setGuestName("");
         setGuestEmail("");
         setAssignments([{ forSelf: !hasExistingTicket, name: "", email: "" }]);
+        setPromoInput("");
+        setAppliedPromo(null);
         setOpen(true);
+    }
+
+    async function handleApplyPromo() {
+        const code = promoInput.trim();
+        if (!code) return;
+        setIsValidatingPromo(true);
+        const res = await validatePromoCode(eventId, code);
+        setIsValidatingPromo(false);
+        if (!res.success) {
+            toast.error(res.error ?? "Code promo invalide.");
+            return;
+        }
+        setAppliedPromo({
+            code: code.toUpperCase(),
+            name: res.name,
+            discountType: res.discountType,
+            discountValue: res.discountValue,
+        });
+        toast.success(`Code "${res.name}" appliqué !`);
+    }
+
+    function handleRemovePromo() {
+        setAppliedPromo(null);
+        setPromoInput("");
     }
 
     function toggleForSelf(index: number, value: boolean) {
@@ -97,6 +138,7 @@ export function BuyTicketButton({
                 assignments: payload,
                 guestEmail: isLoggedIn ? undefined : guestEmail,
                 guestName: isLoggedIn ? undefined : guestName,
+                promoCode: appliedPromo?.code,
             });
 
             if (result.error) {
@@ -111,8 +153,14 @@ export function BuyTicketButton({
     }
 
     const basePrice = ticket.price * quantity;
-    const fees = basePrice > 0 ? Math.ceil(basePrice * 0.05) + 100 : 0;
-    const totalPrice = basePrice + fees;
+    const discount = appliedPromo
+        ? appliedPromo.discountType === "PERCENTAGE"
+            ? Math.round(basePrice * (appliedPromo.discountValue / 100))
+            : Math.min(basePrice, appliedPromo.discountValue)
+        : 0;
+    const discountedBase = Math.max(0, basePrice - discount);
+    const fees = discountedBase > 0 ? Math.ceil(discountedBase * 0.05) + 100 : 0;
+    const totalPrice = discountedBase + fees;
 
     return (
         <>
@@ -277,6 +325,54 @@ export function BuyTicketButton({
                             ))}
                         </div>
 
+                        {/* ── Code promo ────────────────────────────── */}
+                        {!isFree && (
+                            <div className="space-y-1.5">
+                                {appliedPromo ? (
+                                    <div className="flex items-center justify-between gap-2 bg-secondary/10 border border-secondary/30 rounded-lg px-3 py-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <Tag className="w-3.5 h-3.5 text-secondary shrink-0" />
+                                            <span className="text-sm font-medium truncate">
+                                                {appliedPromo.name} appliqué
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleRemovePromo}
+                                            className="text-muted-foreground hover:text-foreground shrink-0"
+                                            aria-label="Retirer le code promo"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="Code promo"
+                                            value={promoInput}
+                                            onChange={(e) => setPromoInput(e.target.value)}
+                                            disabled={isPending || isValidatingPromo}
+                                            className="h-9 text-sm"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-9 shrink-0"
+                                            onClick={handleApplyPromo}
+                                            disabled={!promoInput.trim() || isPending || isValidatingPromo}
+                                        >
+                                            {isValidatingPromo ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            ) : (
+                                                "Appliquer"
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* ── Récapitulatif + bouton ────────────────── */}
                         <div className="border-t pt-4 space-y-4">
                             {fees > 0 && (
@@ -285,6 +381,12 @@ export function BuyTicketButton({
                                         <span>Billets ({quantity})</span>
                                         <span>{basePrice.toLocaleString("fr-FR")} FCFA</span>
                                     </div>
+                                    {discount > 0 && (
+                                        <div className="flex justify-between text-secondary font-medium">
+                                            <span>Réduction ({appliedPromo?.name})</span>
+                                            <span>-{discount.toLocaleString("fr-FR")} FCFA</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>Frais de service</span>
                                         <span>{fees.toLocaleString("fr-FR")} FCFA</span>

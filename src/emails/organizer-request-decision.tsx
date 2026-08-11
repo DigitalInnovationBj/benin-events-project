@@ -38,6 +38,7 @@ export interface OrganizerRequestDecisionEmailProps {
     applicantName: string;
     status: "APPROVED" | "REJECTED";
     appUrl: string;
+    commissionRate?: number;
     eventCreationFeeEnabled?: boolean;
     eventCreationFee?: number;
     featuredEventFeeEnabled?: boolean;
@@ -48,6 +49,7 @@ export function OrganizerRequestDecisionEmail({
     applicantName,
     status,
     appUrl,
+    commissionRate = 0,
     eventCreationFeeEnabled = false,
     eventCreationFee = 5000,
     featuredEventFeeEnabled = false,
@@ -129,32 +131,33 @@ export function OrganizerRequestDecisionEmail({
                                     </Text>
                                 </Section>
 
-                                {(eventCreationFeeEnabled || featuredEventFeeEnabled) && (
-                                    <>
-                                        <Heading style={{ ...h2, marginTop: "28px" }}>
-                                            Conditions tarifaires
-                                        </Heading>
-                                        <Section style={conditionsBox}>
-                                            {eventCreationFeeEnabled && (
-                                                <Text style={conditionItem}>
-                                                    💳{" "}
-                                                    <strong>Publication d&apos;évènement :</strong>{" "}
-                                                    {eventCreationFee.toLocaleString("fr-FR")} FCFA par évènement publié.
-                                                </Text>
-                                            )}
-                                            {featuredEventFeeEnabled && (
-                                                <Text style={conditionItem}>
-                                                    ⭐{" "}
-                                                    <strong>Mise en vedette :</strong>{" "}
-                                                    {featuredEventFee.toLocaleString("fr-FR")} FCFA pour mettre un évènement en avant sur la page d&apos;accueil.
-                                                </Text>
-                                            )}
-                                            <Text style={{ ...conditionItem, marginBottom: 0, color: COLORS.mutedForeground, fontSize: "12px" }}>
-                                                Ces tarifs sont susceptibles d&apos;évoluer. Consultez les paramètres de la plateforme pour les valeurs actuelles.
-                                            </Text>
-                                        </Section>
-                                    </>
-                                )}
+                                <Heading style={{ ...h2, marginTop: "28px" }}>
+                                    Conditions tarifaires
+                                </Heading>
+                                <Section style={conditionsBox}>
+                                    <Text style={conditionItem}>
+                                        💰{" "}
+                                        <strong>Commission plateforme :</strong>{" "}
+                                        {commissionRate}% sur vos ventes de billets, prélevée automatiquement sur vos reversements.
+                                    </Text>
+                                    <Text style={conditionItem}>
+                                        💳{" "}
+                                        <strong>Publication d&apos;évènement :</strong>{" "}
+                                        {eventCreationFeeEnabled
+                                            ? `${eventCreationFee.toLocaleString("fr-FR")} FCFA par évènement publié.`
+                                            : "gratuite actuellement."}
+                                    </Text>
+                                    <Text style={conditionItem}>
+                                        ⭐{" "}
+                                        <strong>Mise en vedette :</strong>{" "}
+                                        {featuredEventFeeEnabled
+                                            ? `${featuredEventFee.toLocaleString("fr-FR")} FCFA pour mettre un évènement en avant sur la page d&apos;accueil.`
+                                            : "gratuite actuellement."}
+                                    </Text>
+                                    <Text style={{ ...conditionItem, marginBottom: 0, color: COLORS.mutedForeground, fontSize: "12px" }}>
+                                        Ces tarifs sont susceptibles d&apos;évoluer. Consultez les paramètres de la plateforme pour les valeurs actuelles.
+                                    </Text>
+                                </Section>
 
                                 <Section style={{ textAlign: "center", marginTop: "28px" }}>
                                     <Button

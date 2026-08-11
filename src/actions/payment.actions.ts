@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmail, sendTicketGiftEmail, sendRefundConfirmationEmail } from "@/lib/email";
 import { revalidatePath } from "next/cache";
+import { validatePromoCode } from "@/actions/eventPartner.actions";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -28,6 +29,8 @@ export type PaymentInput = {
     // Acheteur invité (non connecté)
     guestEmail?: string;
     guestName?: string;
+    // Code promo partenaire (influenceur), optionnel
+    promoCode?: string;
 };
 
 export async function initiateTicketPayment(input: PaymentInput) {
@@ -93,9 +96,26 @@ export async function initiateTicketPayment(input: PaymentInput) {
     }));
 
     const baseAmount = ticket.price * quantity;
-    const fees = computeFees(baseAmount);
-    const totalAmount = baseAmount + fees;
-    const isFree = baseAmount === 0;
+
+    // ── Code promo partenaire (optionnel) ─────────────────────────────────
+    let eventPartnerId: string | null = null;
+    let discountAmount = 0;
+    if (input.promoCode?.trim()) {
+        const promoRes = await validatePromoCode(ticket.event.id, input.promoCode);
+        if (!promoRes.success) {
+            return { error: promoRes.error ?? "Code promo invalide." };
+        }
+        eventPartnerId = promoRes.partnerId;
+        discountAmount =
+            promoRes.discountType === "PERCENTAGE"
+                ? Math.round(baseAmount * (promoRes.discountValue / 100))
+                : Math.min(baseAmount, promoRes.discountValue);
+    }
+
+    const discountedBase = Math.max(0, baseAmount - discountAmount);
+    const fees = computeFees(discountedBase);
+    const totalAmount = discountedBase + fees;
+    const isFree = discountedBase === 0;
 
     // ── Vérification du stock + création de commande (transaction) ───────
     // Verrou sur la ligne du ticket (FOR UPDATE) : les achats concurrents du
@@ -139,6 +159,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
                     ? { userId: dbUserId }
                     : { guestEmail: buyerEmail, guestName: buyerName }),
                 eventId: ticket.event.id,
+                eventPartnerId,
+                discountAmount,
                 items: { create: orderItemsData },
             },
             include: {

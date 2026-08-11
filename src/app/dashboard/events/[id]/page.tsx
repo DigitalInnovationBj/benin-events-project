@@ -24,8 +24,15 @@ import DeleteEventButton from "./DeleteEventButton";
 import CancelEventButton from "./CancelEventButton";
 import RefundPanel from "./RefundPanel";
 import { FeaturedButton } from "./FeaturedButton";
+import { CampaignDialog } from "./CampaignDialog";
+import { EventPartnersPanel } from "./EventPartnersPanel";
 import { getSettings } from "@/actions/settings.actions";
 import { getOrdersToRefund } from "@/actions/payment.actions";
+import { getCampaignsForEvent } from "@/actions/campaign.actions";
+import { listEventPartners } from "@/actions/eventPartner.actions";
+
+// Laisse plus de marge à l'envoi de campagne en tâche de fond (next/server `after`).
+export const maxDuration = 60;
 
 export default async function EventDetailsPage({
     params,
@@ -53,6 +60,13 @@ export default async function EventDetailsPage({
         }),
         getSettings(),
     ]);
+
+    const { remaining: campaignsRemaining, nextAvailableAt: campaignNextAvailableAt } =
+        event ? await getCampaignsForEvent(event.id) : { remaining: 0, nextAvailableAt: null };
+
+    const { partners: eventPartners } = event
+        ? await listEventPartners(event.id)
+        : { partners: [] };
 
     if (!event) {
         return (
@@ -168,6 +182,16 @@ export default async function EventDetailsPage({
                     {canFeature && (
                         <FeaturedButton eventId={event.id} fee={settings.featuredEventFee} />
                     )}
+                    <CampaignDialog
+                        eventId={event.id}
+                        eventTitle={event.title}
+                        remaining={campaignsRemaining}
+                        nextAvailableAt={
+                            campaignNextAvailableAt
+                                ? campaignNextAvailableAt.toISOString()
+                                : null
+                        }
+                    />
                     {!event.isCancelled && !event.isDeleted && (
                         <CancelEventButton
                             eventId={event.id}
@@ -387,6 +411,8 @@ export default async function EventDetailsPage({
                             <TicketForm eventId={event.id} />
                         </div>
                     </div>
+
+                    <EventPartnersPanel eventId={event.id} initialPartners={eventPartners} />
                 </div>
             </div>
         </div>

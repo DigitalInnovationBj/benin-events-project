@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { render } from "@react-email/components";
-import { resend } from "@/lib/resend";
 import type { DigestEvent } from "@/emails/event-digest";
+import { chunk, batchSend } from "@/lib/mailer";
+
+export { chunk, batchSend };
 
 export const FROM_NEWS = "Benin Events <newsletter@beninevents.com>";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -46,21 +48,6 @@ export function toDigestEvent(e: RawEvent): DigestEvent {
         minPrice: prices.length > 0 ? Math.min(...prices) : 0,
         categories: e.categories.map((ec) => ec.category.name),
     };
-}
-
-export function chunk<T>(arr: T[], size: number): T[][] {
-    const out: T[][] = [];
-    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-    return out;
-}
-
-type EmailPayload = { from: string; to: string; subject: string; html: string };
-
-export async function batchSend(emails: EmailPayload[]) {
-    const batches = chunk(emails, 100);
-    for (const batch of batches) {
-        await resend.batch.send(batch);
-    }
 }
 
 export async function renderDigestHtml(

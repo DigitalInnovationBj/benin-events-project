@@ -75,6 +75,18 @@ enum TicketTemplate {
   SECONDARY
 }
 
+enum CampaignStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
 // ─────────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────────
@@ -90,10 +102,15 @@ model User {
   // Consentement newsletter (digests lundi/mercredi/vendredi)
   newsletterOptIn   Boolean            @default(true)
 
+  // Programme Partenaire Bénin Events — taux de commission négocié (remplace
+  // PlatformSettings.commissionRate pour cet organisateur si renseigné)
+  partnerCommissionRate Float?
+
   sessions          Session[]
   accounts          Account[]
 
   organizerRequests OrganizerRequest[]
+  partnerRequests   PartnerRequest[]
   events            Event[]
   likes             Like[]
   favorites         Favorite[]
@@ -102,6 +119,7 @@ model User {
   payoutMethod      PayoutMethod?
   payoutRequests    PayoutRequest[]    @relation("OrganizerPayouts")
   platformPayments  PlatformPayment[]
+  campaigns         EventCampaign[]
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -178,6 +196,28 @@ model OrganizerRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Candidature au programme "Partenaire Bénin Events" — formulaire dédié,
+/// distinct de OrganizerRequest, validé par un admin qui fixe le taux de
+/// commission négocié (User.partnerCommissionRate) à l'approbation.
+model PartnerRequest {
+  id                     String        @id @default(cuid())
+  organizationName       String
+  sector                 String
+  estimatedEventsPerYear Int
+  message                String?       @db.Text
+  status                 RequestStatus @default(PENDING)
+  adminNote              String?
+
+  applicantId String
+  applicant   User   @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([applicantId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────
@@ -265,6 +305,8 @@ model Event {
   orders           Order[]
   agents           EventAgent[]
   platformPayments PlatformPayment[]
+  campaigns        EventCampaign[]
+  partners         EventPartner[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -353,6 +395,11 @@ model Order {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  // Code promo partenaire (influenceur) éventuellement appliqué
+  eventPartnerId String?
+  eventPartner   EventPartner? @relation(fields: [eventPartnerId], references: [id], onDelete: SetNull)
+  discountAmount Float         @default(0)
+
   items OrderItem[]
 
   createdAt DateTime @default(now())
@@ -361,6 +408,29 @@ model Order {
   @@index([userId])
   @@index([guestEmail])
   @@index([eventId])
+  @@index([eventPartnerId])
+}
+
+/// Partenaire d'un évènement (ex: influenceur) — code promo géré par
+/// l'organisateur. La commission/rétribution du partenaire est négociée et
+/// versée hors plateforme ; on se contente d'attribuer les ventes au code.
+model EventPartner {
+  id            String       @id @default(cuid())
+  name          String
+  code          String
+  discountType  DiscountType
+  discountValue Float
+  isActive      Boolean      @default(true)
+
+  eventId String
+  event   Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, code])
 }
 
 model OrderItem {
@@ -494,4 +564,40 @@ model EventAgent {
 
   @@unique([eventId, userId])
   @@index([token])
+}
+
+// ─────────────────────────────────────────────
+// Campagnes email (organisateur → visibilité évènement)
+// ─────────────────────────────────────────────
+
+model EventCampaign {
+  id      String         @id @default(cuid())
+  subject String
+  message String         @db.Text
+  status  CampaignStatus @default(PENDING)
+
+  /// Cible les utilisateurs de la plateforme ayant newsletterOptIn = true
+  targetPlatformUsers Boolean  @default(true)
+  /// Adresses externes fournies par l'organisateur (collées ou importées CSV/XLSX)
+  externalEmails      String[]
+
+  recipientCount Int @default(0)
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  organizerId String
+  organizer   User   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([eventId])
+}
+
+/// Adresses externes ayant demandé à ne plus recevoir de campagnes
+/// (n'ont jamais opt-in sur la plateforme, donc pas couvertes par User.newsletterOptIn)
+model CampaignSuppression {
+  email     String   @id
+  createdAt DateTime @default(now())
 }

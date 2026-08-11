@@ -39,8 +39,16 @@ export async function getPayoutSummary() {
     const alreadyRequested = requestedAgg._sum.grossAmount ?? 0;
     const availableGross = Math.max(0, totalGross - alreadyRequested);
 
-    const settings = await prisma.platformSettings.findUnique({ where: { id: "singleton" } });
-    const commissionRate = settings?.commissionRate ?? 0;
+    const [settings, organizerRecord] = await Promise.all([
+        prisma.platformSettings.findUnique({ where: { id: "singleton" } }),
+        prisma.user.findUnique({
+            where: { id: organizer.id },
+            select: { partnerCommissionRate: true },
+        }),
+    ]);
+    // Un taux partenaire négocié (Programme Partenaire) prime sur le taux global.
+    const commissionRate =
+        organizerRecord?.partnerCommissionRate ?? settings?.commissionRate ?? 0;
     const commissionAmount = Math.ceil(availableGross * commissionRate / 100);
     const netAvailable = Math.max(0, availableGross - commissionAmount);
 

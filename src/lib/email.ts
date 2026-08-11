@@ -16,6 +16,8 @@ import { TicketGiftEmail } from "@/emails/ticket-gift";
 import { AuthVerificationEmail } from "@/emails/auth-verification";
 import { EventCancellationEmail } from "@/emails/event-cancellation";
 import { RefundConfirmationEmail } from "@/emails/refund-confirmation";
+import { PartnerRequestAdminEmail } from "@/emails/partner-request-admin";
+import { PartnerRequestDecisionEmail } from "@/emails/partner-request-decision";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -180,6 +182,7 @@ export interface SendOrganizerRequestDecisionParams {
     to: string;
     applicantName: string;
     status: "APPROVED" | "REJECTED";
+    commissionRate?: number;
     eventCreationFeeEnabled?: boolean;
     eventCreationFee?: number;
     featuredEventFeeEnabled?: boolean;
@@ -189,19 +192,86 @@ export interface SendOrganizerRequestDecisionParams {
 export async function sendOrganizerRequestDecisionEmail(
     params: SendOrganizerRequestDecisionParams,
 ) {
-    const { to, applicantName, status, eventCreationFeeEnabled, eventCreationFee, featuredEventFeeEnabled, featuredEventFee } = params;
+    const { to, applicantName, status, ...rest } = params;
 
     const { html, text } = await renderBoth(
         OrganizerRequestDecisionEmail({
             applicantName, status, appUrl: APP_URL,
-            eventCreationFeeEnabled, eventCreationFee,
-            featuredEventFeeEnabled, featuredEventFee,
+            ...rest,
         }),
     );
 
     const subject = status === "APPROVED"
         ? "Votre demande d'organisateur a été approuvée - Benin Events"
         : "Votre demande d'organisateur - Décision";
+
+    await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
+}
+
+// ─────────────────────────────────────────────
+// sendPartnerRequestAdminEmail
+// ─────────────────────────────────────────────
+
+export interface SendPartnerRequestAdminParams {
+    adminEmails: string[];
+    applicantName: string;
+    applicantEmail: string;
+    organizationName: string;
+    sector: string;
+    estimatedEventsPerYear: number;
+    message?: string;
+}
+
+export async function sendPartnerRequestAdminEmail(
+    params: SendPartnerRequestAdminParams,
+) {
+    const { adminEmails, ...rest } = params;
+    const { html, text } = await renderBoth(
+        PartnerRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/partner-requests` }),
+    );
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to: adminEmails,
+        subject: `Nouvelle candidature partenaire - ${params.organizationName}`,
+        html,
+        text,
+    });
+}
+
+// ─────────────────────────────────────────────
+// sendPartnerRequestDecisionEmail
+// ─────────────────────────────────────────────
+
+export interface SendPartnerRequestDecisionParams {
+    to: string;
+    applicantName: string;
+    status: "APPROVED" | "REJECTED";
+    commissionRate?: number;
+    standardCommissionRate?: number;
+    eventCreationFeeEnabled?: boolean;
+    eventCreationFee?: number;
+    featuredEventFeeEnabled?: boolean;
+    featuredEventFee?: number;
+}
+
+export async function sendPartnerRequestDecisionEmail(
+    params: SendPartnerRequestDecisionParams,
+) {
+    const { to, applicantName, status, ...rest } = params;
+
+    const { html, text } = await renderBoth(
+        PartnerRequestDecisionEmail({
+            applicantName,
+            status,
+            appUrl: APP_URL,
+            ...rest,
+        }),
+    );
+
+    const subject = status === "APPROVED"
+        ? "Bienvenue dans le programme Partenaire - Benin Events"
+        : "Votre candidature partenaire - Décision";
 
     await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
 }
