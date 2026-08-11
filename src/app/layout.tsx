@@ -103,6 +103,11 @@ export const metadata: Metadata = {
             "fr-BJ": APP_URL,
         },
     },
+
+    // ── Vérification de propriété (Google Search Console, etc.) ─────────
+    verification: {
+        google: process.env.GOOGLE_SITE_VERIFICATION,
+    },
 };
 
 // ── Viewport (thème couleur, viewport mobile) ──────────────────────────
