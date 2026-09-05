@@ -84,7 +84,12 @@ export async function initiateFeaturedEventPayment(input: FeaturedEventPaymentIn
             where: { id: platformPayment.id },
             data: { status: "FAILED" },
         });
-        return { error: "Service de paiement indisponible. Veuillez réessayer." };
+        const reason = err instanceof Error ? err.message : null;
+        return {
+            error: reason
+                ? `Paiement refusé : ${reason}`
+                : "Service de paiement indisponible. Veuillez réessayer.",
+        };
     }
 }
 

@@ -15,11 +15,6 @@ import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
 
-function computeFees(base: number): number {
-    if (base === 0) return 0;
-    return Math.ceil(base * 0.05) + 100;
-}
-
 function generateReference(): string {
     return `BE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
 }
@@ -126,8 +121,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
     }
 
     const discountedBase = Math.max(0, baseAmount - discountAmount);
-    const fees = computeFees(discountedBase);
-    const totalAmount = discountedBase + fees;
+    const totalAmount = discountedBase;
     const isFree = discountedBase === 0;
 
     // ── Validation Mobile Money (requise pour un billet payant) ───────────
@@ -249,7 +243,12 @@ export async function initiateTicketPayment(input: PaymentInput) {
             where: { id: order.id },
             data: { status: "FAILED" },
         });
-        return { error: "Service de paiement indisponible. Veuillez réessayer." };
+        const reason = err instanceof Error ? err.message : null;
+        return {
+            error: reason
+                ? `Paiement refusé : ${reason}`
+                : "Service de paiement indisponible. Veuillez réessayer.",
+        };
     }
 }
 

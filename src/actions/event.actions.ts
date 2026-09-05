@@ -297,7 +297,12 @@ export async function createEventForOrganizer(
                 where: { id: platformPayment.id },
                 data: { status: "FAILED" },
             });
-            return { error: "Service de paiement indisponible. L'évènement a été sauvegardé mais n'est pas encore publié." };
+            const reason = err instanceof Error ? err.message : null;
+            return {
+                error: reason
+                    ? `Paiement refusé : ${reason}. L'évènement a été sauvegardé mais n'est pas encore publié.`
+                    : "Service de paiement indisponible. L'évènement a été sauvegardé mais n'est pas encore publié.",
+            };
         }
     } catch (error) {
         console.error("Erreur createEvent:", error);

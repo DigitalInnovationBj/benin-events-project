@@ -211,8 +211,7 @@ export function BuyTicketButton({
             : Math.min(basePrice, appliedPromo.discountValue)
         : 0;
     const discountedBase = Math.max(0, basePrice - discount);
-    const fees = discountedBase > 0 ? Math.ceil(discountedBase * 0.05) + 100 : 0;
-    const totalPrice = discountedBase + fees;
+    const totalPrice = discountedBase;
 
     return (
         <>
@@ -445,7 +444,7 @@ export function BuyTicketButton({
 
                         {/* ── Récapitulatif + bouton ────────────────── */}
                         <div className="border-t pt-4 space-y-4">
-                            {fees > 0 && (
+                            {!isFree && (quantity > 1 || discount > 0) && (
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex justify-between text-muted-foreground">
                                         <span>Billets ({quantity})</span>
@@ -457,10 +456,6 @@ export function BuyTicketButton({
                                             <span>-{discount.toLocaleString("fr-FR")} FCFA</span>
                                         </div>
                                     )}
-                                    <div className="flex justify-between text-muted-foreground">
-                                        <span>Frais de service</span>
-                                        <span>{fees.toLocaleString("fr-FR")} FCFA</span>
-                                    </div>
                                 </div>
                             )}
                             <div className="flex items-center justify-between gap-4">
