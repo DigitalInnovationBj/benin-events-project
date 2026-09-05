@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { revokeAgent } from "@/actions/agent.actions";
 import { toast } from "sonner";
-import { UserX } from "lucide-react";
+import { IconUserX } from "@tabler/icons-react";
 
 export default function RevokeButton({
     eventId,
@@ -36,7 +36,7 @@ export default function RevokeButton({
             onClick={handleRevoke}
             disabled={loading}
         >
-            <UserX className="w-4 h-4" />
+            <IconUserX className="w-4 h-4" />
             Révoquer
         </Button>
     );

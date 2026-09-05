@@ -4,23 +4,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, Calendar, Gift, User } from "lucide-react";
-import type { OrderStatus } from "@prisma/client";
+import { StatusBadge, orderStatusBadge } from "@/components/ui/status-badge";
+import { IconTicket, IconCalendar, IconGift, IconUser } from "@tabler/icons-react";
 import { TicketQrCode } from "@/components/orders/ticket-qr-code";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-const STATUS_CONFIG: Record<
-    OrderStatus,
-    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-    PENDING: { label: "En attente", variant: "secondary" },
-    COMPLETED: { label: "Confirmé", variant: "default" },
-    FAILED: { label: "Échoué", variant: "destructive" },
-    EXPIRED: { label: "Expiré", variant: "outline" },
-    CANCELLED: { label: "Annulé", variant: "outline" },
-    REFUNDED: { label: "Remboursé", variant: "secondary" },
-};
 
 export default async function OrdersPage() {
     const dbUser = await getCurrentUser();
@@ -68,7 +56,7 @@ export default async function OrdersPage() {
 
             {!hasContent ? (
                 <div className="text-center py-20 border border-dashed rounded-2xl">
-                    <Ticket className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
+                    <IconTicket className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground mb-4">
                         Aucune commande pour le moment.
                     </p>
@@ -83,7 +71,7 @@ export default async function OrdersPage() {
                     {buyerOrders.length > 0 && (
                         <section className="space-y-4">
                             {buyerOrders.map(order => {
-                                const config = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.PENDING;
+                                const { tone, label, icon } = orderStatusBadge(order.status);
 
                                 return (
                                     <div
@@ -100,7 +88,7 @@ export default async function OrdersPage() {
                                                     {order.event.title}
                                                 </Link>
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                                                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                                    <IconCalendar className="w-3.5 h-3.5 shrink-0" />
                                                     {new Date(order.event.startDate).toLocaleDateString("fr-FR", {
                                                         day: "numeric",
                                                         month: "long",
@@ -108,9 +96,7 @@ export default async function OrdersPage() {
                                                     })}
                                                 </div>
                                             </div>
-                                            <Badge variant={config.variant} className="shrink-0">
-                                                {config.label}
-                                            </Badge>
+                                            <StatusBadge tone={tone} label={label} icon={icon} className="shrink-0" />
                                         </div>
 
                                         {/* Lignes de billets */}
@@ -120,7 +106,7 @@ export default async function OrdersPage() {
                                                 return (
                                                     <div key={item.id} className="flex justify-between text-sm gap-2">
                                                         <span className="flex items-center gap-1.5 text-muted-foreground min-w-0">
-                                                            <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                                            <IconTicket className="w-3.5 h-3.5 shrink-0" />
                                                             <span className="truncate">{item.ticket.title}</span>
                                                             {isMyTicket ? (
                                                                 <span className="shrink-0 text-xs bg-secondary/10 text-secondary px-1.5 py-0.5 rounded-md font-medium">
@@ -128,7 +114,7 @@ export default async function OrdersPage() {
                                                                 </span>
                                                             ) : (
                                                                 <span className="shrink-0 text-xs flex items-center gap-1 text-muted-foreground/70 italic">
-                                                                    <User className="w-3 h-3" />
+                                                                    <IconUser className="w-3 h-3" />
                                                                     {item.attendeeName ?? "Bénéficiaire"}
                                                                 </span>
                                                             )}
@@ -182,7 +168,7 @@ export default async function OrdersPage() {
                     {receivedItems.length > 0 && (
                         <section className="space-y-4">
                             <div className="flex items-center gap-2">
-                                <Gift className="w-5 h-5 text-secondary" />
+                                <IconGift className="w-5 h-5 text-secondary" />
                                 <h2 className="text-xl font-afo">Billets reçus</h2>
                             </div>
                             <p className="text-sm text-muted-foreground -mt-2">
@@ -190,7 +176,7 @@ export default async function OrdersPage() {
                             </p>
 
                             {receivedItems.map(item => {
-                                const config = STATUS_CONFIG[item.order.status] ?? STATUS_CONFIG.PENDING;
+                                const { tone, label, icon } = orderStatusBadge(item.order.status);
 
                                 return (
                                     <div
@@ -206,7 +192,7 @@ export default async function OrdersPage() {
                                                     {item.order.event.title}
                                                 </Link>
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
-                                                    <Calendar className="w-3.5 h-3.5 shrink-0" />
+                                                    <IconCalendar className="w-3.5 h-3.5 shrink-0" />
                                                     {new Date(item.order.event.startDate).toLocaleDateString("fr-FR", {
                                                         day: "numeric",
                                                         month: "long",
@@ -218,13 +204,13 @@ export default async function OrdersPage() {
                                                 <Badge variant="outline" className="text-secondary border-secondary/30 text-xs">
                                                     Reçu
                                                 </Badge>
-                                                <Badge variant={config.variant}>{config.label}</Badge>
+                                                <StatusBadge tone={tone} label={label} icon={icon} />
                                             </div>
                                         </div>
 
                                         <div className="flex justify-between text-sm gap-2">
                                             <span className="flex items-center gap-1.5 text-muted-foreground">
-                                                <Ticket className="w-3.5 h-3.5 shrink-0" />
+                                                <IconTicket className="w-3.5 h-3.5 shrink-0" />
                                                 {item.ticket.title}
                                             </span>
                                             <span className="font-medium shrink-0">

@@ -5,7 +5,7 @@ import { processPayoutRequest } from "@/actions/payout.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, CheckCheck, X, RefreshCw } from "lucide-react";
+import { IconLoader2, IconChecks, IconX, IconRefresh } from "@tabler/icons-react";
 
 export function PayoutActions({ id, status }: { id: string; status: string }) {
     const [isPending, startTransition] = useTransition();
@@ -43,7 +43,7 @@ export function PayoutActions({ id, status }: { id: string; status: string }) {
                         onClick={() => act("PROCESSING")}
                         className="gap-1.5 text-xs"
                     >
-                        {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        {isPending ? <IconLoader2 className="w-3 h-3 animate-spin" /> : <IconRefresh className="w-3 h-3" />}
                         En cours
                     </Button>
                 )}
@@ -53,7 +53,7 @@ export function PayoutActions({ id, status }: { id: string; status: string }) {
                     onClick={() => act("PAID")}
                     className="gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white"
                 >
-                    {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCheck className="w-3 h-3" />}
+                    {isPending ? <IconLoader2 className="w-3 h-3 animate-spin" /> : <IconChecks className="w-3 h-3" />}
                     Reversé
                 </Button>
                 <Button
@@ -63,7 +63,7 @@ export function PayoutActions({ id, status }: { id: string; status: string }) {
                     onClick={() => setShowReject((v) => !v)}
                     className="gap-1.5 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
-                    <X className="w-3 h-3" />
+                    <IconX className="w-3 h-3" />
                     Rejeter
                 </Button>
             </div>

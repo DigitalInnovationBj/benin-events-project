@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { IconCircleCheck, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { markOrderRefunded } from "@/actions/payment.actions";
@@ -71,7 +71,7 @@ export default function RefundPanel({ orders }: { orders: RefundableOrder[] }) {
                         </div>
                         {order.status === "REFUNDED" ? (
                             <Badge variant="secondary" className="gap-1 shrink-0">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <IconCircleCheck className="w-3.5 h-3.5" />
                                 Remboursé
                             </Badge>
                         ) : (
@@ -83,7 +83,7 @@ export default function RefundPanel({ orders }: { orders: RefundableOrder[] }) {
                                 className="shrink-0 gap-2"
                             >
                                 {processingId === order.id && (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
                                 )}
                                 Marquer remboursé
                             </Button>

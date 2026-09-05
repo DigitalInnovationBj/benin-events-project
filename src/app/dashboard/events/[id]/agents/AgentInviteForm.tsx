@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { inviteAgent } from "@/actions/agent.actions";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { IconUserPlus } from "@tabler/icons-react";
 
 export default function AgentInviteForm({ eventId }: { eventId: string }) {
     const [email, setEmail] = useState("");
@@ -43,7 +43,7 @@ export default function AgentInviteForm({ eventId }: { eventId: string }) {
                 disabled={loading}
                 className="gap-2 shrink-0"
             >
-                <UserPlus className="w-4 h-4" />
+                <IconUserPlus className="w-4 h-4" />
                 {loading ? "Envoi..." : "Inviter"}
             </Button>
         </form>

@@ -9,14 +9,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Switch } from "@/components/ui/switch";
 import {
-    Loader2,
-    ArrowLeft,
-    ImagePlus,
-    MapPin,
-    MonitorPlay,
-    Tag,
-    Star,
-} from "lucide-react";
+    IconLoader2,
+    IconArrowLeft,
+    IconPhotoPlus,
+    IconMapPin,
+    IconDeviceDesktop,
+    IconTag,
+    IconStar,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { updateEvent } from "@/actions/event.actions";
@@ -154,7 +154,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
             <div className="flex items-center mb-6">
                 <Link href={`/dashboard/events/${event.id}`}>
                     <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" /> Retour
+                        <IconArrowLeft className="w-4 h-4" /> Retour
                     </Button>
                 </Link>
             </div>
@@ -186,7 +186,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                         : "border-muted text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/30"
                                 }`}
                             >
-                                <MapPin className="w-7 h-7" />
+                                <IconMapPin className="w-7 h-7" />
                                 <div className="text-center">
                                     <p className="font-semibold text-sm">
                                         Présentiel
@@ -206,7 +206,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                         : "border-muted text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/30"
                                 }`}
                             >
-                                <MonitorPlay className="w-7 h-7" />
+                                <IconDeviceDesktop className="w-7 h-7" />
                                 <div className="text-center">
                                     <p className="font-semibold text-sm">
                                         En ligne
@@ -334,7 +334,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                     {/* ── Catégories ───────────────────────────────────── */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 border-b pb-2">
-                            <Tag className="w-5 h-5 text-muted-foreground" />
+                            <IconTag className="w-5 h-5 text-muted-foreground" />
                             <h2 className="text-xl font-bold">Catégories</h2>
                             {selectedCategories.length > 0 && (
                                 <span className="ml-auto text-xs bg-secondary text-secondary-foreground font-semibold px-2.5 py-0.5 rounded-full">
@@ -384,7 +384,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                     {isAdmin && (
                         <div className="space-y-4">
                             <h2 className="text-xl font-bold border-b pb-2 flex items-center gap-2">
-                                <Star className="w-5 h-5 text-yellow-500" />
+                                <IconStar className="w-5 h-5 text-yellow-500" />
                                 Mise en vedette
                             </h2>
                             <div className="flex items-center justify-between rounded-xl border px-5 py-4">
@@ -446,7 +446,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                             />
                                         ) : (
                                             <>
-                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <IconPhotoPlus className="w-8 h-8 text-muted-foreground" />
                                                 <span className="text-sm font-medium">
                                                     Cliquez pour changer
                                                     l&apos;image
@@ -501,7 +501,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                             />
                                         ) : (
                                             <>
-                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <IconPhotoPlus className="w-8 h-8 text-muted-foreground" />
                                                 <span className="text-sm font-medium">
                                                     Image pour
                                                     Facebook/WhatsApp…
@@ -554,7 +554,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                             className="flex-1"
                         >
                             {isLoading && (
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                <IconLoader2 className="w-5 h-5 mr-2 animate-spin" />
                             )}
                             {isLoading
                                 ? "Enregistrement…"

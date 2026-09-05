@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Pencil, Trash2, ImagePlus } from "lucide-react";
+import { IconLoader2, IconPencil, IconTrash, IconPhotoPlus } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { updateTicket, deleteTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
@@ -106,7 +106,7 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                     >
-                        <Pencil className="w-4 h-4" />
+                        <IconPencil className="w-4 h-4" />
                     </Button>
                 </DialogTrigger>
 
@@ -220,7 +220,7 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                                         />
                                     ) : (
                                         <>
-                                            <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                                            <IconPhotoPlus className="w-5 h-5 text-muted-foreground" />
                                             <span className="text-xs font-medium">
                                                 Changer l&apos;image
                                             </span>
@@ -255,7 +255,7 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                                 disabled={isUpdating}
                             >
                                 {isUpdating && (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
                                 )}
                                 {isUpdating ? "Mise à jour…" : "Enregistrer"}
                             </Button>
@@ -274,9 +274,9 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                         disabled={isDeleting}
                     >
                         {isDeleting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <IconLoader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <IconTrash className="w-4 h-4" />
                         )}
                     </Button>
                 </AlertDialogTrigger>

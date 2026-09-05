@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus, ImagePlus } from "lucide-react";
+import { IconLoader2, IconPlus, IconPhotoPlus } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { createTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
@@ -131,7 +131,7 @@ export function TicketForm({ eventId }: { eventId: string }) {
                             />
                         ) : (
                             <>
-                                <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                                <IconPhotoPlus className="w-5 h-5 text-muted-foreground" />
                                 <span className="text-xs font-medium">
                                     Ajouter une image
                                 </span>
@@ -148,9 +148,9 @@ export function TicketForm({ eventId }: { eventId: string }) {
 
             <Button type="submit" disabled={isLoading} className="w-full">
                 {isLoading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                    <Plus className="w-4 h-4 mr-2" />
+                    <IconPlus className="w-4 h-4 mr-2" />
                 )}
                 {isLoading ? "Ajout en cours..." : "Créer le billet"}
             </Button>

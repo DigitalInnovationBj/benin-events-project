@@ -22,6 +22,8 @@ interface CampaignDialogProps {
     eventTitle: string;
     remaining: number;
     nextAvailableAt: string | null;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,13 +36,18 @@ function extractEmails(text: string): string[] {
     return Array.from(new Set(found));
 }
 
+export function isCampaignOnCooldown(remaining: number, nextAvailableAt: string | null): boolean {
+    return remaining <= 0 || (!!nextAvailableAt && new Date(nextAvailableAt) > new Date());
+}
+
 export function CampaignDialog({
     eventId,
     eventTitle,
     remaining,
     nextAvailableAt,
+    open,
+    onOpenChange,
 }: CampaignDialogProps) {
-    const [open, setOpen] = useState(false);
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
     const [targetPlatformUsers, setTargetPlatformUsers] = useState(true);
@@ -54,9 +61,6 @@ export function CampaignDialog({
         () => Array.from(new Set([...pastedEmails, ...fileEmails])),
         [pastedEmails, fileEmails],
     );
-
-    const isOnCooldown =
-        remaining <= 0 || (!!nextAvailableAt && new Date(nextAvailableAt) > new Date());
 
     const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -119,31 +123,14 @@ export function CampaignDialog({
             toast.success(
                 `Campagne lancée — envoi à ${count} destinataire${count > 1 ? "s" : ""} en cours.`,
             );
-            setOpen(false);
+            onOpenChange(false);
             resetForm();
         });
     };
 
     return (
-        <>
-            <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => setOpen(true)}
-                disabled={isOnCooldown}
-                title={
-                    isOnCooldown
-                        ? "Limite de campagnes atteinte pour le moment"
-                        : undefined
-                }
-            >
-                <IconSpeakerphone className="w-4 h-4" stroke={1.75} />
-                Campagne email
-            </Button>
-
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Lancer une campagne email</DialogTitle>
                         <DialogDescription>
@@ -228,7 +215,7 @@ export function CampaignDialog({
                     <DialogFooter>
                         <Button
                             variant="outline"
-                            onClick={() => setOpen(false)}
+                            onClick={() => onOpenChange(false)}
                             disabled={isPending}
                         >
                             Annuler
@@ -239,6 +226,5 @@ export function CampaignDialog({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </>
     );
 }

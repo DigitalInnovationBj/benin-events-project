@@ -4,21 +4,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
-    ArrowLeft,
-    Banknote,
-    CalendarRange,
-    ChevronsUpDown,
-    Handshake,
-    LayoutDashboard,
-    Loader2,
-    LogOut,
-    PenTool,
-    PlusCircle,
-    Settings,
-    ShieldCheck,
-    Ticket,
-    UserRound,
-} from "lucide-react";
+    IconArrowLeft,
+    IconCash,
+    IconCalendarEvent,
+    IconSelector,
+    IconHeartHandshake,
+    IconLayoutDashboard,
+    IconLoader2,
+    IconLogout,
+    IconPencil,
+    IconCirclePlus,
+    IconSettings,
+    IconShieldCheck,
+    IconTicket,
+    IconUserCircle,
+} from "@tabler/icons-react";
 
 import { authClient } from "@/lib/auth-client";
 import {
@@ -80,24 +80,24 @@ interface NavItem {
 // ─────────────────────────────────────────────
 
 const MAIN_NAV: NavItem[] = [
-    { title: "Vue d'ensemble", url: "/dashboard", icon: LayoutDashboard, exact: true },
-    { title: "Mes commandes", url: "/dashboard/orders", icon: Ticket },
-    { title: "Mon profil", url: "/dashboard/profile", icon: UserRound },
+    { title: "Vue d'ensemble", url: "/dashboard", icon: IconLayoutDashboard, exact: true },
+    { title: "Mes commandes", url: "/dashboard/orders", icon: IconTicket },
+    { title: "Mon profil", url: "/dashboard/profile", icon: IconUserCircle },
 ];
 
 const ORGANIZER_NAV: NavItem[] = [
-    { title: "Mes évènements", url: "/dashboard/events", icon: CalendarRange, exact: true },
-    { title: "Créer un évènement", url: "/dashboard/events/new", icon: PlusCircle, exact: true },
-    { title: "Reversements", url: "/dashboard/payout", icon: Banknote },
-    { title: "Devenir partenaire", url: "/devenir-partenaire", icon: Handshake },
+    { title: "Mes évènements", url: "/dashboard/events", icon: IconCalendarEvent, exact: true },
+    { title: "Créer un évènement", url: "/dashboard/events/new", icon: IconCirclePlus, exact: true },
+    { title: "Reversements", url: "/dashboard/payout", icon: IconCash },
+    { title: "Devenir partenaire", url: "/devenir-partenaire", icon: IconHeartHandshake },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-    { title: "Demandes", url: "/admin/requests", icon: ShieldCheck },
-    { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: Handshake },
-    { title: "Organisateurs", url: "/admin/organizers", icon: UserRound },
-    { title: "Reversements", url: "/admin/payouts", icon: Banknote },
-    { title: "Paramètres", url: "/admin/settings", icon: Settings },
+    { title: "Demandes", url: "/admin/requests", icon: IconShieldCheck },
+    { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: IconHeartHandshake },
+    { title: "Organisateurs", url: "/admin/organizers", icon: IconUserCircle },
+    { title: "Reversements", url: "/admin/payouts", icon: IconCash },
+    { title: "Paramètres", url: "/admin/settings", icon: IconSettings },
 ];
 
 // ─────────────────────────────────────────────
@@ -184,7 +184,7 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
                                     {user.email}
                                 </span>
                             </div>
-                            <ChevronsUpDown className="ml-auto size-4" />
+                            <IconSelector className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -219,7 +219,7 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                             <Link href="/dashboard/profile">
-                                <UserRound className="mr-2 h-4 w-4" />
+                                <IconUserCircle className="mr-2 h-4 w-4" />
                                 Mon profil
                             </Link>
                         </DropdownMenuItem>
@@ -231,7 +231,7 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
                                 setConfirmOpen(true);
                             }}
                         >
-                            <LogOut className="mr-2 h-4 w-4" />
+                            <IconLogout className="mr-2 h-4 w-4" />
                             Déconnexion
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -262,7 +262,7 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
                                 className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                             >
                                 {isLoading ? (
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />
                                 ) : null}
                                 {isLoading
                                     ? "Déconnexion..."
@@ -288,7 +288,7 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
         mainItems.push({
             title: "Devenir organisateur",
             url: "/dashboard/demande-organisateur",
-            icon: PenTool,
+            icon: IconPencil,
         });
     }
 
@@ -336,7 +336,7 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
                                     className="text-muted-foreground"
                                 >
                                     <Link href="/events">
-                                        <ArrowLeft />
+                                        <IconArrowLeft />
                                         <span>Site public</span>
                                     </Link>
                                 </SidebarMenuButton>

@@ -4,18 +4,19 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-    CalendarDays,
-    Heart,
-    TrendingUp,
-    Users,
-    ShoppingBag,
-    Clock,
-    CheckCircle2,
-    AlertCircle,
-    PlusCircle,
-    ArrowRight,
-    Star,
-} from "lucide-react";
+    IconCalendarEvent,
+    IconHeart,
+    IconTrendingUp,
+    IconUsers,
+    IconShoppingBag,
+    IconClock,
+    IconCircleCheck,
+    IconAlertCircle,
+    IconCirclePlus,
+    IconArrowRight,
+    IconStar,
+} from "@tabler/icons-react";
+import { StatusBadge, orderStatusBadge } from "@/components/ui/status-badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -67,24 +68,6 @@ function StatCard({
         </div>
     );
 }
-
-const statusLabel: Record<string, string> = {
-    PENDING: "En attente",
-    COMPLETED: "Confirmée",
-    FAILED: "Échouée",
-    EXPIRED: "Expirée",
-    CANCELLED: "Annulée",
-    REFUNDED: "Remboursée",
-};
-
-const statusColor: Record<string, string> = {
-    PENDING: "bg-yellow-100 text-yellow-800",
-    COMPLETED: "bg-emerald-100 text-emerald-800",
-    FAILED: "bg-red-100 text-red-800",
-    EXPIRED: "bg-zinc-100 text-zinc-600",
-    CANCELLED: "bg-zinc-100 text-zinc-600",
-    REFUNDED: "bg-blue-100 text-blue-800",
-};
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -246,25 +229,25 @@ export default async function DashboardPage() {
                     <StatCard
                         label="Utilisateurs"
                         value={organizerData.adminStats.totalUsers}
-                        icon={Users}
+                        icon={IconUsers}
                         accent="bg-blue-500"
                     />
                     <StatCard
                         label="Évènements"
                         value={organizerData.adminStats.totalEvents}
-                        icon={CalendarDays}
+                        icon={IconCalendarEvent}
                         accent="bg-purple-500"
                     />
                     <StatCard
                         label="Commandes"
                         value={organizerData.adminStats.totalOrders}
-                        icon={ShoppingBag}
+                        icon={IconShoppingBag}
                         accent="bg-emerald-500"
                     />
                     <StatCard
                         label="Demandes"
                         value={organizerData.pendingRequests}
-                        icon={AlertCircle}
+                        icon={IconAlertCircle}
                         accent={
                             organizerData.pendingRequests > 0
                                 ? "bg-orange-500"
@@ -280,17 +263,17 @@ export default async function DashboardPage() {
                     <StatCard
                         label="Évènements"
                         value={organizerData.events.length}
-                        icon={CalendarDays}
+                        icon={IconCalendarEvent}
                     />
                     <StatCard
                         label="Billets vendus"
                         value={organizerData.totalTicketsSold}
-                        icon={ShoppingBag}
+                        icon={IconShoppingBag}
                     />
                     <StatCard
                         label="Revenus"
                         value={fmt(organizerData.revenue)}
-                        icon={TrendingUp}
+                        icon={IconTrendingUp}
                         accent="bg-secondary"
                     />
                 </div>
@@ -302,18 +285,18 @@ export default async function DashboardPage() {
                     <StatCard
                         label="Commandes"
                         value={completedOrders}
-                        icon={ShoppingBag}
+                        icon={IconShoppingBag}
                     />
                     <StatCard
                         label="Dépensé"
                         value={fmt(totalSpent)}
-                        icon={TrendingUp}
+                        icon={IconTrendingUp}
                         accent="bg-secondary"
                     />
                     <StatCard
                         label="Favoris"
                         value={favoritesCount}
-                        icon={Heart}
+                        icon={IconHeart}
                     />
                 </div>
             )}
@@ -335,7 +318,7 @@ export default async function DashboardPage() {
                                         className="gap-1 text-xs h-7 px-2"
                                     >
                                         Tout voir{" "}
-                                        <ArrowRight className="w-3 h-3" />
+                                        <IconArrowRight className="w-3 h-3" />
                                     </Button>
                                 </Link>
                             }
@@ -363,11 +346,7 @@ export default async function DashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="flex flex-col items-end gap-1 shrink-0">
-                                                <span
-                                                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColor[order.status]}`}
-                                                >
-                                                    {statusLabel[order.status]}
-                                                </span>
+                                                <StatusBadge {...orderStatusBadge(order.status)} />
                                                 <span className="text-xs font-bold">
                                                     {fmt(order.totalAmount)}
                                                 </span>
@@ -442,7 +421,7 @@ export default async function DashboardPage() {
                                             className="gap-1 text-xs h-7 px-2"
                                         >
                                             Tout voir{" "}
-                                            <ArrowRight className="w-3 h-3" />
+                                            <IconArrowRight className="w-3 h-3" />
                                         </Button>
                                     </Link>
                                 }
@@ -478,7 +457,7 @@ export default async function DashboardPage() {
                                                                 {event.title}
                                                             </p>
                                                             {event.isFeatured && (
-                                                                <Star className="w-3 h-3 text-yellow-500 fill-yellow-400 shrink-0" />
+                                                                <IconStar className="w-3 h-3 text-yellow-500 fill-yellow-400 shrink-0" />
                                                             )}
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">
@@ -519,7 +498,7 @@ export default async function DashboardPage() {
                                     variant="outline"
                                     className="w-full justify-start gap-2 h-10 text-sm"
                                 >
-                                    <ShoppingBag className="w-4 h-4 shrink-0" />
+                                    <IconShoppingBag className="w-4 h-4 shrink-0" />
                                     Mes commandes
                                 </Button>
                             </Link>
@@ -528,7 +507,7 @@ export default async function DashboardPage() {
                                     variant="outline"
                                     className="w-full justify-start gap-2 h-10 text-sm"
                                 >
-                                    <CalendarDays className="w-4 h-4 shrink-0" />
+                                    <IconCalendarEvent className="w-4 h-4 shrink-0" />
                                     Parcourir les évènements
                                 </Button>
                             </Link>
@@ -539,7 +518,7 @@ export default async function DashboardPage() {
                                     className="block"
                                 >
                                     <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary/10 text-secondary hover:bg-secondary/20 border border-secondary/30">
-                                        <PlusCircle className="w-4 h-4 shrink-0" />
+                                        <IconCirclePlus className="w-4 h-4 shrink-0" />
                                         Devenir organisateur
                                     </Button>
                                 </Link>
@@ -552,7 +531,7 @@ export default async function DashboardPage() {
                                         className="block"
                                     >
                                         <Button className="w-full justify-start gap-2 h-10 text-sm bg-secondary hover:bg-secondary/90 text-secondary-foreground">
-                                            <PlusCircle className="w-4 h-4 shrink-0" />
+                                            <IconCirclePlus className="w-4 h-4 shrink-0" />
                                             Créer un évènement
                                         </Button>
                                     </Link>
@@ -564,7 +543,7 @@ export default async function DashboardPage() {
                                             variant="outline"
                                             className="w-full justify-start gap-2 h-10 text-sm"
                                         >
-                                            <CalendarDays className="w-4 h-4 shrink-0" />
+                                            <IconCalendarEvent className="w-4 h-4 shrink-0" />
                                             Mes évènements
                                         </Button>
                                     </Link>
@@ -581,7 +560,7 @@ export default async function DashboardPage() {
                                             variant="outline"
                                             className="w-full justify-start gap-2 h-10 text-sm border-orange-300 text-orange-700 hover:bg-orange-50"
                                         >
-                                            <AlertCircle className="w-4 h-4 shrink-0" />
+                                            <IconAlertCircle className="w-4 h-4 shrink-0" />
                                             <span className="truncate">
                                                 Demandes
                                                 {organizerData?.pendingRequests
@@ -595,7 +574,7 @@ export default async function DashboardPage() {
                                             variant="outline"
                                             className="w-full justify-start gap-2 h-10 text-sm"
                                         >
-                                            <Users className="w-4 h-4 shrink-0" />
+                                            <IconUsers className="w-4 h-4 shrink-0" />
                                             Panneau admin
                                         </Button>
                                     </Link>
@@ -626,7 +605,7 @@ export default async function DashboardPage() {
                                                 )}
                                             </p>
                                         </div>
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        <IconCircleCheck className="w-4 h-4 text-emerald-500 shrink-0" />
                                     </Link>
                                 ))}
                             </div>
@@ -637,7 +616,7 @@ export default async function DashboardPage() {
                     {role === "USER" && upcomingEvents.length > 0 && (
                         <Section
                             title="À venir"
-                            icon={<Clock className="w-4 h-4 text-secondary" />}
+                            icon={<IconClock className="w-4 h-4 text-secondary" />}
                         >
                             <div className="space-y-2">
                                 {upcomingEvents.map((o) => (

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Loader2 } from "lucide-react";
+import { IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cancelEvent } from "@/actions/event.actions";
 import { toast } from "sonner";
@@ -22,10 +21,11 @@ import { toast } from "sonner";
 interface Props {
     eventId: string;
     eventTitle: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export default function CancelEventButton({ eventId, eventTitle }: Props) {
-    const [open, setOpen] = useState(false);
+export default function CancelEventButton({ eventId, eventTitle, open, onOpenChange }: Props) {
     const [isCancelling, setIsCancelling] = useState(false);
     const [reason, setReason] = useState("");
     const router = useRouter();
@@ -44,21 +44,14 @@ export default function CancelEventButton({ eventId, eventTitle }: Props) {
                     ? `Évènement annulé. ${result.ordersToRefund} commande(s) à rembourser.`
                     : "Évènement annulé.",
             );
-            setOpen(false);
+            onOpenChange(false);
             setIsCancelling(false);
             router.refresh();
         }
     };
 
     return (
-        <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
-                    <Ban className="w-4 h-4" />
-                    Annuler
-                </Button>
-            </AlertDialogTrigger>
-
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -98,7 +91,7 @@ export default function CancelEventButton({ eventId, eventTitle }: Props) {
                         className="gap-2"
                     >
                         {isCancelling && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <IconLoader2 className="w-4 h-4 animate-spin" />
                         )}
                         {isCancelling ? "Annulation…" : "Oui, annuler l'évènement"}
                     </Button>

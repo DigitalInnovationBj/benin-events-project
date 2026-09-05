@@ -8,15 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
-    Loader2,
-    ArrowLeft,
-    ImagePlus,
-    MapPin,
-    MonitorPlay,
-    Tag,
-    AlertCircle,
-    Coins,
-} from "lucide-react";
+    IconLoader2,
+    IconArrowLeft,
+    IconPhotoPlus,
+    IconMapPin,
+    IconDeviceDesktop,
+    IconTag,
+    IconAlertCircle,
+    IconCoins,
+} from "@tabler/icons-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { createEvent, getCategories } from "@/actions/event.actions";
@@ -189,7 +189,7 @@ export function NewEventForm({
             <div className="flex items-center mb-6">
                 <Link href="/dashboard/events">
                     <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" /> Retour
+                        <IconArrowLeft className="w-4 h-4" /> Retour
                     </Button>
                 </Link>
             </div>
@@ -197,7 +197,7 @@ export function NewEventForm({
             {/* ── Bandeau admin : publication au nom d'un tiers ─── */}
             {targetOrganizerName && (
                 <div className="mb-5 flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-xl p-4 text-sm">
-                    <AlertCircle className="w-5 h-5 text-primary shrink-0" />
+                    <IconAlertCircle className="w-5 h-5 text-primary shrink-0" />
                     <span>
                         Vous créez cet évènement pour le compte de{" "}
                         <strong>{targetOrganizerName}</strong>. Aucun frais ne
@@ -209,7 +209,7 @@ export function NewEventForm({
             {/* ── Bandeau frais de publication ─────────────────── */}
             {!targetOrganizerId && eventCreationFeeEnabled && (
                 <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-                    <Coins className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <IconCoins className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div className="text-sm">
                         <p className="font-semibold text-amber-800 dark:text-amber-200">
                             Publication payante — {eventCreationFee.toLocaleString("fr-FR")} FCFA
@@ -248,7 +248,7 @@ export function NewEventForm({
                                         : "border-muted text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/30"
                                 }`}
                             >
-                                <MapPin className="w-7 h-7" />
+                                <IconMapPin className="w-7 h-7" />
                                 <div className="text-center">
                                     <p className="font-semibold text-sm">Présentiel</p>
                                     <p className="text-xs mt-0.5 opacity-70">Évènement physique avec lieu</p>
@@ -264,7 +264,7 @@ export function NewEventForm({
                                         : "border-muted text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/30"
                                 }`}
                             >
-                                <MonitorPlay className="w-7 h-7" />
+                                <IconDeviceDesktop className="w-7 h-7" />
                                 <div className="text-center">
                                     <p className="font-semibold text-sm">En ligne</p>
                                     <p className="text-xs mt-0.5 opacity-70">Diffusion via lien ou plateforme</p>
@@ -353,7 +353,7 @@ export function NewEventForm({
                     {/* ── Catégories ───────────────────────────────────── */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 border-b pb-2">
-                            <Tag className="w-5 h-5 text-muted-foreground" />
+                            <IconTag className="w-5 h-5 text-muted-foreground" />
                             <h2 className="text-xl font-bold">Catégories</h2>
                             {selectedCategories.length > 0 && (
                                 <span className="ml-auto text-xs bg-secondary text-secondary-foreground font-semibold px-2.5 py-0.5 rounded-full">
@@ -364,7 +364,7 @@ export function NewEventForm({
 
                         {loadingCategories ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <IconLoader2 className="w-4 h-4 animate-spin" />
                                 Chargement des catégories…
                             </div>
                         ) : categories.length === 0 ? (
@@ -429,7 +429,7 @@ export function NewEventForm({
                                             <img src={imagePreview} alt="Aperçu évènement" className="w-full h-full object-cover" />
                                         ) : (
                                             <>
-                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <IconPhotoPlus className="w-8 h-8 text-muted-foreground" />
                                                 <span className="text-sm font-medium">Cliquez pour ajouter une image</span>
                                             </>
                                         )}
@@ -458,7 +458,7 @@ export function NewEventForm({
                                             <img src={ogImagePreview} alt="Aperçu partage" className="w-full h-full object-cover" />
                                         ) : (
                                             <>
-                                                <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                                                <IconPhotoPlus className="w-8 h-8 text-muted-foreground" />
                                                 <span className="text-sm font-medium">Image pour Facebook/WhatsApp…</span>
                                             </>
                                         )}
@@ -484,7 +484,7 @@ export function NewEventForm({
                     {eventCreationFeeEnabled && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <IconAlertCircle className="w-4 h-4 shrink-0" />
                                 <span>
                                     Une demande de paiement de{" "}
                                     <strong>{eventCreationFee.toLocaleString("fr-FR")} FCFA</strong>{" "}
@@ -502,7 +502,7 @@ export function NewEventForm({
                     )}
 
                     <Button type="submit" disabled={isLoading} size="lg" className="w-full">
-                        {isLoading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+                        {isLoading && <IconLoader2 className="w-5 h-5 mr-2 animate-spin" />}
                         {isLoading
                             ? eventCreationFeeEnabled ? "Envoi de la demande de paiement…" : "Création en cours…"
                             : eventCreationFeeEnabled ? "Créer et payer" : "Créer l'évènement et continuer"}

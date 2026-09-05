@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { requestPayout } from "@/actions/payout.actions";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, SendHorizonal } from "lucide-react";
+import { IconLoader2, IconSend2 } from "@tabler/icons-react";
 
 export function RequestPayoutButton({
     disabled,
@@ -33,9 +33,9 @@ export function RequestPayoutButton({
             className="gap-2"
         >
             {isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <IconLoader2 className="w-4 h-4 animate-spin" />
             ) : (
-                <SendHorizonal className="w-4 h-4" />
+                <IconSend2 className="w-4 h-4" />
             )}
             {isPending ? "Envoi…" : `Demander ${netAmount.toLocaleString("fr-FR")} FCFA`}
         </Button>

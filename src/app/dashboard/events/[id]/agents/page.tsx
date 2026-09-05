@@ -3,7 +3,8 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, UserCheck, UserX, Clock } from "lucide-react";
+import { IconArrowLeft } from "@tabler/icons-react";
+import { StatusBadge, agentStatusBadge } from "@/components/ui/status-badge";
 import AgentInviteForm from "./AgentInviteForm";
 import RevokeButton from "./RevokeButton";
 
@@ -35,24 +36,12 @@ export default async function EventAgentsPage({
         redirect("/dashboard/events");
     }
 
-    const statusLabel: Record<string, string> = {
-        PENDING: "En attente",
-        CONFIRMED: "Confirmé",
-        REVOKED: "Révoqué",
-    };
-
-    const statusIcon = {
-        PENDING: <Clock className="w-4 h-4 text-yellow-500" />,
-        CONFIRMED: <UserCheck className="w-4 h-4 text-emerald-500" />,
-        REVOKED: <UserX className="w-4 h-4 text-red-400" />,
-    };
-
     return (
         <div className="max-w-3xl mx-auto w-full pb-20">
             <div className="flex items-center justify-between mb-6">
                 <Link href={`/dashboard/events/${id}`}>
                     <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" /> Retour
+                        <IconArrowLeft className="w-4 h-4" /> Retour
                     </Button>
                 </Link>
             </div>
@@ -97,10 +86,10 @@ export default async function EventAgentsPage({
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
-                                    <div className="flex items-center gap-1.5 text-xs font-medium">
-                                        {statusIcon[agent.status]}
-                                        <span>{statusLabel[agent.status]}</span>
-                                    </div>
+                                    {(() => {
+                                        const { tone, label, icon } = agentStatusBadge(agent.status);
+                                        return <StatusBadge tone={tone} label={label} icon={icon} />;
+                                    })()}
 
                                     {agent.status !== "REVOKED" && (
                                         <RevokeButton

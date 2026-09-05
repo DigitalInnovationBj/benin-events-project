@@ -4,27 +4,22 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
-    ArrowLeft,
-    Ticket as TicketIcon,
-    Calendar,
-    Download,
-    MapPin,
-    MonitorPlay,
-    Pencil,
-    Plus,
-    Star,
-    Users,
-    AlertCircle,
-    CheckCircle2,
-} from "lucide-react";
+    IconArrowLeft,
+    IconTicket,
+    IconCalendar,
+    IconMapPin,
+    IconDeviceDesktop,
+    IconStar,
+    IconAlertCircle,
+    IconCircleCheck,
+    IconPlus,
+    IconUserCircle,
+} from "@tabler/icons-react";
 import Image from "next/image";
 import { TicketForm } from "./ticket-form";
 import { TicketEditDialog } from "./ticket-edit-dialog";
-import DeleteEventButton from "./DeleteEventButton";
-import CancelEventButton from "./CancelEventButton";
 import RefundPanel from "./RefundPanel";
-import { FeaturedButton } from "./FeaturedButton";
-import { CampaignDialog } from "./CampaignDialog";
+import { EventActionsMenu } from "./EventActionsMenu";
 import { EventPartnersPanel } from "./EventPartnersPanel";
 import { getSettings } from "@/actions/settings.actions";
 import { getOrdersToRefund } from "@/actions/payment.actions";
@@ -56,6 +51,7 @@ export default async function EventDetailsPage({
             include: {
                 tickets: true,
                 categories: { include: { category: true } },
+                organizer: { select: { name: true, email: true } },
             },
         }),
         getSettings(),
@@ -102,7 +98,7 @@ export default async function EventDetailsPage({
             {/* ── Bannières contextuelles ───────────────────────── */}
             {showCreatedSuccess && (
                 <div className="mb-5 flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                    <IconCircleCheck className="w-5 h-5 text-emerald-600 shrink-0" />
                     <span className="text-emerald-800 dark:text-emerald-200 font-medium">
                         Paiement confirmé — votre évènement est maintenant publié !
                     </span>
@@ -110,7 +106,7 @@ export default async function EventDetailsPage({
             )}
             {showFeaturedSuccess && (
                 <div className="mb-5 flex items-center gap-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 text-sm">
-                    <Star className="w-5 h-5 text-yellow-600 shrink-0 fill-yellow-600" />
+                    <IconStar className="w-5 h-5 text-yellow-600 shrink-0 fill-yellow-600" />
                     <span className="text-yellow-800 dark:text-yellow-200 font-medium">
                         Paiement confirmé — votre évènement est maintenant en vedette !
                     </span>
@@ -118,7 +114,7 @@ export default async function EventDetailsPage({
             )}
             {showFeaturedError && (
                 <div className="mb-5 flex items-center gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm">
-                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                    <IconAlertCircle className="w-5 h-5 text-red-600 shrink-0" />
                     <span className="text-red-800 dark:text-red-200 font-medium">
                         Le paiement a échoué. Vous pouvez réessayer ci-dessous.
                     </span>
@@ -126,7 +122,7 @@ export default async function EventDetailsPage({
             )}
             {event.isCancelled ? (
                 <div className="mb-5 flex items-start gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm">
-                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                    <IconAlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
                         <p className="font-semibold text-red-800 dark:text-red-200">
                             Évènement annulé
@@ -141,7 +137,7 @@ export default async function EventDetailsPage({
             ) : (
                 !event.isPublished && (
                     <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm">
-                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <IconAlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                         <div>
                             <p className="font-semibold text-amber-800 dark:text-amber-200">
                                 Évènement non publié — en attente de paiement
@@ -170,58 +166,45 @@ export default async function EventDetailsPage({
             )}
 
             {/* ── En-tête ──────────────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-3 gap-3">
                 <Link href="/dashboard/events">
                     <Button variant="ghost" size="sm" className="gap-2">
-                        <ArrowLeft className="w-4 h-4" />{" "}
+                        <IconArrowLeft className="w-4 h-4" />{" "}
                         <span className="hidden md:block">Retour</span>
                     </Button>
                 </Link>
 
                 <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {canFeature && (
-                        <FeaturedButton eventId={event.id} fee={settings.featuredEventFee} />
-                    )}
-                    <CampaignDialog
+                    <EventActionsMenu
                         eventId={event.id}
                         eventTitle={event.title}
-                        remaining={campaignsRemaining}
-                        nextAvailableAt={
+                        canFeature={canFeature}
+                        featuredFee={settings.featuredEventFee}
+                        canCancel={!event.isCancelled && !event.isDeleted}
+                        campaignRemaining={campaignsRemaining}
+                        campaignNextAvailableAt={
                             campaignNextAvailableAt
                                 ? campaignNextAvailableAt.toISOString()
                                 : null
                         }
                     />
-                    {!event.isCancelled && !event.isDeleted && (
-                        <CancelEventButton
-                            eventId={event.id}
-                            eventTitle={event.title}
-                        />
-                    )}
-                    <DeleteEventButton
-                        eventId={event.id}
-                        eventTitle={event.title}
-                    />
-                    <a href={`/api/events/${event.id}/attendees`} download>
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <Download className="w-4 h-4" />
-                            Participants
-                        </Button>
-                    </a>
-                    <Link href={`/dashboard/events/${event.id}/agents`}>
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <Users className="w-4 h-4" />
-                            Agents
-                        </Button>
-                    </Link>
-                    <Link href={`/dashboard/events/${event.id}/edit`}>
-                        <Button variant="outline" size="sm" className="gap-2">
-                            <Pencil className="w-4 h-4" />
-                            Modifier
-                        </Button>
-                    </Link>
                 </div>
             </div>
+
+            {dbUser.role === "ADMIN" && (
+                <div className="mb-5 flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 border rounded-xl px-4 py-2.5 w-fit">
+                    <IconUserCircle className="w-4 h-4 shrink-0" />
+                    <span>
+                        Organisé par{" "}
+                        <span className="font-medium text-foreground">
+                            {event.organizer.name}
+                        </span>{" "}
+                        <span className="text-muted-foreground">
+                            ({event.organizer.email})
+                        </span>
+                    </span>
+                </div>
+            )}
 
             <div className="grid lg:grid-cols-[1fr_400px] gap-8">
                 {/* ── Colonne gauche : Aperçu ───────────────────────── */}
@@ -245,7 +228,7 @@ export default async function EventDetailsPage({
                             {/* Badge vedette */}
                             {event.isFeatured && (
                                 <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-yellow-400/90 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow">
-                                    <Star className="w-3.5 h-3.5 fill-yellow-900" />
+                                    <IconStar className="w-3.5 h-3.5 fill-yellow-900" />
                                     Évènement vedette
                                 </div>
                             )}
@@ -254,14 +237,14 @@ export default async function EventDetailsPage({
                             <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-background/80 backdrop-blur-sm border text-xs font-medium px-3 py-1.5 rounded-full shadow">
                                 {event.eventType === "ONLINE" ? (
                                     <>
-                                        <MonitorPlay className="w-3.5 h-3.5 text-blue-500" />
+                                        <IconDeviceDesktop className="w-3.5 h-3.5 text-blue-500" />
                                         <span className="text-blue-500">
                                             En ligne
                                         </span>
                                     </>
                                 ) : (
                                     <>
-                                        <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                                        <IconMapPin className="w-3.5 h-3.5 text-emerald-500" />
                                         <span className="text-emerald-500">
                                             Présentiel
                                         </span>
@@ -278,7 +261,7 @@ export default async function EventDetailsPage({
                             {/* Dates + Lieu/URL */}
                             <div className="flex flex-wrap gap-3 text-sm mb-5">
                                 <div className="flex items-center gap-2 bg-secondary/10 px-3 py-1.5 rounded-full text-secondary font-medium">
-                                    <Calendar className="w-4 h-4" />
+                                    <IconCalendar className="w-4 h-4" />
                                     <span>
                                         Du{" "}
                                         {new Date(
@@ -294,7 +277,7 @@ export default async function EventDetailsPage({
                                 {event.eventType === "IN_PERSON" &&
                                     event.location && (
                                         <div className="flex items-center gap-2 border px-3 py-1.5 rounded-full text-muted-foreground">
-                                            <MapPin className="w-4 h-4" />
+                                            <IconMapPin className="w-4 h-4" />
                                             <span>{event.location}</span>
                                         </div>
                                     )}
@@ -307,7 +290,7 @@ export default async function EventDetailsPage({
                                             rel="noopener noreferrer"
                                             className="flex items-center gap-2 border px-3 py-1.5 rounded-full text-blue-500 hover:bg-blue-500/5 transition-colors"
                                         >
-                                            <MonitorPlay className="w-4 h-4" />
+                                            <IconDeviceDesktop className="w-4 h-4" />
                                             <span className="underline underline-offset-2">
                                                 Lien de connexion
                                             </span>
@@ -347,7 +330,7 @@ export default async function EventDetailsPage({
                     <div className="bg-card border rounded-3xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-afo flex items-center gap-2">
-                                <TicketIcon className="w-5 h-5 text-primary" />
+                                <IconTicket className="w-5 h-5 text-primary" />
                                 Billetterie
                             </h2>
                             <span className="text-xs text-muted-foreground">
@@ -405,7 +388,7 @@ export default async function EventDetailsPage({
                         {/* Formulaire d'ajout */}
                         <div className="border-t pt-6">
                             <h3 className="font-bold mb-4 flex items-center gap-2">
-                                <Plus className="w-4 h-4" />
+                                <IconPlus className="w-4 h-4" />
                                 Ajouter un nouveau billet
                             </h3>
                             <TicketForm eventId={event.id} />

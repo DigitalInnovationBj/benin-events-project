@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { createOrganizerAccount } from "@/actions/admin-organizer.actions";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { IconLoader2, IconPlus } from "@tabler/icons-react";
 
 export function CreateOrganizerDialog() {
     const router = useRouter();
@@ -48,7 +48,7 @@ export function CreateOrganizerDialog() {
     return (
         <>
             <Button onClick={() => setOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
+                <IconPlus className="w-4 h-4" />
                 Créer un organisateur
             </Button>
 
@@ -104,7 +104,7 @@ export function CreateOrganizerDialog() {
                             Annuler
                         </Button>
                         <Button onClick={handleSubmit} disabled={isPending} className="gap-2">
-                            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {isPending && <IconLoader2 className="w-4 h-4 animate-spin" />}
                             {isPending ? "Création…" : "Créer et envoyer"}
                         </Button>
                     </DialogFooter>

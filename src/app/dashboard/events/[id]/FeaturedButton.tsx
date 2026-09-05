@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +10,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from "@/components/ui/dialog";
-import { Star, Loader2 } from "lucide-react";
+import { IconStar, IconLoader2 } from "@tabler/icons-react";
 import { initiateFeaturedEventPayment, getPlatformPaymentStatus } from "@/actions/platform.actions";
 import { MobileMoneyForm } from "@/components/payments/MobileMoneyForm";
 import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
@@ -18,28 +18,38 @@ import { usePaymentPolling } from "@/hooks/use-payment-polling";
 import type { FeexpayNetwork } from "@/lib/feexpay-networks";
 import { toast } from "sonner";
 
-export function FeaturedButton({ eventId, fee }: { eventId: string; fee: number }) {
+interface Props {
+    eventId: string;
+    fee: number;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}
+
+export function FeaturedButton({ eventId, fee, open, onOpenChange }: Props) {
     const router = useRouter();
-    const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [network, setNetwork] = useState<FeexpayNetwork | "">("");
     const [phone, setPhone] = useState("");
     const [step, setStep] = useState<"form" | "waiting">("form");
     const polling = usePaymentPolling(getPlatformPaymentStatus);
+    const wasOpen = useRef(false);
 
-    function handleOpen() {
-        setNetwork("");
-        setPhone("");
-        setStep("form");
-        polling.stop();
-        setOpen(true);
-    }
+    useEffect(() => {
+        if (open && !wasOpen.current) {
+            setNetwork("");
+            setPhone("");
+            setStep("form");
+            polling.stop();
+        }
+        wasOpen.current = open;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     useEffect(() => {
         if (step !== "waiting") return;
         if (polling.status === "COMPLETED") {
             toast.success("Évènement mis en vedette !");
-            setOpen(false);
+            onOpenChange(false);
             router.push(`/dashboard/events/${eventId}?featured=1`);
         } else if (polling.status === "FAILED") {
             toast.error("Le paiement a échoué. Vous pouvez réessayer.");
@@ -76,49 +86,42 @@ export function FeaturedButton({ eventId, fee }: { eventId: string; fee: number 
     }
 
     return (
-        <>
-            <Button onClick={handleOpen} variant="outline" size="sm" className="gap-2">
-                <Star className="w-4 h-4" />
-                Mettre en vedette ({fee.toLocaleString("fr-FR")} FCFA)
-            </Button>
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-sm">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <IconStar className="w-5 h-5 text-secondary" />
+                        Mettre l&apos;évènement en vedette
+                    </DialogTitle>
+                </DialogHeader>
 
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="sm:max-w-sm">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Star className="w-5 h-5 text-secondary" />
-                            Mettre l&apos;évènement en vedette
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    {step === "waiting" ? (
-                        <MobileMoneyWaiting
+                {step === "waiting" ? (
+                    <MobileMoneyWaiting
+                        phoneNumber={phone}
+                        timedOut={polling.timedOut}
+                        onRetryCheck={() => polling.retryNow()}
+                    />
+                ) : (
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            Montant : <strong>{fee.toLocaleString("fr-FR")} FCFA</strong>
+                        </p>
+                        <MobileMoneyForm
+                            network={network}
+                            onNetworkChange={setNetwork}
                             phoneNumber={phone}
-                            timedOut={polling.timedOut}
-                            onRetryCheck={() => polling.retryNow()}
+                            onPhoneNumberChange={setPhone}
+                            disabled={isLoading}
                         />
-                    ) : (
-                        <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                Montant : <strong>{fee.toLocaleString("fr-FR")} FCFA</strong>
-                            </p>
-                            <MobileMoneyForm
-                                network={network}
-                                onNetworkChange={setNetwork}
-                                phoneNumber={phone}
-                                onPhoneNumberChange={setPhone}
-                                disabled={isLoading}
-                            />
-                            <DialogFooter>
-                                <Button onClick={handleSubmit} disabled={isLoading} className="gap-2 w-full">
-                                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    {isLoading ? "Envoi…" : "Payer"}
-                                </Button>
-                            </DialogFooter>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-        </>
+                        <DialogFooter>
+                            <Button onClick={handleSubmit} disabled={isLoading} className="gap-2 w-full">
+                                {isLoading && <IconLoader2 className="w-4 h-4 animate-spin" />}
+                                {isLoading ? "Envoi…" : "Payer"}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }

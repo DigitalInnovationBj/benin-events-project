@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { IconLoader2 } from "@tabler/icons-react";
 import type { PayoutMethod } from "@prisma/client";
 
 type Tab = "MOBILE_MONEY" | "BANK_TRANSFER";
@@ -111,7 +111,7 @@ export function PayoutMethodForm({ method }: { method: PayoutMethod | null }) {
             )}
 
             <Button type="submit" disabled={isPending} className="gap-2">
-                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isPending && <IconLoader2 className="w-4 h-4 animate-spin" />}
                 Enregistrer
             </Button>
         </form>

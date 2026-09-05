@@ -1,14 +1,7 @@
 import { getPayoutSummary, getPayoutMethod, getMyPayoutRequests } from "@/actions/payout.actions";
 import { PayoutMethodForm } from "./PayoutMethodForm";
 import { RequestPayoutButton } from "./RequestPayoutButton";
-import { BadgeCheck, Clock, XCircle, Loader } from "lucide-react";
-
-const STATUS_CONFIG = {
-    PENDING:    { label: "En attente",   color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400", icon: Clock },
-    PROCESSING: { label: "En cours",     color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400", icon: Loader },
-    PAID:       { label: "Reversé",      color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", icon: BadgeCheck },
-    REJECTED:   { label: "Rejeté",       color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400", icon: XCircle },
-};
+import { StatusBadge, payoutStatusBadge } from "@/components/ui/status-badge";
 
 export default async function PayoutPage() {
     const [summary, method, requests] = await Promise.all([
@@ -87,8 +80,7 @@ export default async function PayoutPage() {
                     <h2 className="font-semibold text-lg mb-4">Historique des demandes</h2>
                     <div className="space-y-3">
                         {requests.map((req) => {
-                            const cfg = STATUS_CONFIG[req.status];
-                            const Icon = cfg.icon;
+                            const { tone, label, icon } = payoutStatusBadge(req.status);
                             return (
                                 <div key={req.id} className="flex items-start justify-between gap-4 rounded-xl border p-4">
                                     <div className="space-y-1">
@@ -109,10 +101,7 @@ export default async function PayoutPage() {
                                         )}
                                     </div>
                                     <div className="flex flex-col items-end gap-2 shrink-0">
-                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
-                                            <Icon className="w-3 h-3" />
-                                            {cfg.label}
-                                        </span>
+                                        <StatusBadge tone={tone} label={label} icon={icon} />
                                         <p className="text-xs text-muted-foreground">
                                             {new Date(req.createdAt).toLocaleDateString("fr-FR")}
                                         </p>

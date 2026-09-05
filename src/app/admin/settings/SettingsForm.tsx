@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Percent, Coins } from "lucide-react";
+import { IconLoader2, IconPercentage, IconCoins } from "@tabler/icons-react";
 
 interface Props {
     currentRate: number;
@@ -94,7 +94,7 @@ export function SettingsForm({
                             onChange={(e) => setRate(e.target.value)}
                             className="pr-10"
                         />
-                        <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        <IconPercentage className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                     </div>
                     <p className="text-xs text-muted-foreground">
                         0% = gratuit pour les organisateurs. Ce taux s&apos;applique sur le montant brut des ventes de chaque organisateur lors du reversement.
@@ -102,7 +102,7 @@ export function SettingsForm({
                 </div>
                 <div className="flex items-center gap-3">
                     <Button type="submit" disabled={isPendingRate} className="gap-2">
-                        {isPendingRate && <Loader2 className="w-4 h-4 animate-spin" />}
+                        {isPendingRate && <IconLoader2 className="w-4 h-4 animate-spin" />}
                         Enregistrer
                     </Button>
                     {currentRate === 0 && (
@@ -121,7 +121,7 @@ export function SettingsForm({
             {/* ── Frais de publication ──────────────────────────── */}
             <form onSubmit={handleFeesSubmit} className="space-y-5 max-w-sm border-t pt-6">
                 <div className="flex items-center gap-2 mb-1">
-                    <Coins className="w-5 h-5 text-muted-foreground" />
+                    <IconCoins className="w-5 h-5 text-muted-foreground" />
                     <h3 className="font-semibold text-base">Frais de publication</h3>
                 </div>
 
@@ -202,7 +202,7 @@ export function SettingsForm({
                 </div>
 
                 <Button type="submit" disabled={isPendingFees} className="gap-2">
-                    {isPendingFees && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {isPendingFees && <IconLoader2 className="w-4 h-4 animate-spin" />}
                     Enregistrer les frais
                 </Button>
             </form>

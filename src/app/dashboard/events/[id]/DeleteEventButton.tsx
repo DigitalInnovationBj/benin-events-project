@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { IconLoader2 } from "@tabler/icons-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -13,7 +12,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { deleteEvent } from "@/actions/event.actions";
 import { toast } from "sonner";
@@ -21,9 +19,11 @@ import { toast } from "sonner";
 interface Props {
     eventId: string;
     eventTitle: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export default function DeleteEventButton({ eventId, eventTitle }: Props) {
+export default function DeleteEventButton({ eventId, eventTitle, open, onOpenChange }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
     const router = useRouter();
 
@@ -42,23 +42,7 @@ export default function DeleteEventButton({ eventId, eventTitle }: Props) {
     };
 
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button
-                    variant="destructive"
-                    size="sm"
-                    className="gap-2"
-                    disabled={isDeleting}
-                >
-                    {isDeleting ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                        <Trash2 className="w-4 h-4" />
-                    )}
-                    Supprimer
-                </Button>
-            </AlertDialogTrigger>
-
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>
@@ -87,7 +71,7 @@ export default function DeleteEventButton({ eventId, eventTitle }: Props) {
                         className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
                     >
                         {isDeleting && (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <IconLoader2 className="w-4 h-4 animate-spin" />
                         )}
                         {isDeleting ? "Suppression…" : "Oui, supprimer"}
                     </AlertDialogAction>

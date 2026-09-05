@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listOrganizers } from "@/actions/admin-organizer.actions";
 import { CreateOrganizerDialog } from "./CreateOrganizerDialog";
 import { Button } from "@/components/ui/button";
-import { CalendarPlus } from "lucide-react";
+import { IconCalendarPlus } from "@tabler/icons-react";
 
 export default async function AdminOrganizersPage() {
     const { organizers } = await listOrganizers();
@@ -35,7 +35,7 @@ export default async function AdminOrganizersPage() {
                             </div>
                             <Link href={`/admin/organizers/${org.id}/new-event`}>
                                 <Button variant="outline" size="sm" className="gap-2">
-                                    <CalendarPlus className="w-4 h-4" />
+                                    <IconCalendarPlus className="w-4 h-4" />
                                     Créer un évènement pour ce compte
                                 </Button>
                             </Link>

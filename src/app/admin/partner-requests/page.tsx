@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import { PartnerActionButtons } from "./PartnerActionButtons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StatusBadge, requestStatusBadge } from "@/components/ui/status-badge";
 
 export default async function AdminPartnerRequestsPage() {
     const requests = await prisma.partnerRequest.findMany({
@@ -12,15 +14,21 @@ export default async function AdminPartnerRequestsPage() {
 
     return (
         <div className="max-w-5xl mx-auto">
-            <h1 className="text-3xl font-afo mb-6">Candidatures Partenaires</h1>
+            <h1 className="text-3xl font-afo mb-6">Candidatures partenaires</h1>
 
-            <div className="space-y-8">
-                <section>
-                    <h2 className="text-xl font-semibold mb-4 border-b pb-2">
+            <Tabs defaultValue="pending">
+                <TabsList>
+                    <TabsTrigger value="pending">
                         En attente ({pendingRequests.length})
-                    </h2>
+                    </TabsTrigger>
+                    <TabsTrigger value="history">
+                        Historique ({processedRequests.length})
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="pending">
                     {pendingRequests.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
+                        <p className="text-muted-foreground text-sm py-8 text-center">
                             Aucune candidature en attente.
                         </p>
                     ) : (
@@ -28,7 +36,7 @@ export default async function AdminPartnerRequestsPage() {
                             {pendingRequests.map((req) => (
                                 <div
                                     key={req.id}
-                                    className="bg-card border p-4 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                                    className="bg-card border p-4 rounded-xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
                                 >
                                     <div>
                                         <h3 className="font-bold">
@@ -53,43 +61,41 @@ export default async function AdminPartnerRequestsPage() {
                             ))}
                         </div>
                     )}
-                </section>
+                </TabsContent>
 
-                <section>
-                    <h2 className="text-xl font-semibold mb-4 border-b pb-2 text-muted-foreground">
-                        Historique ({processedRequests.length})
-                    </h2>
-                    <div className="opacity-70 grid gap-4">
-                        {processedRequests.map((req) => (
-                            <div
-                                key={req.id}
-                                className="bg-muted border p-4 rounded-lg flex flex-col md:flex-row justify-between gap-4"
-                            >
-                                <div>
-                                    <h3 className="font-bold">
-                                        {req.organizationName}
-                                    </h3>
-                                    <p className="text-sm">
-                                        Date :{" "}
-                                        {new Date(
-                                            req.updatedAt,
-                                        ).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span
-                                        className={`py-1 rounded text-xs px-3 font-semibold ${req.status === "APPROVED" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                <TabsContent value="history">
+                    {processedRequests.length === 0 ? (
+                        <p className="text-muted-foreground text-sm py-8 text-center">
+                            Aucune candidature traitée pour le moment.
+                        </p>
+                    ) : (
+                        <div className="grid gap-4">
+                            {processedRequests.map((req) => {
+                                const { tone, label, icon } = requestStatusBadge(req.status);
+                                return (
+                                    <div
+                                        key={req.id}
+                                        className="bg-muted/40 border p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
                                     >
-                                        {req.status === "APPROVED"
-                                            ? "Approuvée"
-                                            : "Rejetée"}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            </div>
+                                        <div>
+                                            <h3 className="font-bold">
+                                                {req.organizationName}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Date :{" "}
+                                                {new Date(
+                                                    req.updatedAt,
+                                                ).toLocaleDateString("fr-FR")}
+                                            </p>
+                                        </div>
+                                        <StatusBadge tone={tone} label={label} icon={icon} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
