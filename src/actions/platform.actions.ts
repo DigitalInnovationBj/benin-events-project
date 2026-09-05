@@ -9,6 +9,8 @@ import {
     isValidNetwork,
     type FeexpayNetwork,
 } from "@/lib/feexpay";
+import { reconcilePlatformPayment } from "@/lib/payment-reconciliation";
+import { revalidatePath } from "next/cache";
 
 export interface FeaturedEventPaymentInput {
     eventId: string;
@@ -86,11 +88,18 @@ export async function initiateFeaturedEventPayment(input: FeaturedEventPaymentIn
     }
 }
 
+// Revérifie activement auprès de FeexPay si le paiement est encore PENDING —
+// voir le commentaire de getOrderPaymentStatus (payment.actions.ts) : c'est
+// ce polling qui garantit une résolution rapide, le cron ne tournant qu'1x/jour.
 export async function getPlatformPaymentStatus(platformPaymentId: string) {
-    const payment = await prisma.platformPayment.findUnique({
-        where: { id: platformPaymentId },
-        select: { status: true },
-    });
-    if (!payment) return { error: "Paiement introuvable." };
-    return { status: payment.status };
+    try {
+        const status = await reconcilePlatformPayment(platformPaymentId);
+        if (status === "COMPLETED") {
+            revalidatePath("/dashboard/events");
+            revalidatePath("/");
+        }
+        return { status };
+    } catch {
+        return { error: "Paiement introuvable." };
+    }
 }

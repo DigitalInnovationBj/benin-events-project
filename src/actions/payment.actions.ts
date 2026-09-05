@@ -11,6 +11,7 @@ import {
 } from "@/lib/feexpay";
 import { sendRefundConfirmationEmail } from "@/lib/email";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
+import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
 
@@ -254,17 +255,20 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
 // ─────────────────────────────────────────────
 // getOrderPaymentStatus — polling client pendant l'attente de confirmation
-// Mobile Money (le webhook FeexPay met à jour le statut en base ; on se
-// contente de le relire ici, pas d'appel FeexPay direct depuis le client).
+// Mobile Money. Revérifie activement auprès de FeexPay si la commande est
+// encore PENDING : le webhook peut mettre du temps (ou échouer à être
+// livré), et le cron de réconciliation ne tourne qu'1x/jour (limite Vercel
+// Hobby) — c'est donc ce polling, actif pendant que l'acheteur patiente,
+// qui garantit une résolution rapide dans l'immense majorité des cas.
 // ─────────────────────────────────────────────
 
 export async function getOrderPaymentStatus(orderId: string) {
-    const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { status: true },
-    });
-    if (!order) return { error: "Commande introuvable." };
-    return { status: order.status };
+    try {
+        const status = await reconcileOrderPayment(orderId);
+        return { status };
+    } catch {
+        return { error: "Commande introuvable." };
+    }
 }
 
 export async function getUserOrders() {
