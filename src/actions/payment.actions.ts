@@ -7,6 +7,7 @@ import {
     encodeCallbackInfo,
     getNetwork,
     isValidNetwork,
+    isValidLocalNumber,
     type FeexpayNetwork,
 } from "@/lib/feexpay";
 import { sendRefundConfirmationEmail } from "@/lib/email";
@@ -133,8 +134,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
         }
         const netInfo = getNetwork(input.network);
         const localDigits = (input.phoneNumber ?? "").replace(/\D/g, "");
-        if (!netInfo || localDigits.length < 6) {
-            return { error: "Numéro de téléphone invalide." };
+        if (!netInfo || !isValidLocalNumber(localDigits)) {
+            return { error: "Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000)." };
         }
         network = input.network;
         fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;

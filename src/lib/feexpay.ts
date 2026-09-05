@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isValidNetwork, type FeexpayNetwork } from "@/lib/feexpay-networks";
 
-export { NETWORKS, isValidNetwork, getNetwork, type FeexpayNetwork } from "@/lib/feexpay-networks";
+export { NETWORKS, isValidNetwork, getNetwork, isValidLocalNumber, type FeexpayNetwork } from "@/lib/feexpay-networks";
 
 const BASE_URL = "https://api-v2.feexpay.me/api";
 
@@ -43,15 +43,29 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         },
     });
 
-    const data = await res.json().catch(() => null);
+    const rawText = await res.text();
+    const data = rawText ? (tryParse(rawText) as { message?: string; error?: string } | null) : null;
 
     if (!res.ok) {
+        console.error(
+            `[FeexPay] ${options?.method ?? "GET"} ${path} → ${res.status}`,
+            "request body:", options?.body,
+            "response body:", rawText,
+        );
         throw new Error(
-            (data && (data.message || data.error)) ?? `FeexPay error ${res.status}`,
+            data?.message || data?.error || `FeexPay error ${res.status}: ${rawText.slice(0, 200)}`,
         );
     }
 
     return data as T;
+}
+
+function tryParse(text: string): unknown {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
 }
 
 export type FeexpayStatus = "PENDING" | "SUCCESSFUL" | "FAILED";

@@ -52,14 +52,14 @@ export function MobileMoneyForm({
                 <Input
                     id="mm-phone"
                     type="tel"
-                    placeholder="Ex : 90000000"
+                    placeholder="Ex : 0190000000"
                     value={phoneNumber}
                     onChange={(e) => onPhoneNumberChange(e.target.value)}
                     disabled={disabled}
                     className="mt-1.5"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                    Vous recevrez une demande de confirmation directement sur ce numéro.
+                    Nouveau format à 10 chiffres (ex : 01 90 00 00 00). Vous recevrez une demande de confirmation directement sur ce numéro.
                 </p>
             </div>
         </div>

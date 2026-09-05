@@ -18,3 +18,11 @@ export function isValidNetwork(slug: string): slug is FeexpayNetwork {
 export function getNetwork(slug: string) {
     return NETWORKS.find((n) => n.slug === slug);
 }
+
+// Depuis la réforme du plan de numérotation (2024), les numéros béninois
+// comptent 10 chiffres (préfixe "01" inclus, ex : 0190000000).
+export const LOCAL_NUMBER_LENGTH = 10;
+
+export function isValidLocalNumber(digits: string): boolean {
+    return digits.length === LOCAL_NUMBER_LENGTH;
+}

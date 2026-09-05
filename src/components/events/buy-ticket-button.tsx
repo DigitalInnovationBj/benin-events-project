@@ -17,7 +17,7 @@ import { validatePromoCode } from "@/actions/eventPartner.actions";
 import { MobileMoneyForm } from "@/components/payments/MobileMoneyForm";
 import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
 import { usePaymentPolling } from "@/hooks/use-payment-polling";
-import type { FeexpayNetwork } from "@/lib/feexpay-networks";
+import { isValidLocalNumber, type FeexpayNetwork } from "@/lib/feexpay-networks";
 import { toast } from "sonner";
 import { Minus, Plus, Loader2, Ticket, User, Users, Tag, X } from "lucide-react";
 
@@ -162,8 +162,8 @@ export function BuyTicketButton({
                 toast.error("Sélectionnez un opérateur mobile money.");
                 return;
             }
-            if (mmPhone.replace(/\D/g, "").length < 6) {
-                toast.error("Numéro de téléphone invalide.");
+            if (!isValidLocalNumber(mmPhone.replace(/\D/g, ""))) {
+                toast.error("Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000).");
                 return;
             }
         }

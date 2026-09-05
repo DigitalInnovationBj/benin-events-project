@@ -15,7 +15,7 @@ import { initiateFeaturedEventPayment, getPlatformPaymentStatus } from "@/action
 import { MobileMoneyForm } from "@/components/payments/MobileMoneyForm";
 import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
 import { usePaymentPolling } from "@/hooks/use-payment-polling";
-import type { FeexpayNetwork } from "@/lib/feexpay-networks";
+import { isValidLocalNumber, type FeexpayNetwork } from "@/lib/feexpay-networks";
 import { toast } from "sonner";
 
 interface Props {
@@ -63,8 +63,8 @@ export function FeaturedButton({ eventId, fee, open, onOpenChange }: Props) {
             toast.error("Sélectionnez un opérateur mobile money.");
             return;
         }
-        if (phone.replace(/\D/g, "").length < 6) {
-            toast.error("Numéro de téléphone invalide.");
+        if (!isValidLocalNumber(phone.replace(/\D/g, ""))) {
+            toast.error("Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000).");
             return;
         }
 
