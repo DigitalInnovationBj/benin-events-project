@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,12 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { createEvent, getCategories } from "@/actions/event.actions";
+import { createEventOnBehalf } from "@/actions/admin-organizer.actions";
+import { getPlatformPaymentStatus } from "@/actions/platform.actions";
+import { MobileMoneyForm } from "@/components/payments/MobileMoneyForm";
+import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
+import { usePaymentPolling } from "@/hooks/use-payment-polling";
+import type { FeexpayNetwork } from "@/lib/feexpay-networks";
 
 type Category = { id: string; name: string; slug: string };
 type EventType = "IN_PERSON" | "ONLINE";
@@ -28,12 +34,22 @@ interface Props {
     eventCreationFeeEnabled: boolean;
     eventCreationFee: number;
     paymentError: boolean;
+    /** Contexte admin : l'évènement est publié pour le compte de cet organisateur, sans frais. */
+    targetOrganizerId?: string;
+    targetOrganizerName?: string;
 }
 
-export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymentError }: Props) {
+export function NewEventForm({
+    eventCreationFeeEnabled,
+    eventCreationFee,
+    paymentError,
+    targetOrganizerId,
+    targetOrganizerName,
+}: Props) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [description, setDescription] = useState("");
+    const [postPurchaseMessage, setPostPurchaseMessage] = useState("");
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
 
@@ -42,6 +58,12 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
     const [categories, setCategories] = useState<Category[]>([]);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+    // Paiement Mobile Money (frais de publication)
+    const [network, setNetwork] = useState<FeexpayNetwork | "">("");
+    const [mmPhone, setMmPhone] = useState("");
+    const [step, setStep] = useState<"form" | "waiting">("form");
+    const polling = usePaymentPolling(getPlatformPaymentStatus);
 
     useEffect(() => {
         getCategories().then((res) => {
@@ -80,31 +102,63 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
         setPreview(URL.createObjectURL(file));
     };
 
+    const pendingEventIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (step !== "waiting") return;
+        if (polling.status === "COMPLETED") {
+            toast.success("Paiement confirmé — évènement publié !");
+            router.push(`/dashboard/events/${pendingEventIdRef.current}?created=1`);
+        } else if (polling.status === "FAILED") {
+            toast.error("Le paiement a échoué. Réessayez depuis votre tableau de bord.");
+            router.push(`/dashboard/events/${pendingEventIdRef.current}`);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [polling.status, step]);
+
     const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!description.trim()) {
             toast.error("La description est obligatoire.");
             return;
         }
+        if (eventCreationFeeEnabled) {
+            if (!network) {
+                toast.error("Sélectionnez un opérateur mobile money.");
+                return;
+            }
+            if (mmPhone.replace(/\D/g, "").length < 6) {
+                toast.error("Numéro de téléphone invalide.");
+                return;
+            }
+        }
         setIsLoading(true);
 
         const formData = new FormData(e.currentTarget);
         formData.set("eventType", eventType);
         formData.set("description", description);
+        formData.set("postPurchaseMessage", postPurchaseMessage);
         selectedCategories.forEach((id) => formData.append("categoryIds", id));
+        if (eventCreationFeeEnabled) {
+            formData.set("network", network);
+            formData.set("phoneNumber", mmPhone);
+        }
 
         try {
-            const res = await createEvent(formData);
+            const res = targetOrganizerId
+                ? await createEventOnBehalf(targetOrganizerId, formData)
+                : await createEvent(formData);
 
-            if (res.error) {
+            if ("error" in res) {
                 toast.error(res.error);
                 setIsLoading(false);
                 return;
             }
 
-            if (res.redirectUrl) {
-                toast.success("Évènement créé — redirection vers le paiement…");
-                window.location.href = res.redirectUrl;
+            if (res.platformPaymentId) {
+                pendingEventIdRef.current = res.eventId!;
+                setStep("waiting");
+                polling.start(res.platformPaymentId);
                 return;
             }
 
@@ -116,6 +170,20 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
         }
     };
 
+    if (step === "waiting") {
+        return (
+            <div className="max-w-md mx-auto pb-10">
+                <div className="bg-card border rounded-2xl p-6 md:p-8 shadow-sm">
+                    <MobileMoneyWaiting
+                        phoneNumber={mmPhone}
+                        timedOut={polling.timedOut}
+                        onRetryCheck={() => polling.retryNow()}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-3xl mx-auto pb-10">
             <div className="flex items-center mb-6">
@@ -126,8 +194,20 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
                 </Link>
             </div>
 
+            {/* ── Bandeau admin : publication au nom d'un tiers ─── */}
+            {targetOrganizerName && (
+                <div className="mb-5 flex items-center gap-3 bg-primary/10 border border-primary/20 rounded-xl p-4 text-sm">
+                    <AlertCircle className="w-5 h-5 text-primary shrink-0" />
+                    <span>
+                        Vous créez cet évènement pour le compte de{" "}
+                        <strong>{targetOrganizerName}</strong>. Aucun frais ne
+                        sera demandé.
+                    </span>
+                </div>
+            )}
+
             {/* ── Bandeau frais de publication ─────────────────── */}
-            {eventCreationFeeEnabled && (
+            {!targetOrganizerId && eventCreationFeeEnabled && (
                 <div className="mb-5 flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
                     <Coins className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     <div className="text-sm">
@@ -135,7 +215,7 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
                             Publication payante — {eventCreationFee.toLocaleString("fr-FR")} FCFA
                         </p>
                         <p className="text-amber-700 dark:text-amber-300 mt-0.5">
-                            La création de cet évènement nécessite un paiement. Vous serez redirigé vers la page de paiement après avoir rempli le formulaire.
+                            La création de cet évènement nécessite un paiement par Mobile Money. Renseignez votre opérateur et votre numéro en bas de ce formulaire.
                         </p>
                     </div>
                 </div>
@@ -232,7 +312,10 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
                                     required
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Zoom, Google Meet, YouTube Live, Twitch…
+                                    Zoom, Google Meet, YouTube Live, Twitch… Ce
+                                    lien n&apos;est plus affiché publiquement,
+                                    seulement transmis aux acheteurs de
+                                    billet après paiement.
                                 </p>
                             </div>
                         )}
@@ -246,6 +329,24 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
                                 <Label htmlFor="endDate">Date de fin *</Label>
                                 <Input id="endDate" name="endDate" type="datetime-local" required />
                             </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label>
+                                Message après achat{" "}
+                                <span className="text-muted-foreground text-xs font-normal">
+                                    (optionnel)
+                                </span>
+                            </Label>
+                            <RichTextEditor
+                                content={postPurchaseMessage}
+                                onChange={setPostPurchaseMessage}
+                                placeholder="Ex : lien du groupe WhatsApp, instructions d'accès, informations de stationnement…"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Envoyé uniquement aux acheteurs, après paiement
+                                (email + page de confirmation).
+                            </p>
                         </div>
                     </div>
 
@@ -381,19 +482,29 @@ export function NewEventForm({ eventCreationFeeEnabled, eventCreationFee, paymen
 
                     {/* ── Soumettre ─────────────────────────────────────── */}
                     {eventCreationFeeEnabled && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
-                            <AlertCircle className="w-4 h-4 shrink-0" />
-                            <span>
-                                En cliquant sur &quot;Créer et payer&quot;, vous serez redirigé vers la page de paiement de{" "}
-                                <strong>{eventCreationFee.toLocaleString("fr-FR")} FCFA</strong>.
-                            </span>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 rounded-xl px-4 py-3">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>
+                                    Une demande de paiement de{" "}
+                                    <strong>{eventCreationFee.toLocaleString("fr-FR")} FCFA</strong>{" "}
+                                    sera envoyée sur ce numéro à la soumission du formulaire.
+                                </span>
+                            </div>
+                            <MobileMoneyForm
+                                network={network}
+                                onNetworkChange={setNetwork}
+                                phoneNumber={mmPhone}
+                                onPhoneNumberChange={setMmPhone}
+                                disabled={isLoading}
+                            />
                         </div>
                     )}
 
                     <Button type="submit" disabled={isLoading} size="lg" className="w-full">
                         {isLoading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
                         {isLoading
-                            ? eventCreationFeeEnabled ? "Redirection vers le paiement…" : "Création en cours…"
+                            ? eventCreationFeeEnabled ? "Envoi de la demande de paiement…" : "Création en cours…"
                             : eventCreationFeeEnabled ? "Créer et payer" : "Créer l'évènement et continuer"}
                     </Button>
                 </form>

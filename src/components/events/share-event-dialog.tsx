@@ -28,7 +28,6 @@ interface ShareEventDialogProps {
     startDate: string;
     eventType: "IN_PERSON" | "ONLINE";
     location: string | null;
-    onlineUrl: string | null;
 }
 
 function buildShareText({
@@ -36,10 +35,9 @@ function buildShareText({
     startDate,
     eventType,
     location,
-    onlineUrl,
 }: Pick<
     ShareEventDialogProps,
-    "title" | "startDate" | "eventType" | "location" | "onlineUrl"
+    "title" | "startDate" | "eventType" | "location"
 >) {
     const eventDate = new Date(startDate);
 
@@ -57,9 +55,7 @@ function buildShareText({
 
     const locationIcon = eventType === "ONLINE" ? "🌐" : "📍";
     const locationText =
-        eventType === "ONLINE"
-            ? onlineUrl ?? "En ligne"
-            : location ?? "Lieu à confirmer";
+        eventType === "ONLINE" ? "Évènement en ligne" : location ?? "Lieu à confirmer";
 
     return [
         `🔥 ${title}`,
@@ -77,7 +73,6 @@ export default function ShareEventDialog({
     startDate,
     eventType,
     location,
-    onlineUrl,
 }: ShareEventDialogProps) {
     const [copied, setCopied] = useState(false);
 
@@ -87,7 +82,6 @@ export default function ShareEventDialog({
         startDate,
         eventType,
         location,
-        onlineUrl,
     });
     const fullText = `${shareText}\n${url}`;
 

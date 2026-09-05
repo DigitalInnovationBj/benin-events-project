@@ -95,6 +95,7 @@ const ORGANIZER_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
     { title: "Demandes", url: "/admin/requests", icon: ShieldCheck },
     { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: Handshake },
+    { title: "Organisateurs", url: "/admin/organizers", icon: UserRound },
     { title: "Reversements", url: "/admin/payouts", icon: Banknote },
     { title: "Paramètres", url: "/admin/settings", icon: Settings },
 ];

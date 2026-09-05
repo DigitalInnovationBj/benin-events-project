@@ -30,6 +30,8 @@ export interface TicketGiftEmailProps {
     orderItemId: string;
     orderReference: string;
     appUrl: string;
+    onlineUrl?: string | null;
+    postPurchaseMessage?: string | null;
 }
 
 export function TicketGiftEmail({
@@ -42,7 +44,10 @@ export function TicketGiftEmail({
     ticketTitle,
     qrCodeUrl,
     appUrl,
+    onlineUrl,
+    postPurchaseMessage,
 }: TicketGiftEmailProps) {
+    const hasAccessInfo = Boolean(onlineUrl || postPurchaseMessage);
     return (
         <Html lang="fr">
             <Head />
@@ -81,6 +86,37 @@ export function TicketGiftEmail({
                             <Text style={row}><span style={labelStyle}>Billet</span><span style={valueStyle}>{ticketTitle}</span></Text>
                         </Section>
                     </Section>
+
+                    {hasAccessInfo && (
+                        <>
+                            <Hr style={divider} />
+                            <Section style={{ padding: "24px 40px" }}>
+                                <Heading style={h2}>
+                                    {eventType === "ONLINE"
+                                        ? "Accès à l'évènement"
+                                        : "Informations complémentaires"}
+                                </Heading>
+                                <Section style={card}>
+                                    {onlineUrl && (
+                                        <Text style={{ ...valueStyle, margin: "0 0 10px" }}>
+                                            🔗{" "}
+                                            <a href={onlineUrl} style={link}>
+                                                {onlineUrl}
+                                            </a>
+                                        </Text>
+                                    )}
+                                    {postPurchaseMessage && (
+                                        <div
+                                            style={messageStyle}
+                                            dangerouslySetInnerHTML={{
+                                                __html: postPurchaseMessage,
+                                            }}
+                                        />
+                                    )}
+                                </Section>
+                            </Section>
+                        </>
+                    )}
 
                     <Hr style={divider} />
 
@@ -130,3 +166,4 @@ const qrImg: CSSProperties = { border: `4px solid ${COLORS.primary}`, borderRadi
 const footerText: CSSProperties = { color: COLORS.mutedForeground, fontSize: "13px", margin: "0 0 8px" };
 const footerCopy: CSSProperties = { color: "#a3a3a3", fontSize: "11px", margin: 0 };
 const link: CSSProperties = { color: COLORS.primary, fontWeight: 600, textDecoration: "none" };
+const messageStyle: CSSProperties = { color: COLORS.foreground, fontSize: "14px", lineHeight: "1.7" };

@@ -5,10 +5,14 @@ import prisma from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { createPayment } from "@/lib/geniuspay";
+import {
+    createPayment,
+    encodeCallbackInfo,
+    getNetwork,
+    isValidNetwork,
+    type FeexpayNetwork,
+} from "@/lib/feexpay";
 import { sendEventCancellationEmail } from "@/lib/email";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -64,6 +68,7 @@ const createEventSchema = z
             .url("L'URL de l'évènement est invalide")
             .optional()
             .or(z.literal("")),
+        postPurchaseMessage: z.string().optional(),
         startDate: z.string().refine((d) => !isNaN(Date.parse(d)), {
             message: "Date de début invalide",
         }),
@@ -93,20 +98,39 @@ const createEventSchema = z
 // createEvent — action principale
 // ─────────────────────────────────────────────
 
-export async function createEvent(formData: FormData) {
+export type CreateEventResult =
+    | { success: true; eventId: string; slug: string; platformPaymentId?: string }
+    | { error: string };
+
+export async function createEvent(formData: FormData): Promise<CreateEventResult> {
+    // Vérifier si l'utilisateur est ORGANIZER ou ADMIN
+    const dbUser = await getCurrentUser();
+
+    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
+        return { error: "Permission refusée. Vous devez être organisateur." };
+    }
+
+    return createEventForOrganizer(dbUser.id, formData, {
+        // Un admin qui crée son propre évènement échappe déjà aux frais
+        // (logique historique) ; ce flag ne sert qu'au cas "admin publie
+        // pour un tiers" (createEventOnBehalf), qui saute toujours les frais.
+        skipFee: dbUser.role === "ADMIN",
+    });
+}
+
+// ─────────────────────────────────────────────
+// createEventForOrganizer — logique partagée entre createEvent (self-service)
+// et createEventOnBehalf (admin publie pour un organisateur ciblé). N'effectue
+// AUCUNE vérification de permission elle-même : l'appelant doit avoir déjà
+// validé que l'action est autorisée pour `organizerId`.
+// ─────────────────────────────────────────────
+
+export async function createEventForOrganizer(
+    organizerId: string,
+    formData: FormData,
+    options: { skipFee?: boolean } = {},
+): Promise<CreateEventResult> {
     try {
-        // Vérifier si l'utilisateur est ORGANIZER ou ADMIN
-        const dbUser = await getCurrentUser();
-
-        if (
-            !dbUser ||
-            (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")
-        ) {
-            return {
-                error: "Permission refusée. Vous devez être organisateur.",
-            };
-        }
-
         // ── Valider les données ────────────────────────────────────────────
         const parsedData = createEventSchema.safeParse({
             title: formData.get("title"),
@@ -114,6 +138,7 @@ export async function createEvent(formData: FormData) {
             eventType: formData.get("eventType") ?? "IN_PERSON",
             location: formData.get("location") || undefined,
             onlineUrl: formData.get("onlineUrl") || undefined,
+            postPurchaseMessage: formData.get("postPurchaseMessage") || undefined,
             startDate: formData.get("startDate"),
             endDate: formData.get("endDate"),
             ogTitle: formData.get("ogTitle") || undefined,
@@ -178,7 +203,25 @@ export async function createEvent(formData: FormData) {
             update: {},
         });
 
-        const requiresPayment = settings.eventCreationFeeEnabled && dbUser.role !== "ADMIN";
+        const requiresPayment = settings.eventCreationFeeEnabled && !options.skipFee;
+
+        // ── Validation Mobile Money (requise si frais de publication) ─────
+        let network: FeexpayNetwork | undefined;
+        let fullPhoneNumber: string | undefined;
+        if (requiresPayment) {
+            const networkInput = formData.get("network") as string | null;
+            const phoneInput = formData.get("phoneNumber") as string | null;
+            if (!networkInput || !isValidNetwork(networkInput)) {
+                return { error: "Sélectionnez un opérateur mobile money." };
+            }
+            const netInfo = getNetwork(networkInput);
+            const localDigits = (phoneInput ?? "").replace(/\D/g, "");
+            if (!netInfo || localDigits.length < 6) {
+                return { error: "Numéro de téléphone invalide." };
+            }
+            network = networkInput;
+            fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;
+        }
 
         // ── Créer l'évènement ─────────────────────────────────────────────
         const event = await prisma.event.create({
@@ -189,12 +232,13 @@ export async function createEvent(formData: FormData) {
                 eventType: data.eventType,
                 location: data.eventType === "IN_PERSON" ? data.location : null,
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
+                postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),
                 endDate: parseBeninLocalDate(data.endDate),
                 imageUrl,
                 ogTitle: data.ogTitle || data.title,
                 ogImage: ogImageUrl,
-                organizerId: dbUser.id,
+                organizerId,
                 isPublished: !requiresPayment,
                 categories:
                     categoryIds.length > 0
@@ -213,7 +257,7 @@ export async function createEvent(formData: FormData) {
             return { success: true, eventId: event.id, slug: event.slug };
         }
 
-        // ── Créer le paiement de publication ─────────────────────────────
+        // ── Créer le paiement de publication (FeexPay — Mobile Money) ─────
         const amount = settings.eventCreationFee;
         const platformPayment = await prisma.platformPayment.create({
             data: {
@@ -221,34 +265,34 @@ export async function createEvent(formData: FormData) {
                 status: "PENDING",
                 amount,
                 eventId: event.id,
-                userId: dbUser.id,
+                userId: organizerId,
+                payerPhone: fullPhoneNumber,
+                payerNetwork: network,
             },
         });
 
         try {
             const paymentRes = await createPayment({
                 amount,
+                phoneNumber: fullPhoneNumber!,
+                network: network!,
                 description: `Publication d'évènement — ${data.title}`,
-                customer: { name: dbUser.name ?? undefined, email: dbUser.email },
-                success_url: `${APP_URL}/dashboard/events/${event.id}?created=1`,
-                error_url: `${APP_URL}/dashboard/events/new?payment_error=1`,
-                metadata: {
-                    payment_context: "platform",
-                    platform_payment_id: platformPayment.id,
-                    platform_payment_type: "EVENT_CREATION",
-                    event_id: event.id,
-                },
+                callbackInfo: encodeCallbackInfo("platform", platformPayment.id),
             });
 
-            const { reference, checkout_url, id: geniuspayId } = paymentRes.data;
             await prisma.platformPayment.update({
                 where: { id: platformPayment.id },
-                data: { reference, geniuspayId, checkoutUrl: checkout_url },
+                data: { providerReference: paymentRes.reference },
             });
 
-            return { success: true, eventId: event.id, slug: event.slug, redirectUrl: checkout_url };
+            return {
+                success: true,
+                eventId: event.id,
+                slug: event.slug,
+                platformPaymentId: platformPayment.id,
+            };
         } catch (err) {
-            console.error("GeniusPay event creation payment error:", err);
+            console.error("FeexPay event creation payment error:", err);
             await prisma.platformPayment.update({
                 where: { id: platformPayment.id },
                 data: { status: "FAILED" },
@@ -279,6 +323,7 @@ const updateEventSchema = z
             .url("L'URL de l'évènement est invalide")
             .optional()
             .or(z.literal("")),
+        postPurchaseMessage: z.string().optional(),
         startDate: z.string().refine((d) => !isNaN(Date.parse(d)), {
             message: "Date de début invalide",
         }),
@@ -339,6 +384,7 @@ export async function updateEvent(formData: FormData) {
             eventType: formData.get("eventType") ?? "IN_PERSON",
             location: formData.get("location") || undefined,
             onlineUrl: formData.get("onlineUrl") || undefined,
+            postPurchaseMessage: formData.get("postPurchaseMessage") || undefined,
             startDate: formData.get("startDate"),
             endDate: formData.get("endDate"),
             ogTitle: formData.get("ogTitle") || undefined,
@@ -412,6 +458,7 @@ export async function updateEvent(formData: FormData) {
                 eventType: data.eventType,
                 location: data.eventType === "IN_PERSON" ? data.location : null,
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
+                postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),
                 endDate: parseBeninLocalDate(data.endDate),
                 imageUrl,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -10,9 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { initiateTicketPayment } from "@/actions/payment.actions";
+import { initiateTicketPayment, getOrderPaymentStatus } from "@/actions/payment.actions";
 import type { TicketAssignment } from "@/actions/payment.actions";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
+import { MobileMoneyForm } from "@/components/payments/MobileMoneyForm";
+import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
+import { usePaymentPolling } from "@/hooks/use-payment-polling";
+import type { FeexpayNetwork } from "@/lib/feexpay-networks";
 import { toast } from "sonner";
 import { Minus, Plus, Loader2, Ticket, User, Users, Tag, X } from "lucide-react";
 
@@ -49,6 +54,7 @@ export function BuyTicketButton({
     buyerEmail,
     hasExistingTicket = false,
 }: Props) {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [quantity, setQuantity] = useState(1);
     const [isPending, startTransition] = useTransition();
@@ -64,6 +70,13 @@ export function BuyTicketButton({
 
     // Attribution : 1 entrée par billet
     const [assignments, setAssignments] = useState<Assignment[]>([]);
+
+    // Paiement Mobile Money (FeexPay)
+    const [network, setNetwork] = useState<FeexpayNetwork | "">("");
+    const [mmPhone, setMmPhone] = useState("");
+    const [step, setStep] = useState<"form" | "waiting">("form");
+    const polling = usePaymentPolling(getOrderPaymentStatus);
+    const pendingOrderIdRef = useRef<string | null>(null);
 
     const isFree = ticket.price === 0;
     const isSoldOut = remainingStock !== null && remainingStock <= 0;
@@ -87,8 +100,26 @@ export function BuyTicketButton({
         setAssignments([{ forSelf: !hasExistingTicket, name: "", email: "" }]);
         setPromoInput("");
         setAppliedPromo(null);
+        setNetwork("");
+        setMmPhone("");
+        setStep("form");
+        pendingOrderIdRef.current = null;
+        polling.stop();
         setOpen(true);
     }
+
+    // Réagit à l'évolution du statut détecté par le polling
+    useEffect(() => {
+        if (step !== "waiting") return;
+        if (polling.status === "COMPLETED") {
+            setOpen(false);
+            router.push(`/checkout/success?orderId=${pendingOrderIdRef.current}`);
+        } else if (polling.status === "FAILED") {
+            toast.error("Le paiement a échoué. Vous pouvez réessayer.");
+            setStep("form");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [polling.status, step]);
 
     async function handleApplyPromo() {
         const code = promoInput.trim();
@@ -126,6 +157,17 @@ export function BuyTicketButton({
     const effectiveEmail = isLoggedIn ? buyerEmail : guestEmail;
 
     function handleSubmit() {
+        if (!isFree) {
+            if (!network) {
+                toast.error("Sélectionnez un opérateur mobile money.");
+                return;
+            }
+            if (mmPhone.replace(/\D/g, "").length < 6) {
+                toast.error("Numéro de téléphone invalide.");
+                return;
+            }
+        }
+
         startTransition(async () => {
             const payload: TicketAssignment[] = assignments.map(a => ({
                 forSelf: a.forSelf,
@@ -139,6 +181,8 @@ export function BuyTicketButton({
                 guestEmail: isLoggedIn ? undefined : guestEmail,
                 guestName: isLoggedIn ? undefined : guestName,
                 promoCode: appliedPromo?.code,
+                phoneNumber: isFree ? undefined : mmPhone,
+                network: isFree ? undefined : (network as FeexpayNetwork),
             });
 
             if (result.error) {
@@ -146,9 +190,17 @@ export function BuyTicketButton({
                 return;
             }
 
-            if (result.redirectUrl) {
-                window.location.href = result.redirectUrl;
+            if (result.isFree) {
+                setOpen(false);
+                router.push(`/checkout/success?orderId=${result.orderId}`);
+                return;
             }
+
+            // Billet payant : la demande de paiement a été envoyée sur le
+            // téléphone du client — on affiche l'écran d'attente et on poll.
+            pendingOrderIdRef.current = result.orderId!;
+            setStep("waiting");
+            polling.start(result.orderId!);
         });
     }
 
@@ -177,6 +229,13 @@ export function BuyTicketButton({
                         </DialogTitle>
                     </DialogHeader>
 
+                    {step === "waiting" ? (
+                        <MobileMoneyWaiting
+                            phoneNumber={mmPhone}
+                            timedOut={polling.timedOut}
+                            onRetryCheck={() => polling.retryNow()}
+                        />
+                    ) : (
                     <div className="space-y-5 pt-1">
 
                         {/* ── Bloc acheteur ─────────────────────────── */}
@@ -373,6 +432,17 @@ export function BuyTicketButton({
                             </div>
                         )}
 
+                        {/* ── Paiement Mobile Money ─────────────────── */}
+                        {!isFree && (
+                            <MobileMoneyForm
+                                network={network}
+                                onNetworkChange={setNetwork}
+                                phoneNumber={mmPhone}
+                                onPhoneNumberChange={setMmPhone}
+                                disabled={isPending}
+                            />
+                        )}
+
                         {/* ── Récapitulatif + bouton ────────────────── */}
                         <div className="border-t pt-4 space-y-4">
                             {fees > 0 && (
@@ -409,12 +479,17 @@ export function BuyTicketButton({
                                     className="gap-2"
                                 >
                                     {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                                    {isPending ? "Redirection…" : isFree ? "Réserver" : "Payer"}
+                                    {isPending
+                                        ? "Envoi…"
+                                        : isFree
+                                          ? "Réserver"
+                                          : "Payer"}
                                 </Button>
                             </div>
                         </div>
 
                     </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </>

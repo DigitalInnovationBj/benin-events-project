@@ -55,6 +55,8 @@ export interface OrderConfirmationEmailProps {
     totalAmount: number;
     items: OrderItem[];
     appUrl: string;
+    onlineUrl?: string | null;
+    postPurchaseMessage?: string | null;
 }
 
 export function OrderConfirmationEmail({
@@ -67,7 +69,10 @@ export function OrderConfirmationEmail({
     totalAmount,
     items,
     appUrl,
+    onlineUrl,
+    postPurchaseMessage,
 }: OrderConfirmationEmailProps) {
+    const hasAccessInfo = Boolean(onlineUrl || postPurchaseMessage);
     return (
         <Html lang="fr">
             <Head />
@@ -138,6 +143,37 @@ export function OrderConfirmationEmail({
                             )}
                         </Section>
                     </Section>
+
+                    {hasAccessInfo && (
+                        <>
+                            <Hr style={divider} />
+                            <Section style={section}>
+                                <Heading style={h2}>
+                                    {eventType === "ONLINE"
+                                        ? "Accès à l'évènement"
+                                        : "Informations complémentaires"}
+                                </Heading>
+                                <Section style={card}>
+                                    {onlineUrl && (
+                                        <Text style={{ ...infoValue, margin: "0 0 10px" }}>
+                                            🔗{" "}
+                                            <a href={onlineUrl} style={{ color: COLORS.primary }}>
+                                                {onlineUrl}
+                                            </a>
+                                        </Text>
+                                    )}
+                                    {postPurchaseMessage && (
+                                        <div
+                                            style={messageStyle}
+                                            dangerouslySetInnerHTML={{
+                                                __html: postPurchaseMessage,
+                                            }}
+                                        />
+                                    )}
+                                </Section>
+                            </Section>
+                        </>
+                    )}
 
                     <Hr style={divider} />
 
@@ -354,4 +390,10 @@ const summaryTotalValue: CSSProperties = {
     fontSize: "18px",
     fontWeight: "800",
     margin: 0,
+};
+
+const messageStyle: CSSProperties = {
+    color: COLORS.foreground,
+    fontSize: "14px",
+    lineHeight: "1.7",
 };

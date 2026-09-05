@@ -18,6 +18,7 @@ import { EventCancellationEmail } from "@/emails/event-cancellation";
 import { RefundConfirmationEmail } from "@/emails/refund-confirmation";
 import { PartnerRequestAdminEmail } from "@/emails/partner-request-admin";
 import { PartnerRequestDecisionEmail } from "@/emails/partner-request-decision";
+import { OrganizerCredentialsEmail } from "@/emails/organizer-credentials";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -76,6 +77,8 @@ export interface SendOrderConfirmationParams {
     orderReference: string;
     totalAmount: number;
     items: OrderItemForEmail[];
+    onlineUrl?: string | null;
+    postPurchaseMessage?: string | null;
 }
 
 export async function sendOrderConfirmationEmail(
@@ -84,6 +87,7 @@ export async function sendOrderConfirmationEmail(
     const {
         to, customerName, eventTitle, eventDate,
         eventLocation, eventType, orderReference, totalAmount, items,
+        onlineUrl, postPurchaseMessage,
     } = params;
 
     const itemsWithQR = items.map((item, index) => {
@@ -97,6 +101,7 @@ export async function sendOrderConfirmationEmail(
         renderBoth(OrderConfirmationEmail({
             customerName, eventTitle, eventDate, eventLocation,
             eventType, orderReference, totalAmount, items: itemsWithQR, appUrl: APP_URL,
+            onlineUrl: onlineUrl ?? null, postPurchaseMessage: postPurchaseMessage ?? null,
         })),
         Promise.all(items.map((item, index) => {
             const verifyUrl = `${APP_URL}/verify?item=${item.id}&order=${orderReference}`;
@@ -206,6 +211,39 @@ export async function sendOrganizerRequestDecisionEmail(
         : "Votre demande d'organisateur - Décision";
 
     await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
+}
+
+// ─────────────────────────────────────────────
+// sendOrganizerCredentialsEmail — compte créé directement par un admin
+// ─────────────────────────────────────────────
+
+export interface SendOrganizerCredentialsParams {
+    to: string;
+    organizerName: string;
+    temporaryPassword: string;
+}
+
+export async function sendOrganizerCredentialsEmail(
+    params: SendOrganizerCredentialsParams,
+) {
+    const { to, organizerName, temporaryPassword } = params;
+
+    const { html, text } = await renderBoth(
+        OrganizerCredentialsEmail({
+            organizerName,
+            email: to,
+            temporaryPassword,
+            appUrl: APP_URL,
+        }),
+    );
+
+    await resend.emails.send({
+        from: FROM_SUPPORT,
+        to,
+        subject: "Votre compte organisateur Benin Events est prêt",
+        html,
+        text,
+    });
 }
 
 // ─────────────────────────────────────────────
@@ -390,13 +428,15 @@ export interface SendTicketGiftParams {
     emailTemplate: "PRIMARY" | "SECONDARY";
     orderItemId: string;
     orderReference: string;
+    onlineUrl?: string | null;
+    postPurchaseMessage?: string | null;
 }
 
 export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
     const {
         to, recipientName, senderName, eventTitle, eventDate,
         eventLocation, eventType, ticketTitle, price, emailTemplate,
-        orderItemId, orderReference,
+        orderItemId, orderReference, onlineUrl, postPurchaseMessage,
     } = params;
 
     const verifyUrl = `${APP_URL}/verify?item=${orderItemId}&order=${orderReference}`;
@@ -414,6 +454,7 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
             eventLocation, eventType, ticketTitle,
             qrCodeUrl: "cid:qr-gift",
             orderItemId, orderReference, appUrl: APP_URL,
+            onlineUrl: onlineUrl ?? null, postPurchaseMessage: postPurchaseMessage ?? null,
         })),
         generateQrAttachment(verifyUrl, 0).then(a => ({ ...a, contentId: "qr-gift" })),
         generateTicketPdf({

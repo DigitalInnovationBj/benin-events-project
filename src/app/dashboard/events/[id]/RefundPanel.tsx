@@ -46,7 +46,7 @@ export default function RefundPanel({ orders }: { orders: RefundableOrder[] }) {
                 )}
             </div>
             <p className="text-sm text-muted-foreground">
-                GeniusPay ne propose pas de remboursement automatique : traitez
+                FeexPay ne propose pas de remboursement automatique : traitez
                 le virement ou le retour mobile money vous-même, puis marquez
                 la commande comme remboursée ci-dessous pour informer
                 l&apos;acheteur.

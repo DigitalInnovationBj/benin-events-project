@@ -21,7 +21,15 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
             order = await prisma.order.findFirst({
                 where: { id: orderId, userId: dbUser.id },
                 include: {
-                    event: { select: { title: true, slug: true } },
+                    event: {
+                        select: {
+                            title: true,
+                            slug: true,
+                            eventType: true,
+                            onlineUrl: true,
+                            postPurchaseMessage: true,
+                        },
+                    },
                     items: { include: { ticket: { select: { title: true } } } },
                 },
             });
@@ -32,7 +40,15 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
             const candidate = await prisma.order.findFirst({
                 where: { id: orderId, userId: null },
                 include: {
-                    event: { select: { title: true, slug: true } },
+                    event: {
+                        select: {
+                            title: true,
+                            slug: true,
+                            eventType: true,
+                            onlineUrl: true,
+                            postPurchaseMessage: true,
+                        },
+                    },
                     items: { include: { ticket: { select: { title: true } } } },
                 },
             });
@@ -96,6 +112,35 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                             <Calendar className="w-3.5 h-3.5" />
                             Réf : {order.reference}
                         </div>
+
+                        {/* Message post-achat / lien d'accès (jamais avant COMPLETED) */}
+                        {(order.event.onlineUrl || order.event.postPurchaseMessage) && (
+                            <div className="bg-secondary/10 border border-secondary/20 rounded-2xl p-4 text-left space-y-2">
+                                <p className="font-semibold text-sm">
+                                    {order.event.eventType === "ONLINE"
+                                        ? "Accès à l'évènement"
+                                        : "Informations complémentaires"}
+                                </p>
+                                {order.event.onlineUrl && (
+                                    <a
+                                        href={order.event.onlineUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-secondary underline break-all"
+                                    >
+                                        {order.event.onlineUrl}
+                                    </a>
+                                )}
+                                {order.event.postPurchaseMessage && (
+                                    <div
+                                        className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground"
+                                        dangerouslySetInnerHTML={{
+                                            __html: order.event.postPurchaseMessage,
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        )}
 
                         {/* CTA création de compte pour les invités */}
                         {isGuest && (

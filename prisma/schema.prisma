@@ -106,6 +106,13 @@ model User {
   // PlatformSettings.commissionRate pour cet organisateur si renseigné)
   partnerCommissionRate Float?
 
+  // Plugin admin better-auth — comptes créés directement par un admin
+  // (organisateurs validés à la main). banned/banReason/banExpires ne sont
+  // pas utilisés activement dans l'app, requis par le schéma du plugin.
+  banned            Boolean?           @default(false)
+  banReason         String?
+  banExpires        DateTime?
+
   sessions          Session[]
   accounts          Account[]
 
@@ -138,6 +145,10 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// Plugin admin better-auth — non utilisé activement (pas d'impersonation
+  /// dans l'app), requis par le schéma du plugin.
+  impersonatedBy String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -262,8 +273,14 @@ model Event {
   /// Obligatoire pour les événements en présentiel
   location    String?
 
-  /// Obligatoire pour les événements en ligne (validé côté applicatif)
+  /// Obligatoire pour les événements en ligne (validé côté applicatif) —
+  /// n'est plus affiché publiquement, seulement aux acheteurs de billet.
   onlineUrl   String?
+
+  /// Message libre (texte riche) envoyé aux acheteurs après paiement —
+  /// lien de groupe WhatsApp, instructions d'accès, stationnement, etc.
+  /// Disponible pour tous les types d'évènement, pas seulement en ligne.
+  postPurchaseMessage String? @db.Text
 
   startDate   DateTime
   endDate     DateTime
@@ -381,8 +398,12 @@ model Order {
   status      OrderStatus @default(PENDING)
   totalAmount Float
 
-  geniuspayId Int?
-  checkoutUrl String?
+  // Paiement FeexPay (Mobile Money) — providerReference = référence FeexPay,
+  // utile pour le support/status-check ; payerPhone/payerNetwork = saisis
+  // par l'acheteur à l'initiation (numéro + opérateur mobile money).
+  providerReference String? @unique
+  payerPhone        String?
+  payerNetwork      String?
 
   // Acheteur authentifié (null pour les commandes invité)
   userId  String?
@@ -527,9 +548,10 @@ model PlatformPayment {
   status      PlatformPaymentStatus @default(PENDING)
   amount      Float
 
-  geniuspayId Int?
-  checkoutUrl String?
-  reference   String?               @unique
+  // Paiement FeexPay (Mobile Money) — voir Order pour le détail des champs.
+  providerReference String? @unique
+  payerPhone        String?
+  payerNetwork      String?
 
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)

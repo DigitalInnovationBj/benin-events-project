@@ -34,6 +34,7 @@ type EventWithCategories = {
     eventType: "IN_PERSON" | "ONLINE";
     location: string | null;
     onlineUrl: string | null;
+    postPurchaseMessage: string | null;
     startDate: Date;
     endDate: Date;
     isFeatured: boolean;
@@ -69,6 +70,9 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [description, setDescription] = useState(event.description);
+    const [postPurchaseMessage, setPostPurchaseMessage] = useState(
+        event.postPurchaseMessage ?? "",
+    );
 
     // Type d'évènement
     const [eventType, setEventType] = useState<"IN_PERSON" | "ONLINE">(
@@ -123,6 +127,7 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
         formData.set("eventId", event.id);
         formData.set("eventType", eventType);
         formData.set("description", description);
+        formData.set("postPurchaseMessage", postPurchaseMessage);
         formData.set("isFeatured", isFeatured ? "true" : "false");
         selectedCategories.forEach((id) => formData.append("categoryIds", id));
 
@@ -270,7 +275,10 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                     required
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Zoom, Google Meet, YouTube Live, Twitch…
+                                    Zoom, Google Meet, YouTube Live, Twitch… Ce
+                                    lien n&apos;est plus affiché publiquement,
+                                    seulement transmis aux acheteurs de
+                                    billet après paiement.
                                 </p>
                             </div>
                         )}
@@ -302,6 +310,24 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
                                     required
                                 />
                             </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label>
+                                Message après achat{" "}
+                                <span className="text-muted-foreground text-xs font-normal">
+                                    (optionnel)
+                                </span>
+                            </Label>
+                            <RichTextEditor
+                                content={event.postPurchaseMessage ?? ""}
+                                onChange={setPostPurchaseMessage}
+                                placeholder="Ex : lien du groupe WhatsApp, instructions d'accès, informations de stationnement…"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Envoyé uniquement aux acheteurs, après paiement
+                                (email + page de confirmation).
+                            </p>
                         </div>
                     </div>
 

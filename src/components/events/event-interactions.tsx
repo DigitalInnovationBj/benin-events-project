@@ -21,7 +21,6 @@ interface EventInteractionsProps {
     startDate: string;
     eventType: "IN_PERSON" | "ONLINE";
     location: string | null;
-    onlineUrl: string | null;
 }
 
 export default function EventInteractions({
@@ -35,7 +34,6 @@ export default function EventInteractions({
     startDate,
     eventType,
     location,
-    onlineUrl,
 }: EventInteractionsProps) {
     const [likeCount, setLikeCount] = useState(initialLikeCount);
     const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
@@ -188,7 +186,6 @@ export default function EventInteractions({
                 startDate={startDate}
                 eventType={eventType}
                 location={location}
-                onlineUrl={onlineUrl}
             />
         </div>
     );

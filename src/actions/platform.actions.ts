@@ -2,17 +2,37 @@
 
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
-import { createPayment } from "@/lib/geniuspay";
+import {
+    createPayment,
+    encodeCallbackInfo,
+    getNetwork,
+    isValidNetwork,
+    type FeexpayNetwork,
+} from "@/lib/feexpay";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+export interface FeaturedEventPaymentInput {
+    eventId: string;
+    phoneNumber: string;
+    network: FeexpayNetwork;
+}
 
-export async function initiateFeaturedEventPayment(eventId: string) {
+export async function initiateFeaturedEventPayment(input: FeaturedEventPaymentInput) {
     const dbUser = await getCurrentUser();
     if (!dbUser) return { error: "Non authentifié" };
     if (dbUser.role !== "ORGANIZER") return { error: "Réservé aux organisateurs" };
 
+    if (!isValidNetwork(input.network)) {
+        return { error: "Sélectionnez un opérateur mobile money." };
+    }
+    const netInfo = getNetwork(input.network);
+    const localDigits = input.phoneNumber.replace(/\D/g, "");
+    if (!netInfo || localDigits.length < 6) {
+        return { error: "Numéro de téléphone invalide." };
+    }
+    const fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;
+
     const event = await prisma.event.findUnique({
-        where: { id: eventId },
+        where: { id: input.eventId },
         select: { id: true, title: true, organizerId: true, isFeatured: true },
     });
     if (!event) return { error: "Évènement introuvable" };
@@ -36,38 +56,41 @@ export async function initiateFeaturedEventPayment(eventId: string) {
             amount,
             eventId: event.id,
             userId: dbUser.id,
+            payerPhone: fullPhoneNumber,
+            payerNetwork: input.network,
         },
     });
 
     try {
         const paymentRes = await createPayment({
             amount,
+            phoneNumber: fullPhoneNumber,
+            network: input.network,
             description: `Mise en vedette — ${event.title}`,
-            customer: { name: dbUser.name ?? undefined, email: dbUser.email },
-            success_url: `${APP_URL}/dashboard/events/${event.id}?featured=1`,
-            error_url: `${APP_URL}/dashboard/events/${event.id}?featured_error=1`,
-            metadata: {
-                payment_context: "platform",
-                platform_payment_id: platformPayment.id,
-                platform_payment_type: "EVENT_FEATURED",
-                event_id: event.id,
-            },
+            callbackInfo: encodeCallbackInfo("platform", platformPayment.id),
         });
-
-        const { reference, checkout_url, id: geniuspayId } = paymentRes.data;
 
         await prisma.platformPayment.update({
             where: { id: platformPayment.id },
-            data: { reference, geniuspayId, checkoutUrl: checkout_url },
+            data: { providerReference: paymentRes.reference },
         });
 
-        return { success: true, redirectUrl: checkout_url };
+        return { success: true, platformPaymentId: platformPayment.id };
     } catch (err) {
-        console.error("GeniusPay featured event error:", err);
+        console.error("FeexPay featured event error:", err);
         await prisma.platformPayment.update({
             where: { id: platformPayment.id },
             data: { status: "FAILED" },
         });
         return { error: "Service de paiement indisponible. Veuillez réessayer." };
     }
+}
+
+export async function getPlatformPaymentStatus(platformPaymentId: string) {
+    const payment = await prisma.platformPayment.findUnique({
+        where: { id: platformPaymentId },
+        select: { status: true },
+    });
+    if (!payment) return { error: "Paiement introuvable." };
+    return { status: payment.status };
 }

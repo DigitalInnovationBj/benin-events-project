@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { emailOTP } from "better-auth/plugins";
+import { admin, emailOTP } from "better-auth/plugins";
 import { nextCookies } from "better-auth/next-js";
 import prisma from "@/lib/prisma";
 import { sendAuthOtpEmail } from "@/lib/email";
@@ -96,6 +96,10 @@ export const auth = betterAuth({
                 await sendAuthOtpEmail({ to: email, otp, type });
             },
         }),
+        // Utilisé uniquement côté serveur pour auth.api.createUser (création
+        // de comptes organisateurs par un admin) — pas d'UI d'administration
+        // better-auth exposée, pas de ban/impersonation actifs dans l'app.
+        admin(),
         nextCookies(),
     ],
 

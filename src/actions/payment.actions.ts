@@ -2,16 +2,25 @@
 
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
-import { createPayment } from "@/lib/geniuspay";
-import { sendOrderConfirmationEmail, sendTicketGiftEmail, sendRefundConfirmationEmail } from "@/lib/email";
+import {
+    createPayment,
+    encodeCallbackInfo,
+    getNetwork,
+    isValidNetwork,
+    type FeexpayNetwork,
+} from "@/lib/feexpay";
+import { sendRefundConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 function computeFees(base: number): number {
     if (base === 0) return 0;
     return Math.ceil(base * 0.05) + 100;
+}
+
+function generateReference(): string {
+    return `BE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase();
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,6 +40,9 @@ export type PaymentInput = {
     guestName?: string;
     // Code promo partenaire (influenceur), optionnel
     promoCode?: string;
+    // Paiement Mobile Money (requis si le montant n'est pas 0)
+    phoneNumber?: string;
+    network?: FeexpayNetwork;
 };
 
 export async function initiateTicketPayment(input: PaymentInput) {
@@ -117,16 +129,32 @@ export async function initiateTicketPayment(input: PaymentInput) {
     const totalAmount = discountedBase + fees;
     const isFree = discountedBase === 0;
 
+    // ── Validation Mobile Money (requise pour un billet payant) ───────────
+    let network: FeexpayNetwork | undefined;
+    let fullPhoneNumber: string | undefined;
+    if (!isFree) {
+        if (!input.network || !isValidNetwork(input.network)) {
+            return { error: "Sélectionnez un opérateur mobile money." };
+        }
+        const netInfo = getNetwork(input.network);
+        const localDigits = (input.phoneNumber ?? "").replace(/\D/g, "");
+        if (!netInfo || localDigits.length < 6) {
+            return { error: "Numéro de téléphone invalide." };
+        }
+        network = input.network;
+        fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;
+    }
+
     // ── Vérification du stock + création de commande (transaction) ───────
     // Verrou sur la ligne du ticket (FOR UPDATE) : les achats concurrents du
     // même billet sont sérialisés → aucune survente possible.
     const txResult = await prisma.$transaction(async (tx) => {
         if (ticket.totalStock !== null) {
             await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticket.id} FOR UPDATE`;
-            // Une commande PENDING ne réserve le stock que pendant 1 h : les
-            // paiements abandonnés dont GeniusPay n'a jamais notifié
-            // l'expiration ne gèlent pas les places indéfiniment.
-            const pendingCutoff = new Date(Date.now() - 60 * 60 * 1000);
+            // Une commande PENDING ne réserve le stock que 20 min : un push
+            // Mobile Money FeexPay se résout en quelques minutes (USSD), donc
+            // un paiement abandonné ne doit pas geler les places longtemps.
+            const pendingCutoff = new Date(Date.now() - 20 * 60 * 1000);
             const sold = await tx.orderItem.aggregate({
                 where: {
                     ticketId: ticket.id,
@@ -150,9 +178,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
         const order = await tx.order.create({
             data: {
-                reference: isFree
-                    ? `FREE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-                    : `TMP-${Date.now()}`,
+                reference: generateReference(),
                 status: isFree ? "COMPLETED" : "PENDING",
                 totalAmount: isFree ? 0 : totalAmount,
                 ...(dbUserId
@@ -161,6 +187,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 eventId: ticket.event.id,
                 eventPartnerId,
                 discountAmount,
+                payerPhone: fullPhoneNumber,
+                payerNetwork: network,
                 items: { create: orderItemsData },
             },
             include: {
@@ -190,92 +218,53 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
     // ── Billet gratuit ────────────────────────────────────────────────────
     if (isFree) {
-
-        const eventDate = new Date(order.event.startDate).toLocaleDateString("fr-FR", {
-            weekday: "long", day: "numeric", month: "long", year: "numeric",
-            hour: "2-digit", minute: "2-digit", timeZone: "Africa/Porto-Novo",
-        });
-
-        sendOrderConfirmationEmail({
-            to: buyerEmail,
-            customerName: buyerName ?? "Client",
-            eventTitle: order.event.title,
-            eventDate,
-            eventLocation: order.event.location,
-            eventType: order.event.eventType,
-            orderReference: order.reference,
-            totalAmount: 0,
-            items: order.items.map(item => ({
-                id: item.id,
-                ticketTitle: ticket.title,
-                quantity: 1,
-                price: 0,
-                emailTemplate: ticket.emailTemplate,
-            })),
-        }).catch(err => console.error("Free ticket email error:", err));
-
-        // Emails cadeaux pour les bénéficiaires distincts de l'acheteur
-        const giftItems = order.items.filter(
-            (item) => item.attendeeEmail && item.attendeeEmail !== buyerEmail,
+        sendOrderConfirmationEmails(order.id).catch((err) =>
+            console.error("Free ticket email error:", err),
         );
-        Promise.allSettled(
-            giftItems.map((item) =>
-                sendTicketGiftEmail({
-                    to: item.attendeeEmail!,
-                    recipientName: item.attendeeName ?? "Invité",
-                    senderName: buyerName ?? "Un ami",
-                    eventTitle: order.event.title,
-                    eventDate,
-                    eventLocation: order.event.location,
-                    eventType: order.event.eventType,
-                    ticketTitle: ticket.title,
-                    price: 0,
-                    emailTemplate: ticket.emailTemplate,
-                    orderItemId: item.id,
-                    orderReference: order.reference,
-                }),
-            ),
-        ).catch(err => console.error("Gift email error:", err));
 
         revalidatePath(`/events/${order.event.slug}`);
-        return {
-            success: true,
-            redirectUrl: `${APP_URL}/checkout/success?orderId=${order.id}`,
-        };
+        return { success: true, isFree: true, orderId: order.id };
     }
 
-    // ── Billet payant ─────────────────────────────────────────────────────
+    // ── Billet payant (FeexPay — Mobile Money) ────────────────────────────
     try {
         const paymentRes = await createPayment({
             amount: totalAmount,
+            phoneNumber: fullPhoneNumber!,
+            network: network!,
             description: `${ticket.title} × ${quantity} — ${ticket.event.title}`,
-            customer: { name: buyerName, email: buyerEmail },
-            success_url: `${APP_URL}/checkout/success?orderId=${order.id}`,
-            error_url: `${APP_URL}/checkout/error?orderId=${order.id}`,
-            metadata: {
-                order_id: order.id,
-                ticket_id: ticket.id,
-                quantity: String(quantity),
-                ...(dbUserId ? { user_id: dbUserId } : { guest_email: buyerEmail }),
-            },
+            callbackInfo: encodeCallbackInfo("order", order.id),
         });
-
-        const { reference, checkout_url, id: geniuspayId } = paymentRes.data;
 
         await prisma.order.update({
             where: { id: order.id },
-            data: { reference, geniuspayId, checkoutUrl: checkout_url },
+            data: { providerReference: paymentRes.reference },
         });
 
-        return { success: true, redirectUrl: checkout_url };
+        return { success: true, isFree: false, orderId: order.id };
     } catch (err) {
-        console.error("GeniusPay error:", err);
+        console.error("FeexPay error:", err);
         await prisma.order.update({
             where: { id: order.id },
             data: { status: "FAILED" },
         });
         return { error: "Service de paiement indisponible. Veuillez réessayer." };
     }
+}
+
+// ─────────────────────────────────────────────
+// getOrderPaymentStatus — polling client pendant l'attente de confirmation
+// Mobile Money (le webhook FeexPay met à jour le statut en base ; on se
+// contente de le relire ici, pas d'appel FeexPay direct depuis le client).
+// ─────────────────────────────────────────────
+
+export async function getOrderPaymentStatus(orderId: string) {
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { status: true },
+    });
+    if (!order) return { error: "Commande introuvable." };
+    return { status: order.status };
 }
 
 export async function getUserOrders() {

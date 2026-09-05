@@ -9,7 +9,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Project
 
 Benin Events — plateforme de billetterie événementielle pour le Bénin.
-Stack : Next.js (App Router, `src/proxy.ts` comme middleware), React 19, Prisma 7 + PostgreSQL (Neon), Clerk (auth — migration vers better-auth prévue), GeniusPay (paiements mobile money), Resend (emails), Vercel (hosting + Blob + crons).
+Stack : Next.js (App Router, `src/proxy.ts` comme middleware), React 19, Prisma 7 + PostgreSQL (Neon), Clerk (auth — migration vers better-auth prévue), FeexPay (paiements mobile money), Resend (emails), Vercel (hosting + Blob + crons).
 
 # Package manager & installation
 

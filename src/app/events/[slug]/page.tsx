@@ -10,7 +10,6 @@ import {
     MapPin,
     MonitorPlay,
     Star,
-    ExternalLink,
     ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -320,7 +319,6 @@ export default async function PublicEventPage({ params }: Props) {
                             startDate={event.startDate.toISOString()}
                             eventType={event.eventType}
                             location={event.location}
-                            onlineUrl={event.onlineUrl}
                         />
                     </div>
                 </div>
@@ -385,30 +383,16 @@ export default async function PublicEventPage({ params }: Props) {
                             </div>
                         </section>
                     ) : event.eventType === "ONLINE" ? (
-                        <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-5">
+                        <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
                             <h2 className="text-3xl font-afo flex items-center gap-3">
                                 <MonitorPlay className="w-7 h-7 text-blue-500" />
                                 Accès en ligne
                             </h2>
                             <p className="text-muted-foreground leading-relaxed">
                                 Cet évènement se déroule entièrement en ligne.
-                                Rejoignez-le depuis n&apos;importe où via le
-                                lien ci-dessous.
-                            </p>
-                            {event.onlineUrl && (
-                                <a
-                                    href={event.onlineUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-500 font-semibold px-5 py-3.5 rounded-xl transition-colors"
-                                >
-                                    <ExternalLink className="w-5 h-5 shrink-0" />
-                                    Accéder à l&apos;évènement
-                                </a>
-                            )}
-                            <p className="text-xs text-muted-foreground pt-1">
-                                Plateforme : Zoom, Google Meet, YouTube Live,
-                                Twitch, etc.
+                                Le lien d&apos;accès (Zoom, Google Meet,
+                                YouTube Live…) vous sera communiqué par email
+                                après l&apos;achat de votre billet.
                             </p>
                         </section>
                     ) : null}
