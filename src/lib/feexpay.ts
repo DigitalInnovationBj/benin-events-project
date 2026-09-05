@@ -89,6 +89,21 @@ export interface CreatePaymentResponse {
     phoneNumber: string;
 }
 
+// FeexPay documente "description : sans caractères spéciaux" — un titre
+// d'évènement/billet contenant un accent, un tiret cadratin ou "×" fait
+// planter leur backend (502 Internal Server Error, confirmé en test direct).
+// On assainit systématiquement ici pour ne jamais dépendre de la propreté
+// du texte saisi par l'organisateur.
+function sanitizeFeexpayDescription(text: string): string {
+    return text
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "") // accents (é → e, à → a...)
+        .replace(/[^a-zA-Z0-9 .,'-]/g, " ") // tout le reste (×, —, emojis...) → espace
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 100);
+}
+
 export async function createPayment(
     input: CreatePaymentInput,
 ): Promise<CreatePaymentResponse> {
@@ -107,7 +122,9 @@ export async function createPayment(
                 shop: process.env.FEEXPAY_SHOP_ID,
                 amount: input.amount,
                 phoneNumber: input.phoneNumber,
-                description: input.description,
+                description: input.description
+                    ? sanitizeFeexpayDescription(input.description)
+                    : undefined,
                 callback_info: input.callbackInfo,
             }),
         },
