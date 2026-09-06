@@ -217,8 +217,8 @@ export async function createEventForOrganizer(
             }
             const netInfo = getNetwork(networkInput);
             const localDigits = (phoneInput ?? "").replace(/\D/g, "");
-            if (!netInfo || !isValidLocalNumber(localDigits)) {
-                return { error: "Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000)." };
+            if (!netInfo || !isValidLocalNumber(localDigits, netInfo.countryCode)) {
+                return { error: "Numéro de téléphone invalide." };
             }
             network = networkInput;
             fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;

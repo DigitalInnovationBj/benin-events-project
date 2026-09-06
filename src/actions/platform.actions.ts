@@ -29,8 +29,8 @@ export async function initiateFeaturedEventPayment(input: FeaturedEventPaymentIn
     }
     const netInfo = getNetwork(input.network);
     const localDigits = input.phoneNumber.replace(/\D/g, "");
-    if (!netInfo || !isValidLocalNumber(localDigits)) {
-        return { error: "Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000)." };
+    if (!netInfo || !isValidLocalNumber(localDigits, netInfo.countryCode)) {
+        return { error: "Numéro de téléphone invalide." };
     }
     const fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;
 

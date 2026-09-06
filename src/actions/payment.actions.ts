@@ -134,8 +134,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
         }
         const netInfo = getNetwork(input.network);
         const localDigits = (input.phoneNumber ?? "").replace(/\D/g, "");
-        if (!netInfo || !isValidLocalNumber(localDigits)) {
-            return { error: "Numéro de téléphone invalide (10 chiffres attendus, ex : 0190000000)." };
+        if (!netInfo || !isValidLocalNumber(localDigits, netInfo.countryCode)) {
+            return { error: "Numéro de téléphone invalide." };
         }
         network = input.network;
         fullPhoneNumber = `${netInfo.dialCode}${localDigits}`;
