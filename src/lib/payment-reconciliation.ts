@@ -44,6 +44,46 @@ export async function reconcileOrderPayment(orderId: string): Promise<OrderStatu
     return "PENDING";
 }
 
+/**
+ * Réconcilie les commandes encore PENDING d'un acheteur, à l'affichage de ses
+ * pages (confirmation, « Mes billets »).
+ *
+ * Sans ça, un acheteur qui ferme l'onglet pendant l'attente Mobile Money n'est
+ * plus poll par personne : sa commande dépend du seul webhook FeexPay, et à
+ * défaut du cron — qui ne tourne qu'une fois par jour (limite Vercel Hobby).
+ * Son simple retour sur le site résout désormais le cas.
+ *
+ * Borné : seules les commandes récentes ayant une référence prestataire sont
+ * revérifiées, et au maximum `limit` d'entre elles, pour ne pas transformer un
+ * affichage de page en rafale d'appels FeexPay.
+ */
+export async function reconcilePendingOrdersOfUser(
+    userId: string,
+    { limit = 5, maxAgeHours = 48 }: { limit?: number; maxAgeHours?: number } = {},
+): Promise<void> {
+    const since = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
+
+    const pending = await prisma.order.findMany({
+        where: {
+            userId,
+            status: "PENDING",
+            providerReference: { not: null },
+            createdAt: { gte: since },
+        },
+        select: { id: true },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+    });
+
+    if (pending.length === 0) return;
+
+    // `allSettled` : un échec de vérification ne doit jamais empêcher la page
+    // de s'afficher.
+    await Promise.allSettled(
+        pending.map((order) => reconcileOrderPayment(order.id)),
+    );
+}
+
 /** Équivalent de reconcileOrderPayment pour les frais plateforme (création/mise en vedette). */
 export async function reconcilePlatformPayment(
     platformPaymentId: string,

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { formatXOF, formatEventDateLong } from "@/lib/format";
+import { reconcilePendingOrdersOfUser } from "@/lib/payment-reconciliation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,11 @@ export default async function MesBilletsPage() {
         where: { guestEmail: dbUser.email, userId: null },
         data: { userId: dbUser.id, guestEmail: null, guestName: null },
     });
+
+    // Résout les paiements restés en attente (onglet fermé pendant l'attente
+    // Mobile Money) sans dépendre du cron quotidien. Après le rattachement
+    // ci-dessus, les commandes invité de cet email sont couvertes aussi.
+    await reconcilePendingOrdersOfUser(dbUser.id);
 
     // Commandes dont l'utilisateur est l'acheteur
     const buyerOrders = await prisma.order.findMany({

@@ -1,5 +1,7 @@
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
+import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
+import { PendingOrderWatcher } from "@/components/checkout/pending-order-watcher";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +19,15 @@ interface Props {
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
     const { orderId } = await searchParams;
     const dbUser = await getCurrentUser();
+
+    // Revérifie auprès de FeexPay avant d'afficher : l'acheteur qui revient
+    // ici après avoir fermé l'onglet ne dépend plus du webhook ni du cron
+    // quotidien. Sans effet si la commande est déjà résolue.
+    if (orderId) {
+        await reconcileOrderPayment(orderId).catch(() => {
+            // Prestataire injoignable : on affiche l'état connu en base.
+        });
+    }
 
     let order = null;
     let isGuest = false;
@@ -165,12 +176,16 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                         )}
                     </>
                 ) : (
-                    <p className="text-muted-foreground">
-                        Votre paiement est en cours de traitement. Vous
-                        recevrez une confirmation dès qu&apos;il sera validé.
-                        {!dbUser && " Vérifiez votre boîte email dans quelques instants."}
-                        {dbUser && " Vérifiez vos commandes dans quelques instants."}
-                    </p>
+                    <div className="space-y-4">
+                        <p className="text-muted-foreground">
+                            Votre paiement est en cours de traitement. Vous
+                            recevrez une confirmation par email dès qu&apos;il
+                            sera validé.
+                        </p>
+                        {/* Suit la résolution en direct plutôt que de laisser
+                            l'acheteur recharger la page à l'aveugle. */}
+                        {order && <PendingOrderWatcher orderId={order.id} />}
+                    </div>
                 )}
 
                 <div className="flex flex-col gap-3 pt-2">

@@ -5,51 +5,29 @@ pas par effort.
 
 ---
 
-## 1. Un abandon de paiement peut rester bloqué jusqu'à 3 h du matin
+## ~~1. Abandon de paiement bloqué jusqu'au cron~~ — fait
 
-**Risque argent.** Si l'acheteur ferme l'onglet pendant l'attente Mobile Money,
-plus personne ne poll. Seuls restent le webhook FeexPay (qui peut ne pas être
-délivré) et le cron de réconciliation — or le plan Vercel Hobby n'autorise
-qu'**un cron par jour** (`0 3 * * *`). La commande reste `PENDING` entre-temps
-et son stock est gelé 20 minutes.
+La réconciliation est désormais rejouée à l'affichage de `/checkout/success`
+et de `/mes-billets` : le simple retour de l'acheteur sur le site résout sa
+commande, sans attendre le cron quotidien. La page de confirmation suit aussi
+la résolution en direct quand le paiement est encore en cours.
 
-Pistes :
-
-- Rejouer la réconciliation à la première visite de `/checkout/success` et de
-  `/mes-billets` pour les commandes `PENDING` récentes de l'utilisateur.
-- Ou déclencher une vérification différée côté serveur à l'initiation.
-- Vérifier que le webhook FeexPay est bien configuré en production : c'est lui
-  qui devrait résoudre l'immense majorité des cas.
-
-Fichiers : `src/lib/payment-reconciliation.ts`,
-`src/app/api/cron/reconcile-payments/route.ts`, `vercel.json`.
+Reste à vérifier en production : **le webhook FeexPay est-il bien configuré ?**
+C'est lui qui devrait résoudre l'immense majorité des cas sans que l'acheteur
+ait à revenir.
 
 ---
 
-## 2. Le mode clair n'a jamais été audité
-
-La palette light n'a jamais servi (le site était forcé en dark). Le bouton
-« Devenir organisateur » y était **invisible** — corrigé, mais c'était le
-symptôme, pas la maladie. Le sélecteur de thème expose pourtant ce mode à tous
-les visiteurs.
-
-Deux options :
-
-- Passer chaque écran public en revue en clair, ou
-- retirer la bascule et assumer le dark-only.
-
-Point de départ : `src/app/globals.css` (bloc `:root`).
+## ~~2. Audit du mode clair~~ — fait
 
 ---
 
-## 3. L'échec de paiement n'a pas de vraie page
+## ~~3. Page d'échec de paiement~~ — fait
 
-`/checkout/error` existe mais **n'est jamais atteinte** : un paiement refusé
-affiche un toast et laisse l'utilisateur sur le formulaire, sans explication
-ni piste (solde insuffisant, mauvais opérateur, numéro invalide).
-
-Fichiers : `src/components/checkout/checkout-flow.tsx`,
-`src/app/(site)/checkout/error/page.tsx`.
+`/checkout/error` est atteinte sur refus de l'opérateur (polling) et sur refus
+du prestataire à l'initiation. Elle affiche la raison, les causes fréquentes,
+et permet de reprendre le paiement avec le panier conservé. Les erreurs de
+saisie corrigeables sur place (opérateur, numéro, stock) restent en toast.
 
 ---
 

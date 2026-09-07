@@ -328,6 +328,10 @@ export async function initiateTicketPayment(input: PaymentInput) {
             error: reason
                 ? `Paiement refusé : ${reason}`
                 : "Service de paiement indisponible. Veuillez réessayer.",
+            // Distingue un refus du prestataire d'une erreur de saisie
+            // corrigeable sur place : l'appelant oriente vers la page d'échec
+            // plutôt que d'afficher un simple toast.
+            paymentFailed: true as const,
         };
     }
 }

@@ -32,6 +32,7 @@ import {
     type FeexpayNetwork,
 } from "@/lib/feexpay-networks";
 import { formatXOF, formatEventDateTime } from "@/lib/format";
+import { encodeCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────
@@ -117,16 +118,25 @@ export function CheckoutFlow({
     const [waiting, setWaiting] = useState(false);
     const orderIdRef = useRef<string | null>(null);
 
+    // Panier encodé, pour permettre une reprise après échec sans avoir à
+    // resélectionner les billets.
+    const cartParam = encodeCart(
+        lines.map((l) => ({ ticketId: l.ticketId, quantity: l.quantity })),
+    );
+
     // La résolution du paiement est un évènement : le hook nous rappelle,
     // plutôt que d'observer `status` dans un effet.
     const polling = usePaymentPolling(getOrderPaymentStatus, {
         onSettled: (status) => {
             if (status === "COMPLETED") {
                 router.push(`/checkout/success?orderId=${orderIdRef.current}`);
-            } else {
-                toast.error("Le paiement a échoué. Vous pouvez réessayer.");
-                setWaiting(false);
+                return;
             }
+            // Refus définitif de l'opérateur : un toast sur un écran d'attente
+            // ne dit ni pourquoi, ni quoi faire ensuite.
+            router.push(
+                `/checkout/error?event=${event.slug}&panier=${encodeURIComponent(cartParam)}`,
+            );
         },
     });
 
@@ -260,6 +270,15 @@ export function CheckoutFlow({
             });
 
             if (result.error) {
+                // Un refus du prestataire mérite une page qui explique et
+                // propose de reprendre ; une erreur de saisie (opérateur,
+                // numéro, stock) se corrige sur place, on garde le toast.
+                if ("paymentFailed" in result && result.paymentFailed) {
+                    router.push(
+                        `/checkout/error?event=${event.slug}&panier=${encodeURIComponent(cartParam)}&raison=${encodeURIComponent(result.error)}`,
+                    );
+                    return;
+                }
                 toast.error(result.error);
                 return;
             }
