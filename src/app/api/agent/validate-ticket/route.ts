@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/permissions";
+import { canScanEvent } from "@/lib/scan-access";
 import prisma from "@/lib/prisma";
 
 const STATUS_DETAIL: Record<string, string> = {
@@ -47,17 +48,9 @@ export async function POST(req: NextRequest) {
         eventId: string;
     };
 
-    // ── 3. Vérification de l'agent ────────────────────────────────────────
-    const agent = await prisma.eventAgent.findUnique({
-        where: { eventId_userId: { eventId, userId: dbUser.id } },
-    });
-
-    const isOrganizer =
-        dbUser.role === "ADMIN" ||
-        (dbUser.role === "ORGANIZER" &&
-            !!(await prisma.event.findFirst({ where: { id: eventId, organizerId: dbUser.id } })));
-
-    if (!isOrganizer && (!agent || agent.status !== "CONFIRMED")) {
+    // ── 3. Vérification des droits de scan ────────────────────────────────
+    // Règle partagée avec la page /agent/[eventId]/scan (cf. lib/scan-access).
+    if (!(await canScanEvent(dbUser, eventId))) {
         return NextResponse.json({
             valid: false,
             message: "Accès refusé",

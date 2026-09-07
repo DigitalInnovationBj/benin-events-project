@@ -18,6 +18,7 @@ import {
     IconShieldCheck,
     IconTicket,
     IconUserCircle,
+    IconScan,
 } from "@tabler/icons-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -90,6 +91,10 @@ const ORGANIZER_NAV: NavItem[] = [
     { title: "Créer un évènement", url: "/dashboard/events/new", icon: IconCirclePlus, exact: true },
     { title: "Reversements", url: "/dashboard/payout", icon: IconCash },
     { title: "Devenir partenaire", url: "/devenir-partenaire", icon: IconHeartHandshake },
+];
+
+const SCAN_NAV: NavItem[] = [
+    { title: "Scanner les billets", url: "/dashboard/scan", icon: IconScan, exact: true },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -280,7 +285,14 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
 // Sidebar
 // ─────────────────────────────────────────────
 
-export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
+export function DashboardSidebar({
+    user,
+    canScan = false,
+}: {
+    user: DashboardSidebarUser;
+    /** Affiche le groupe « Contrôle d'accès » — agents comme organisateurs. */
+    canScan?: boolean;
+}) {
     const isOrganizer = user.role === "ORGANIZER" || user.role === "ADMIN";
 
     const mainItems = [...MAIN_NAV];
@@ -321,6 +333,11 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
                 <NavGroup label="Menu principal" items={mainItems} />
                 {isOrganizer && (
                     <NavGroup label="Organisateur" items={ORGANIZER_NAV} />
+                )}
+                {/* Visible dès qu'il y a un évènement à contrôler : un agent
+                    a le rôle USER et n'avait donc aucun point d'entrée. */}
+                {canScan && (
+                    <NavGroup label="Contrôle d'accès" items={SCAN_NAV} />
                 )}
                 {user.role === "ADMIN" && (
                     <NavGroup label="Administration" items={ADMIN_NAV} />
