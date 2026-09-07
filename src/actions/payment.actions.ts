@@ -14,6 +14,7 @@ import { sendRefundConfirmationEmail } from "@/lib/email";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
 import { stockConsumingOrderFilter } from "@/lib/stock";
+import { MAX_TICKETS_PER_ORDER } from "@/lib/cart";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
 
@@ -30,9 +31,15 @@ export type TicketAssignment = {
     email?: string; // email du bénéficiaire (ou de l'acheteur si forSelf)
 };
 
-export type PaymentInput = {
+/** Une catégorie de billet et les personnes à qui ses exemplaires sont attribués. */
+export type CartLine = {
     ticketId: string;
-    assignments: TicketAssignment[]; // 1 entrée par billet, length = quantité totale
+    assignments: TicketAssignment[]; // 1 entrée par billet, length = quantité de la ligne
+};
+
+export type PaymentInput = {
+    // Panier : plusieurs catégories de billets d'un même évènement.
+    items: CartLine[];
     // Acheteur invité (non connecté)
     guestEmail?: string;
     guestName?: string;
@@ -65,15 +72,31 @@ export async function initiateTicketPayment(input: PaymentInput) {
         buyerName = name;
     }
 
-    // ── Validation des assignements ───────────────────────────────────────
-    const { ticketId, assignments } = input;
-    const quantity = assignments.length;
+    // ── Validation de la structure du panier ──────────────────────────────
+    const lines = input.items ?? [];
+    if (lines.length === 0) return { error: "Votre panier est vide." };
 
-    if (!ticketId) return { error: "Billet invalide." };
-    if (quantity < 1 || quantity > 10) return { error: "Quantité invalide (1 à 10)." };
+    // Un même billet ne doit apparaître qu'une fois : sinon le verrou et le
+    // contrôle de stock porteraient sur des quantités partielles.
+    const ticketIds = lines.map((l) => l.ticketId);
+    if (ticketIds.some((id) => !id)) return { error: "Billet invalide." };
+    if (new Set(ticketIds).size !== ticketIds.length) {
+        return { error: "Panier invalide : un billet est présent en double." };
+    }
 
-    for (const [i, a] of assignments.entries()) {
-        if (!a.forSelf) {
+    const totalQuantity = lines.reduce((n, l) => n + l.assignments.length, 0);
+    if (totalQuantity < 1 || totalQuantity > MAX_TICKETS_PER_ORDER) {
+        return {
+            error: `Quantité invalide (1 à ${MAX_TICKETS_PER_ORDER} billets par commande).`,
+        };
+    }
+
+    for (const line of lines) {
+        if (line.assignments.length === 0) {
+            return { error: "Une ligne du panier est vide." };
+        }
+        for (const [i, a] of line.assignments.entries()) {
+            if (a.forSelf) continue;
             if (!a.name?.trim()) {
                 return { error: `Le nom du bénéficiaire est requis pour le billet ${i + 1}.` };
             }
@@ -83,9 +106,9 @@ export async function initiateTicketPayment(input: PaymentInput) {
         }
     }
 
-    // ── Récupération du ticket ────────────────────────────────────────────
-    const ticket = await prisma.ticket.findUnique({
-        where: { id: ticketId },
+    // ── Récupération des billets ──────────────────────────────────────────
+    const tickets = await prisma.ticket.findMany({
+        where: { id: { in: ticketIds } },
         include: {
             event: {
                 select: {
@@ -101,11 +124,21 @@ export async function initiateTicketPayment(input: PaymentInput) {
         },
     });
 
-    if (!ticket) return { error: "Billet introuvable." };
+    if (tickets.length !== ticketIds.length) {
+        return { error: "Billet introuvable." };
+    }
+
+    // Une commande porte un seul `eventId` : tous les billets doivent
+    // appartenir au même évènement.
+    const event = tickets[0].event;
+    if (tickets.some((t) => t.event.id !== event.id)) {
+        return {
+            error: "Tous les billets d'une commande doivent appartenir au même évènement.",
+        };
+    }
 
     // L'UI masque déjà ces cas, mais l'action est appelable directement :
     // la vente doit être refusée côté serveur.
-    const { event } = ticket;
     if (event.isDeleted || !event.isPublished) {
         return { error: "Cet évènement n'est plus disponible." };
     }
@@ -116,22 +149,31 @@ export async function initiateTicketPayment(input: PaymentInput) {
         return { error: "Cet évènement est terminé." };
     }
 
-    // ── Construction des OrderItems (1 par billet) ────────────────────────
-    const orderItemsData = assignments.map(a => ({
-        quantity: 1,
-        price: ticket.price,
-        ticketId: ticket.id,
-        attendeeName: a.forSelf ? (buyerName ?? null) : (a.name?.trim() ?? null),
-        attendeeEmail: a.forSelf ? buyerEmail : (a.email?.trim().toLowerCase() ?? null),
-    }));
+    const ticketById = new Map(tickets.map((t) => [t.id, t]));
 
-    const baseAmount = ticket.price * quantity;
+    // ── Construction des OrderItems (1 par billet) ────────────────────────
+    const orderItemsData = lines.flatMap((line) => {
+        const ticket = ticketById.get(line.ticketId)!;
+        return line.assignments.map((a) => ({
+            quantity: 1,
+            price: ticket.price,
+            ticketId: ticket.id,
+            attendeeName: a.forSelf ? (buyerName ?? null) : (a.name?.trim() ?? null),
+            attendeeEmail: a.forSelf ? buyerEmail : (a.email?.trim().toLowerCase() ?? null),
+        }));
+    });
+
+    const baseAmount = lines.reduce(
+        (sum, line) =>
+            sum + ticketById.get(line.ticketId)!.price * line.assignments.length,
+        0,
+    );
 
     // ── Code promo partenaire (optionnel) ─────────────────────────────────
     let eventPartnerId: string | null = null;
     let discountAmount = 0;
     if (input.promoCode?.trim()) {
-        const promoRes = await validatePromoCode(ticket.event.id, input.promoCode);
+        const promoRes = await validatePromoCode(event.id, input.promoCode);
         if (!promoRes.success) {
             return { error: promoRes.error ?? "Code promo invalide." };
         }
@@ -142,9 +184,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 : Math.min(baseAmount, promoRes.discountValue);
     }
 
-    const discountedBase = Math.max(0, baseAmount - discountAmount);
-    const totalAmount = discountedBase;
-    const isFree = discountedBase === 0;
+    const totalAmount = Math.max(0, baseAmount - discountAmount);
+    const isFree = totalAmount === 0;
 
     // ── Validation Mobile Money (requise pour un billet payant) ───────────
     let network: FeexpayNetwork | undefined;
@@ -163,21 +204,38 @@ export async function initiateTicketPayment(input: PaymentInput) {
     }
 
     // ── Vérification du stock + création de commande (transaction) ───────
-    // Verrou sur la ligne du ticket (FOR UPDATE) : les achats concurrents du
-    // même billet sont sérialisés → aucune survente possible.
+    // Verrou (FOR UPDATE) sur chaque ligne Ticket concernée : les achats
+    // concurrents sont sérialisés → aucune survente possible.
+    //
+    // Les ids sont TRIÉS : deux acheteurs prenant les mêmes catégories dans un
+    // ordre différent s'interbloqueraient sinon (A verrouille T1 et attend T2,
+    // B verrouille T2 et attend T1).
+    const lockIds = [...ticketIds].sort();
+
     const txResult = await prisma.$transaction(async (tx) => {
-        if (ticket.totalStock !== null) {
-            await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticket.id} FOR UPDATE`;
+        for (const ticketId of lockIds) {
+            const ticket = ticketById.get(ticketId)!;
+            if (ticket.totalStock === null) continue;
+
+            await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticketId} FOR UPDATE`;
+
             const sold = await tx.orderItem.aggregate({
-                where: {
-                    ticketId: ticket.id,
-                    order: stockConsumingOrderFilter(),
-                },
+                where: { ticketId, order: stockConsumingOrderFilter() },
                 _sum: { quantity: true },
             });
+
+            const wanted = lines.find((l) => l.ticketId === ticketId)!.assignments
+                .length;
             const remaining = ticket.totalStock - (sold._sum.quantity ?? 0);
-            if (remaining < quantity) {
-                return { insufficientStock: Math.max(remaining, 0) };
+            if (remaining < wanted) {
+                // Nommer la catégorie : avec plusieurs lignes, « stock
+                // insuffisant » seul ne dit pas laquelle corriger.
+                return {
+                    insufficientStock: {
+                        title: ticket.title,
+                        remaining: Math.max(remaining, 0),
+                    },
+                };
             }
         }
 
@@ -189,7 +247,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 ...(dbUserId
                     ? { userId: dbUserId }
                     : { guestEmail: buyerEmail, guestName: buyerName }),
-                eventId: ticket.event.id,
+                eventId: event.id,
                 eventPartnerId,
                 discountAmount,
                 payerPhone: fullPhoneNumber,
@@ -213,9 +271,13 @@ export async function initiateTicketPayment(input: PaymentInput) {
         return { order };
     });
 
-    if ("insufficientStock" in txResult) {
+    if ("insufficientStock" in txResult && txResult.insufficientStock) {
+        const { title, remaining } = txResult.insufficientStock;
         return {
-            error: `Stock insuffisant. Il ne reste que ${txResult.insufficientStock} place(s).`,
+            error:
+                remaining === 0
+                    ? `« ${title} » est complet.`
+                    : `Stock insuffisant pour « ${title} » : il ne reste que ${remaining} place(s).`,
         };
     }
 
@@ -231,13 +293,20 @@ export async function initiateTicketPayment(input: PaymentInput) {
         return { success: true, isFree: true, orderId: order.id };
     }
 
-    // ── Billet payant (FeexPay — Mobile Money) ────────────────────────────
+    // ── Commande payante (FeexPay — Mobile Money) ─────────────────────────
     try {
+        // FeexPay tronque les descriptions longues : avec plusieurs
+        // catégories, on résume plutôt que d'énumérer.
+        const description =
+            lines.length === 1
+                ? `${ticketById.get(lines[0].ticketId)!.title} × ${totalQuantity} — ${event.title}`
+                : `${totalQuantity} billets — ${event.title}`;
+
         const paymentRes = await createPayment({
             amount: totalAmount,
             phoneNumber: fullPhoneNumber!,
             network: network!,
-            description: `${ticket.title} × ${quantity} — ${ticket.event.title}`,
+            description,
             callbackInfo: encodeCallbackInfo("order", order.id),
         });
 

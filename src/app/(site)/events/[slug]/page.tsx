@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
 import EventInteractions from "@/components/events/event-interactions";
-import { BuyTicketButton } from "@/components/events/buy-ticket-button";
+import { TicketSelector } from "@/components/events/ticket-selector";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -411,72 +411,18 @@ export default async function PublicEventPage({ params }: Props) {
                                 Billetterie
                             </h3>
 
-                            {ticketsWithRemaining.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-6 bg-muted/30 rounded-xl border border-dashed text-sm">
-                                    Aucun billet en vente pour le moment.
-                                </p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {ticketsWithRemaining.map((ticket) => (
-                                        <div
-                                            key={ticket.id}
-                                            className="border border-secondary/20 rounded-2xl p-5 hover:border-secondary/50 transition-colors"
-                                        >
-                                            {ticket.imageUrl && (
-                                                <div className="relative w-full h-44 mb-4 overflow-hidden rounded-xl bg-muted">
-                                                    <Image
-                                                        src={ticket.imageUrl}
-                                                        alt={ticket.title}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                </div>
-                                            )}
-                                            <h4 className="font-bold text-lg flex items-center gap-2">
-                                                <TicketIcon className="w-5 h-5 text-secondary shrink-0" />
-                                                {ticket.title}
-                                            </h4>
-                                            {ticket.description && (
-                                                <p className="text-sm text-muted-foreground mt-1 mb-3 leading-relaxed">
-                                                    {ticket.description}
-                                                </p>
-                                            )}
-                                            <div className="flex items-center justify-between mt-4 gap-3">
-                                                <span className="font-bold text-xl text-secondary">
-                                                    {ticket.price === 0
-                                                        ? "Gratuit"
-                                                        : `${ticket.price.toLocaleString("fr-FR")} FCFA`}
-                                                </span>
-                                                {event.isCancelled ? (
-                                                    <Button disabled variant="outline">
-                                                        Évènement annulé
-                                                    </Button>
-                                                ) : (
-                                                    <BuyTicketButton
-                                                        eventId={event.id}
-                                                        ticket={ticket}
-                                                        isLoggedIn={isLoggedIn}
-                                                        remainingStock={ticket.remainingStock}
-                                                        buyerName={buyerName}
-                                                        buyerEmail={buyerEmail}
-                                                        hasExistingTicket={hasExistingTicket}
-                                                    />
-                                                )}
-                                            </div>
-                                            {ticket.remainingStock !== null && (
-                                                <p className="text-xs text-muted-foreground mt-3 text-right">
-                                                    Places restantes :{" "}
-                                                    <span className="font-semibold text-foreground">
-                                                        {ticket.remainingStock.toLocaleString(
-                                                            "fr-FR",
-                                                        )}
-                                                    </span>
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <TicketSelector
+                                eventSlug={event.slug}
+                                isCancelled={event.isCancelled}
+                                tickets={ticketsWithRemaining.map((t) => ({
+                                    id: t.id,
+                                    title: t.title,
+                                    description: t.description,
+                                    price: t.price,
+                                    imageUrl: t.imageUrl,
+                                    remainingStock: t.remainingStock,
+                                }))}
+                            />
                         </div>
                     </div>
                 </div>
