@@ -62,6 +62,11 @@ export function TicketsAnchorButton({ targetId, fromPrice }: Props) {
             onClick={scrollToTickets}
             aria-hidden={hidden}
             tabIndex={hidden ? -1 : 0}
+            aria-label={
+                fromPrice === null || fromPrice === 0
+                    ? "Voir la billetterie"
+                    : `Voir la billetterie, à partir de ${formatXOF(fromPrice)}`
+            }
             className={cn(
                 "fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-bold text-secondary-foreground shadow-xl transition-all duration-300 lg:hidden",
                 "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -72,11 +77,9 @@ export function TicketsAnchorButton({ targetId, fromPrice }: Props) {
             )}
         >
             <IconTicket className="h-5 w-5" aria-hidden="true" />
-            {fromPrice === null
-                ? "Voir les billets"
-                : fromPrice === 0
-                  ? "Réserver — Gratuit"
-                  : `Billets dès ${formatXOF(fromPrice)}`}
+            {/* Icône + prix seulement : le libellé complet débordait sur les
+                petits écrans. L'intention reste portée par `aria-label`. */}
+            {fromPrice === null ? "Billets" : formatXOF(fromPrice)}
         </button>
     );
 }

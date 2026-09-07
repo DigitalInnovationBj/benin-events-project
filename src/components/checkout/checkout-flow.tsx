@@ -567,7 +567,7 @@ export function CheckoutFlow({
                                                     : "outline"
                                             }
                                             size="sm"
-                                            className="flex-1"
+                                            className="min-w-0 flex-1"
                                             onClick={() =>
                                                 updateSeat(seat.key, {
                                                     forSelf: true,
@@ -588,7 +588,7 @@ export function CheckoutFlow({
                                                     : "secondary"
                                             }
                                             size="sm"
-                                            className="flex-1"
+                                            className="min-w-0 flex-1"
                                             onClick={() =>
                                                 updateSeat(seat.key, {
                                                     forSelf: false,
@@ -599,7 +599,7 @@ export function CheckoutFlow({
                                                 className="w-4 h-4"
                                                 aria-hidden="true"
                                             />
-                                            Pour quelqu&apos;un d&apos;autre
+                                            Quelqu&apos;un d&apos;autre
                                         </Button>
                                     </div>
 
