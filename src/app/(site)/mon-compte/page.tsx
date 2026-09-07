@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { setNewsletterOptIn } from "@/actions/user.actions";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";

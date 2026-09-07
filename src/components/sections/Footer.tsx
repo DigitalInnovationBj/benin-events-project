@@ -16,7 +16,7 @@ import {
     IconMail,
     IconHeartHandshake,
 } from "@tabler/icons-react";
-import { SOCIAL_LINKS } from "@/lib/socials";
+import { SOCIAL_LINKS, CONTACT_EMAIL, CONTACT_EMAIL_ALT } from "@/lib/socials";
 
 // ─────────────────────────────────────────────
 // Data
@@ -120,15 +120,23 @@ export default function Footer() {
                             Cotonou, République du Bénin
                         </div>
 
-                        {/* Email */}
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                            <IconMail className="w-3.5 h-3.5 text-secondary shrink-0" />
-                            <a
-                                href="mailto:contact@beninevents.com"
-                                className="text-secondary hover:underline transition-colors"
-                            >
-                                contact@beninevents.com
-                            </a>
+                        {/* Emails */}
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground/70">
+                            <IconMail className="w-3.5 h-3.5 mt-0.5 text-secondary shrink-0" />
+                            <div className="flex flex-col gap-1">
+                                <a
+                                    href={`mailto:${CONTACT_EMAIL}`}
+                                    className="text-secondary hover:underline transition-colors break-all"
+                                >
+                                    {CONTACT_EMAIL}
+                                </a>
+                                <a
+                                    href={`mailto:${CONTACT_EMAIL_ALT}`}
+                                    className="text-secondary hover:underline transition-colors break-all"
+                                >
+                                    {CONTACT_EMAIL_ALT}
+                                </a>
+                            </div>
                         </div>
 
                         {/* Réseaux sociaux */}
@@ -221,18 +229,19 @@ export default function Footer() {
                         </span>
                     </div>
 
-                    {/* Made with love */}
+                    {/* Crédit */}
                     <div className="flex items-center gap-1.5">
-                        <span>Fait avec</span>
-                        <IconHeart className="w-3 h-3 fill-green-600 text-green-600" />
-                        <IconHeart className="w-3 h-3 fill-secondary text-secondary" />
-                        <IconHeart className="w-3 h-3 fill-red-600 text-red-600" />
+                        <IconHeart className="w-3 h-3 fill-green-600 text-green-600" aria-hidden="true" />
+                        <IconHeart className="w-3 h-3 fill-secondary text-secondary" aria-hidden="true" />
+                        <IconHeart className="w-3 h-3 fill-red-600 text-red-600" aria-hidden="true" />
+                        <span>Développé par</span>
                         <a
                             href="https://digitalinnovation.bj"
                             target="_blank"
-                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            rel="noopener noreferrer"
+                            className="font-semibold text-muted-foreground hover:text-foreground transition-colors"
                         >
-                            par Digital Innovation
+                            Digital Innovation
                         </a>
                     </div>
                 </div>

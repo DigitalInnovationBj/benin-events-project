@@ -109,6 +109,7 @@ export function CheckoutFlow({
     const [promoInput, setPromoInput] = useState("");
     const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
     const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+    const [promoOpen, setPromoOpen] = useState(false);
 
     // Paiement
     const [network, setNetwork] = useState<FeexpayNetwork | "">("");
@@ -310,12 +311,18 @@ export function CheckoutFlow({
                         : ""}
                 </p>
 
-                <ol className="flex items-center gap-2 mt-6" aria-label="Étapes">
+                {/* Les trois libellés côte à côte débordaient sur mobile :
+                    seule l'étape courante y est nommée, les autres se
+                    réduisent à leur numéro. */}
+                <ol
+                    className="flex items-center gap-1 sm:gap-2 mt-6"
+                    aria-label="Étapes"
+                >
                     {STEPS.map((label, i) => (
-                        <li key={label} className="flex items-center gap-2">
+                        <li key={label} className="flex items-center gap-1 sm:gap-2 min-w-0">
                             <span
                                 className={cn(
-                                    "flex items-center gap-2 text-sm rounded-full px-3 py-1",
+                                    "flex items-center gap-1.5 rounded-full px-2 py-1 text-xs sm:px-3 sm:text-sm",
                                     i === step
                                         ? "bg-secondary text-secondary-foreground font-semibold"
                                         : i < step
@@ -326,17 +333,24 @@ export function CheckoutFlow({
                             >
                                 {i < step ? (
                                     <IconCircleCheck
-                                        className="w-4 h-4"
+                                        className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0"
                                         aria-hidden="true"
                                     />
                                 ) : (
-                                    <span className="tabular-nums">{i + 1}.</span>
+                                    <span className="tabular-nums">{i + 1}</span>
                                 )}
-                                {label}
+                                <span
+                                    className={cn(
+                                        "truncate",
+                                        i === step ? "inline" : "hidden sm:inline",
+                                    )}
+                                >
+                                    {label}
+                                </span>
                             </span>
                             {i < STEPS.length - 1 && (
                                 <span
-                                    className="text-muted-foreground/30"
+                                    className="text-muted-foreground/30 text-xs sm:text-sm"
                                     aria-hidden="true"
                                 >
                                     ›
@@ -387,41 +401,52 @@ export function CheckoutFlow({
                             ))}
                         </ul>
 
-                        {/* Code promo */}
-                        <div className="space-y-2">
-                            <Label htmlFor="promo">Code promo</Label>
-                            {appliedPromo ? (
-                                <div className="flex items-center justify-between gap-3 rounded-xl border border-secondary/40 bg-secondary/10 px-4 py-2.5">
-                                    <span className="flex items-center gap-2 text-sm font-medium">
-                                        <IconTag
-                                            className="w-4 h-4 text-secondary"
-                                            aria-hidden="true"
-                                        />
+                        {/* Code promo — replié par défaut : la majorité des
+                            acheteurs n'en a pas, un champ toujours ouvert
+                            suggère à tort qu'il en faut un. */}
+                        {appliedPromo ? (
+                            <div className="flex items-center justify-between gap-3 rounded-xl border border-secondary/40 bg-secondary/10 px-4 py-2.5">
+                                <span className="flex items-center gap-2 text-sm font-medium min-w-0">
+                                    <IconTag
+                                        className="w-4 h-4 text-secondary shrink-0"
+                                        aria-hidden="true"
+                                    />
+                                    <span className="truncate">
                                         {appliedPromo.name}
                                     </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setAppliedPromo(null);
-                                            setPromoInput("");
-                                        }}
-                                        className="text-muted-foreground hover:text-foreground transition-colors"
-                                        aria-label="Retirer le code promo"
-                                    >
-                                        <IconX
-                                            className="w-4 h-4"
-                                            aria-hidden="true"
-                                        />
-                                    </button>
-                                </div>
-                            ) : (
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAppliedPromo(null);
+                                        setPromoInput("");
+                                        setPromoOpen(false);
+                                    }}
+                                    className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                    aria-label="Retirer le code promo"
+                                >
+                                    <IconX className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                            </div>
+                        ) : promoOpen ? (
+                            <div className="space-y-2">
+                                <Label htmlFor="promo" className="text-sm">
+                                    Code promo
+                                </Label>
                                 <div className="flex gap-2">
                                     <Input
                                         id="promo"
+                                        autoFocus
                                         value={promoInput}
                                         onChange={(e) =>
                                             setPromoInput(e.target.value)
                                         }
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                applyPromo();
+                                            }
+                                        }}
                                         placeholder="Votre code"
                                         className="uppercase"
                                     />
@@ -443,8 +468,19 @@ export function CheckoutFlow({
                                         )}
                                     </Button>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setPromoOpen(true)}
+                                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground transition-colors"
+                                >
+                                    <IconTag className="w-3.5 h-3.5" aria-hidden="true" />
+                                    J&apos;ai un code promo
+                                </button>
+                            </div>
+                        )}
 
                         <Totals
                             baseAmount={baseAmount}

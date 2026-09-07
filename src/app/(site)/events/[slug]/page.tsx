@@ -7,7 +7,6 @@ import { getCurrentUser } from "@/lib/permissions";
 import { getRemainingStock } from "@/lib/stock";
 import {
     IconCalendar,
-    IconTicket as TicketIcon,
     IconMapPin,
     IconDeviceTvOld,
     IconStar,
@@ -17,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
 import EventInteractions from "@/components/events/event-interactions";
 import { TicketSelector } from "@/components/events/ticket-selector";
+import { TicketsAnchorButton } from "@/components/events/tickets-anchor-button";
 import { EventJsonLd } from "@/components/events/event-json-ld";
 
 interface Props {
@@ -125,14 +125,10 @@ export default async function PublicEventPage({ params }: Props) {
     let isLiked = false;
     let isFavorited = false;
     let isLoggedIn = false;
-    let buyerName: string | undefined;
-    let buyerEmail: string | undefined;
     let hasExistingTicket = false;
 
     if (sessionUser) {
         isLoggedIn = true;
-        buyerName = sessionUser.name;
-        buyerEmail = sessionUser.email;
 
         const [like, favorite, attendeeItem, legacyOrder] = await Promise.all([
             prisma.like.findUnique({
@@ -141,7 +137,7 @@ export default async function PublicEventPage({ params }: Props) {
             prisma.favorite.findUnique({
                 where: { userId_eventId: { userId: sessionUser.id, eventId: event.id } },
             }),
-            // IconTicket via attendeeEmail (nouveau système)
+            // Billet via attendeeEmail (nouveau système)
             prisma.orderItem.findFirst({
                 where: {
                     attendeeEmail: sessionUser.email,
@@ -149,7 +145,7 @@ export default async function PublicEventPage({ params }: Props) {
                 },
                 select: { id: true },
             }),
-            // IconTicket via userId (ancien système ou achat sans attendeeEmail)
+            // Billet via userId (ancien système ou achat sans attendeeEmail)
             prisma.order.findFirst({
                 where: { userId: sessionUser.id, eventId: event.id, status: "COMPLETED" },
                 select: { id: true },
@@ -212,6 +208,13 @@ export default async function PublicEventPage({ params }: Props) {
         remainingStock: remainingByTicket.get(ticket.id) ?? null,
     }));
 
+    // Prix d'appel du raccourci mobile : le billet le moins cher encore en vente.
+    const availablePrices = ticketsWithRemaining
+        .filter((t) => t.remainingStock === null || t.remainingStock > 0)
+        .map((t) => t.price);
+    const fromPrice =
+        availablePrices.length > 0 ? Math.min(...availablePrices) : null;
+
     // ── Google Maps (présentiel uniquement) ───────────────────────────────
     const encodedLocation = encodeURIComponent(event.location ?? "");
     const googleMapsEmbedUrl = `https://www.google.com/maps?q=${encodedLocation}&output=embed`;
@@ -249,127 +252,157 @@ export default async function PublicEventPage({ params }: Props) {
                 </div>
             )}
             {/* ══════════════════════════════════════════════════════════════
-                Héro
+                Bannière — l'image ne porte plus que le retour et les badges.
+                Titre, catégories et compteur vivaient en surimpression : sur
+                mobile ils se chevauchaient et devenaient illisibles.
             ══════════════════════════════════════════════════════════════ */}
-            <div className="relative w-full h-[50vh] md:h-[65vh] bg-muted">
-                {/* Image de couverture */}
+            <div className="relative w-full h-56 sm:h-72 md:h-[26rem] bg-muted">
                 {event.imageUrl ? (
                     <Image
                         src={event.imageUrl}
-                        alt={event.title}
+                        alt=""
                         fill
                         priority
+                        sizes="100vw"
                         className="object-cover"
                     />
                 ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                        Aucune image fournie
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <IconCalendar
+                            className="h-16 w-16 text-muted-foreground/30"
+                            aria-hidden="true"
+                        />
                     </div>
                 )}
 
-                {/* Dégradé bas */}
-                <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-transparent" />
+                {/* Fondu vers le fond de page, pour raccorder image et contenu */}
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-background to-transparent" />
 
-                {/* ── Retour + Badges haut gauche ───────────────────── */}
-                <div className="absolute top-5 left-5 md:top-8 md:left-10 z-20 flex items-center flex-wrap gap-2">
-                    {/* Bouton retour */}
-                    <Link
-                        href="/events"
-                        aria-label="Retour aux évènements"
-                        className="w-9 h-9 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm border border-white/20 text-white hover:bg-black/60 transition-colors shrink-0 shadow-md"
-                    >
-                        <IconArrowLeft className="w-4 h-4" />
-                    </Link>
+                {/* Retour + badges */}
+                <div className="absolute inset-x-0 top-0 z-10">
+                    <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-5 pt-5 md:px-12 md:pt-8">
+                        <Link
+                            href="/events"
+                            aria-label="Retour aux évènements"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/40 text-white shadow-md backdrop-blur-sm transition-colors hover:bg-black/60"
+                        >
+                            <IconArrowLeft className="h-4 w-4" aria-hidden="true" />
+                        </Link>
 
-                    {/* Vedette */}
-                    {event.isFeatured && (
-                        <span className="flex items-center gap-1.5 bg-yellow-400/90 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
-                            <IconStar className="w-3.5 h-3.5 fill-yellow-900" />
-                            Évènement vedette
-                        </span>
-                    )}
+                        {event.isFeatured && (
+                            <span className="flex items-center gap-1.5 rounded-full bg-yellow-400/90 px-3 py-1.5 text-xs font-bold text-yellow-900 shadow-md backdrop-blur-sm">
+                                <IconStar
+                                    className="h-3.5 w-3.5 fill-yellow-900"
+                                    aria-hidden="true"
+                                />
+                                Vedette
+                            </span>
+                        )}
 
-                    {/* Type */}
-                    {event.eventType === "ONLINE" ? (
-                        <span className="flex items-center gap-1.5 bg-blue-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
-                            <IconDeviceTvOld className="w-3.5 h-3.5" />
-                            En ligne
-                        </span>
-                    ) : (
-                        <span className="flex items-center gap-1.5 bg-emerald-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm">
-                            <IconMapPin className="w-3.5 h-3.5" />
-                            Présentiel
-                        </span>
-                    )}
-                </div>
-
-                {/* ── Contenu bas ───────────────────────────────────── */}
-                <div className="absolute bottom-0 left-0 w-full px-5 pb-6 md:px-12 md:pb-10 max-w-6xl mx-auto">
-                    {/* Catégories */}
-                    {event.categories.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {event.categories.map(({ category }) => (
-                                <span
-                                    key={category.id}
-                                    className="text-xs bg-background/70 backdrop-blur-sm border border-border text-foreground font-medium px-3 py-1 rounded-full"
-                                >
-                                    {category.name}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Titre */}
-                    <h1 className="text-4xl md:text-6xl font-afo text-foreground mb-5 drop-shadow-lg leading-tight">
-                        {event.title}
-                    </h1>
-
-                    {/* Countdown + Interactions */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <EventCountdown
-                            startDate={event.startDate.toISOString()}
-                        />
-                        <EventInteractions
-                            eventId={event.id}
-                            initialLikeCount={event._count.likes}
-                            initialFavoriteCount={event._count.favorites}
-                            initialShareCount={event.shareCount}
-                            initialIsLiked={isLiked}
-                            initialIsFavorited={isFavorited}
-                            isLoggedIn={isLoggedIn}
-                            title={event.title}
-                            startDate={event.startDate.toISOString()}
-                            eventType={event.eventType}
-                            location={event.location}
-                        />
+                        {event.eventType === "ONLINE" ? (
+                            <span className="flex items-center gap-1.5 rounded-full bg-blue-500/90 px-3 py-1.5 text-xs font-bold text-white shadow-md backdrop-blur-sm">
+                                <IconDeviceTvOld
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                En ligne
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs font-bold text-white shadow-md backdrop-blur-sm">
+                                <IconMapPin
+                                    className="h-3.5 w-3.5"
+                                    aria-hidden="true"
+                                />
+                                Présentiel
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* ══════════════════════════════════════════════════════════════
+                En-tête — titre et informations clés, hors de l'image
+            ══════════════════════════════════════════════════════════════ */}
+            <header className="mx-auto max-w-6xl px-5 pt-6 md:px-12 md:pt-8">
+                {event.categories.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-1.5">
+                        {event.categories.map(({ category }) => (
+                            <span
+                                key={category.id}
+                                className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-secondary"
+                            >
+                                {category.name}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                <h1 className="font-afo text-3xl leading-tight sm:text-4xl md:text-6xl">
+                    {event.title}
+                </h1>
+
+                {/* Date et lieu : les deux informations que l'on cherche en premier */}
+                <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
+                    <span className="flex items-start gap-2">
+                        <IconCalendar
+                            className="mt-0.5 h-4 w-4 shrink-0 text-secondary"
+                            aria-hidden="true"
+                        />
+                        <span>
+                            {startLabel}
+                            {!isSameDay && (
+                                <span className="block sm:inline">
+                                    <span className="hidden sm:inline"> — </span>
+                                    {endLabel}
+                                </span>
+                            )}
+                        </span>
+                    </span>
+
+                    {event.eventType === "IN_PERSON" && event.location && (
+                        <span className="flex items-start gap-2">
+                            <IconMapPin
+                                className="mt-0.5 h-4 w-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            {event.location}
+                        </span>
+                    )}
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <EventCountdown startDate={event.startDate.toISOString()} />
+                    <EventInteractions
+                        eventId={event.id}
+                        initialLikeCount={event._count.likes}
+                        initialFavoriteCount={event._count.favorites}
+                        initialShareCount={event.shareCount}
+                        initialIsLiked={isLiked}
+                        initialIsFavorited={isFavorited}
+                        isLoggedIn={isLoggedIn}
+                        title={event.title}
+                        startDate={event.startDate.toISOString()}
+                        eventType={event.eventType}
+                        location={event.location}
+                    />
+                </div>
+            </header>
+
+            {/* ══════════════════════════════════════════════════════════════
                 Corps — grille 2 colonnes
             ══════════════════════════════════════════════════════════════ */}
-            <div className="max-w-6xl mx-auto px-5 py-10 md:px-12 md:py-14 grid lg:grid-cols-[1fr_400px] gap-12">
+            <div className="mx-auto grid max-w-6xl gap-8 px-5 py-8 md:px-12 md:py-12 lg:grid-cols-[1fr_380px] lg:gap-12">
                 {/* ── Colonne gauche ───────────────────────────────────── */}
                 <div className="space-y-10">
                     {/* À propos */}
                     <section>
-                        <h2 className="text-4xl font-afo mb-5">
-                            À propos de cet évènement
+                        <h2 className="mb-4 font-afo text-2xl sm:text-3xl">
+                            À propos
                         </h2>
-
-                        {/* Date / heure */}
-                        <div className="mb-5 inline-flex items-start gap-2 bg-muted/40 border rounded-2xl px-4 py-3 text-sm md:text-base font-medium">
-                            <IconCalendar className="w-5 h-5 text-secondary mt-0.5 shrink-0" />
-                            <span className="flex flex-col gap-1 leading-snug">
-                                <span>Début : {startLabel}</span>
-                                {!isSameDay && <span>Fin : {endLabel}</span>}
-                            </span>
-                        </div>
 
                         {/* Description */}
                         <div
-                            className="prose prose-lg dark:prose-invert max-w-none text-muted-foreground"
+                            className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-muted-foreground"
                             dangerouslySetInnerHTML={{ __html: event.description }}
                         />
                     </section>
@@ -378,8 +411,8 @@ export default async function PublicEventPage({ params }: Props) {
                     {event.eventType === "IN_PERSON" && event.location ? (
                         <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
                             <div className="flex items-center justify-between gap-4 flex-wrap">
-                                <h2 className="text-3xl font-afo flex items-center gap-3">
-                                    <IconMapPin className="w-7 h-7 text-emerald-500" />
+                                <h2 className="flex items-center gap-2.5 font-afo text-2xl sm:text-3xl">
+                                    <IconMapPin className="h-6 w-6 shrink-0 text-emerald-500" />
                                     Localisation
                                 </h2>
                                 <a
@@ -398,7 +431,7 @@ export default async function PublicEventPage({ params }: Props) {
                                 <iframe
                                     title={`Carte de ${event.location}`}
                                     src={googleMapsEmbedUrl}
-                                    className="w-full h-80 md:h-95"
+                                    className="h-64 w-full sm:h-80"
                                     loading="lazy"
                                     referrerPolicy="no-referrer-when-downgrade"
                                 />
@@ -406,8 +439,8 @@ export default async function PublicEventPage({ params }: Props) {
                         </section>
                     ) : event.eventType === "ONLINE" ? (
                         <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
-                            <h2 className="text-3xl font-afo flex items-center gap-3">
-                                <IconDeviceTvOld className="w-7 h-7 text-blue-500" />
+                            <h2 className="flex items-center gap-2.5 font-afo text-2xl sm:text-3xl">
+                                <IconDeviceTvOld className="h-6 w-6 shrink-0 text-blue-500" />
                                 Accès en ligne
                             </h2>
                             <p className="text-muted-foreground leading-relaxed">
@@ -443,9 +476,14 @@ export default async function PublicEventPage({ params }: Props) {
 
                 {/* ── Colonne droite : Billetterie sticky ──────────────── */}
                 <div className="relative">
-                    <div className="sticky top-24 space-y-6">
+                    {/* `scroll-mt-20` dégage la navbar collante quand on
+                        arrive ici via le raccourci flottant. */}
+                    <div
+                        id="billetterie"
+                        className="sticky top-24 space-y-6 scroll-mt-20"
+                    >
                         <div className="bg-card border rounded-3xl p-6 md:p-8 shadow-xl">
-                            <h3 className="text-4xl font-afo mb-6">
+                            <h3 className="mb-5 font-afo text-3xl">
                                 Billetterie
                             </h3>
 
@@ -465,6 +503,13 @@ export default async function PublicEventPage({ params }: Props) {
                     </div>
                 </div>
             </div>
+
+            {!event.isCancelled && ticketsWithRemaining.length > 0 && (
+                <TicketsAnchorButton
+                    targetId="billetterie"
+                    fromPrice={fromPrice}
+                />
+            )}
 
             {/* ══════════════════════════════════════════════════════════════
                 CTA bas de page

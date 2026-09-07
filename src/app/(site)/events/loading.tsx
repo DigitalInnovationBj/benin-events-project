@@ -12,22 +12,37 @@ export default function EventsLoading() {
                 </div>
             </div>
 
-            {/* Barre de filtres */}
-            <div className="border-b bg-card/80">
-                <div className="max-w-6xl mx-auto px-6 py-3 md:px-12 flex flex-wrap gap-3">
-                    <Skeleton className="h-10 flex-1 min-w-50" />
-                    <Skeleton className="h-10 w-36" />
-                    <Skeleton className="h-10 w-36" />
-                    <Skeleton className="h-10 w-24" />
-                </div>
-            </div>
+            <div className="max-w-6xl mx-auto px-6 md:px-12 pb-20">
+                <div className="lg:grid lg:grid-cols-[17rem_1fr] lg:gap-8 lg:pt-8">
+                    {/* Barre compacte mobile */}
+                    <div className="lg:hidden flex items-center gap-2 py-3">
+                        <Skeleton className="h-10 flex-1" />
+                        <Skeleton className="h-10 w-24" />
+                        <Skeleton className="h-10 w-20" />
+                    </div>
 
-            {/* Grille */}
-            <div className="max-w-6xl mx-auto px-6 py-8 pb-20 md:px-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {Array.from({ length: 9 }, (_, i) => (
-                        <EventCardSkeleton key={i} />
-                    ))}
+                    {/* Panneau latéral desktop */}
+                    <div className="hidden lg:block">
+                        <div className="space-y-4 rounded-2xl border bg-card p-5">
+                            <Skeleton className="h-5 w-24" />
+                            <Skeleton className="h-10 w-full" />
+                            {Array.from({ length: 6 }, (_, i) => (
+                                <div key={i} className="space-y-1.5">
+                                    <Skeleton className="h-3 w-20" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Grille */}
+                    <div className="pt-8 lg:pt-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                            {Array.from({ length: 9 }, (_, i) => (
+                                <EventCardSkeleton key={i} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -218,6 +218,14 @@ export default async function EventsPage({
         price ||
         (sort && sort !== "date_asc")
     );
+    const activeCount = [
+        category,
+        type,
+        city,
+        date,
+        price,
+        sort !== "date_asc" ? sort : "",
+    ].filter(Boolean).length;
     const hasEvents = events.length > 0;
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -264,10 +272,15 @@ export default async function EventsPage({
             </div>
 
             {/* ══════════════════════════════════════════════════════════════
-                Barre de filtres
+                Filtres + résultats
+                Mobile/tablette : barre compacte collante + drawer.
+                Desktop : colonne de filtres à gauche, résultats à droite.
             ══════════════════════════════════════════════════════════════ */}
-            <div className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-30">
-                <div className="max-w-6xl mx-auto px-6 py-3 md:px-12">
+            <div className="max-w-6xl mx-auto px-6 md:px-12 pb-20">
+                <div className="lg:grid lg:grid-cols-[17rem_1fr] lg:gap-8 lg:pt-8">
+                    {/* Rendu une seule fois : le composant bascule lui-même
+                        entre barre + drawer (mobile) et panneau latéral
+                        (desktop). Le dupliquer afficherait deux barres. */}
                     <EventsFilters
                         categories={allCategories}
                         cities={[...CITIES]}
@@ -280,72 +293,71 @@ export default async function EventsPage({
                         currentSort={sort}
                         currentView={view}
                         hasFilters={hasFilters}
+                        activeCount={activeCount}
                     />
-                </div>
-            </div>
 
-            {/* ══════════════════════════════════════════════════════════════
-                Contenu
-            ══════════════════════════════════════════════════════════════ */}
-            <div className="max-w-6xl mx-auto px-6 py-8 pb-20 md:px-12">
-                {hasEvents ? (
-                    <>
-                        {view === "list" ? (
-                            <div className="flex flex-col gap-3">
-                                {events.map((event) => (
-                                    <EventCard
-                                        key={event.id}
-                                        event={event as unknown as EventForCard}
-                                        view="list"
-                                        remainingStock={remainingByEvent.get(event.id)}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                {events.map((event) => (
-                                    <EventCard
-                                        key={event.id}
-                                        event={event as unknown as EventForCard}
-                                        view="grid"
-                                        remainingStock={remainingByEvent.get(event.id)}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                    {/* ── Résultats ─────────────────────────────────────── */}
+                    <div className="pt-8 lg:pt-0 lg:min-w-0">
+                        {hasEvents ? (
+                            <>
+                                {view === "list" ? (
+                                    <div className="flex flex-col gap-3">
+                                        {events.map((event) => (
+                                            <EventCard
+                                                key={event.id}
+                                                event={event as unknown as EventForCard}
+                                                view="list"
+                                                remainingStock={remainingByEvent.get(event.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                                        {events.map((event) => (
+                                            <EventCard
+                                                key={event.id}
+                                                event={event as unknown as EventForCard}
+                                                view="grid"
+                                                remainingStock={remainingByEvent.get(event.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
 
-                        <EventsPagination
-                            currentPage={page}
-                            totalPages={totalPages}
-                        />
-                    </>
-                ) : (
-                    <div className="text-center py-28">
-                        <IconCalendarOff
-                            className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30"
-                            aria-hidden="true"
-                        />
-                        <h2 className="text-2xl font-bold mb-2">
-                            {hasFilters ? "Aucun résultat" : "Aucun évènement"}
-                        </h2>
-                        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                            {hasFilters
-                                ? "Aucun évènement ne correspond à vos critères. Essayez de modifier vos filtres."
-                                : "Restez à l'affût ! De nouveaux évènements seront bientôt disponibles."}
-                        </p>
-                        {hasFilters ? (
-                            <Button asChild variant="outline">
-                                <Link href="/events">
-                                    Réinitialiser les filtres
-                                </Link>
-                            </Button>
+                                <EventsPagination
+                                    currentPage={page}
+                                    totalPages={totalPages}
+                                />
+                            </>
                         ) : (
-                            <Button asChild>
-                                <Link href="/">Retour à l&apos;accueil</Link>
-                            </Button>
+                            <div className="text-center py-24">
+                                <IconCalendarOff
+                                    className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30"
+                                    aria-hidden="true"
+                                />
+                                <h2 className="text-2xl font-bold mb-2">
+                                    {hasFilters ? "Aucun résultat" : "Aucun évènement"}
+                                </h2>
+                                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                                    {hasFilters
+                                        ? "Aucun évènement ne correspond à vos critères. Essayez de modifier vos filtres."
+                                        : "Restez à l'affût ! De nouveaux évènements seront bientôt disponibles."}
+                                </p>
+                                {hasFilters ? (
+                                    <Button asChild variant="outline">
+                                        <Link href="/events">
+                                            Réinitialiser les filtres
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button asChild>
+                                        <Link href="/">Retour à l&apos;accueil</Link>
+                                    </Button>
+                                )}
+                            </div>
                         )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

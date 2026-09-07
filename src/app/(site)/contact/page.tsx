@@ -7,10 +7,10 @@ import {
     IconMessage,
 } from "@tabler/icons-react";
 import {
-    IconBrandFacebook,
-    IconBrandTiktok,
-    IconBrandInstagram,
-} from "@tabler/icons-react";
+    SOCIAL_LINKS,
+    CONTACT_EMAIL,
+    CONTACT_EMAIL_ALT,
+} from "@/lib/socials";
 
 export const metadata: Metadata = {
     title: "Contact | Benin Events",
@@ -18,32 +18,6 @@ export const metadata: Metadata = {
         "Contactez l'équipe Benin Events pour toute question, partenariat ou signalement.",
 };
 
-const SOCIAL_LINKS = [
-    {
-        label: "Facebook",
-        href: "https://facebook.com/beninevents",
-        icon: IconBrandFacebook,
-        handle: "@beninevents",
-        hoverColor:
-            "hover:border-blue-500/40 hover:bg-blue-500/5 hover:text-blue-500",
-    },
-    {
-        label: "TikTok",
-        href: "https://tiktok.com/@beninevents",
-        icon: IconBrandTiktok,
-        handle: "@beninevents",
-        hoverColor:
-            "hover:border-foreground/40 hover:bg-foreground/5 hover:text-foreground",
-    },
-    {
-        label: "Instagram",
-        href: "https://instagram.com/beninevents",
-        icon: IconBrandInstagram,
-        handle: "@beninevents",
-        hoverColor:
-            "hover:border-pink-500/40 hover:bg-pink-500/5 hover:text-pink-500",
-    },
-];
 
 export default function ContactPage() {
     return (
@@ -98,10 +72,16 @@ export default function ContactPage() {
                                     E-mail
                                 </p>
                                 <a
-                                    href="mailto:contact@beninevents.com"
-                                    className="text-sm text-secondary hover:underline"
+                                    href={`mailto:${CONTACT_EMAIL}`}
+                                    className="block text-sm text-secondary hover:underline break-all"
                                 >
-                                    contact@beninevents.com
+                                    {CONTACT_EMAIL}
+                                </a>
+                                <a
+                                    href={`mailto:${CONTACT_EMAIL_ALT}`}
+                                    className="block text-sm text-secondary hover:underline break-all"
+                                >
+                                    {CONTACT_EMAIL_ALT}
                                 </a>
                             </div>
                         </div>

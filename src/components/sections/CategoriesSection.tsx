@@ -19,7 +19,7 @@ import {
 import type { ComponentType } from "react";
 
 // ─────────────────────────────────────────────
-// Icon mapping
+// Correspondance catégorie → icône
 // ─────────────────────────────────────────────
 
 function getCategoryIcon(slug: string): ComponentType<{ className?: string }> {
@@ -138,7 +138,7 @@ export default async function CategoriesSection() {
                                 className="snap-start shrink-0 group"
                             >
                                 <div className="rounded-2xl border-2 border-transparent bg-card hover:border-secondary/60 hover:shadow-lg transition-all duration-300 px-5 py-4 w-38 flex flex-col gap-3">
-                                    {/* Icon pill */}
+                                    {/* Pastille d'icône */}
                                     <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0 group-hover:bg-secondary/20 transition-colors duration-300">
                                         <Icon className="w-5 h-5 text-secondary" />
                                     </div>

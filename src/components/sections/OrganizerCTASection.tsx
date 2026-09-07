@@ -76,7 +76,12 @@ export default async function OrganizerCTASection() {
                                 asChild
                                 size="lg"
                                 variant="outline"
-                                className="rounded-2xl border-primary-foreground/25 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                                // `variant="outline"` applique `bg-background` :
+                                // en thème clair, ce blanc sous un texte
+                                // `primary-foreground` (quasi blanc) rendait le
+                                // bouton illisible. La section étant sur
+                                // `bg-primary`, le fond doit rester transparent.
+                                className="rounded-2xl bg-transparent border-primary-foreground/25 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
                             >
                                 <Link href="/dashboard/demande-organisateur">
                                     Devenir organisateur
