@@ -14,6 +14,8 @@ import {
     IconCalendarWeek,
     IconHelpCircle,
     IconMail,
+    IconTicket,
+    IconUserCircle,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +57,12 @@ interface NavbarClientProps {
 // Liens de navigation
 // ─────────────────────────────────────────────
 
+/** Espace acheteur, réservé aux utilisateurs connectés. */
+const ACCOUNT_LINKS = [
+    { href: "/mes-billets", label: "Mes billets", icon: IconTicket },
+    { href: "/mon-compte", label: "Mon compte", icon: IconUserCircle },
+];
+
 const NAV_LINKS = [
     { href: "/", label: "Accueil", icon: IconHome, exact: true },
     {
@@ -66,6 +74,45 @@ const NAV_LINKS = [
     { href: "/faq", label: "FAQ", icon: IconHelpCircle, exact: false },
     { href: "/contact", label: "Contact", icon: IconMail, exact: false },
 ];
+
+// ─────────────────────────────────────────────
+// Lien du drawer mobile
+// ─────────────────────────────────────────────
+
+function DrawerNavLink({
+    href,
+    label,
+    icon: Icon,
+    active,
+}: {
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    active: boolean;
+}) {
+    return (
+        <DrawerClose asChild>
+            <Link
+                href={href}
+                className={cn(
+                    "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
+                    active
+                        ? "bg-secondary/10 text-secondary"
+                        : "text-foreground hover:bg-muted/50",
+                )}
+            >
+                <Icon
+                    className={cn(
+                        "w-4 h-4 shrink-0",
+                        active ? "text-secondary" : "text-muted-foreground",
+                    )}
+                    aria-hidden="true"
+                />
+                {label}
+            </Link>
+        </DrawerClose>
+    );
+}
 
 // ─────────────────────────────────────────────
 // Composant
@@ -302,71 +349,53 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                 {/* Liens principaux */}
                                 <nav className="flex flex-col gap-1 mb-4">
                                     {NAV_LINKS.map(
-                                        ({
-                                            href,
-                                            label,
-                                            icon: Icon,
-                                            exact,
-                                        }) => (
-                                            <DrawerClose key={href} asChild>
-                                                <Link
-                                                    href={href}
-                                                    className={cn(
-                                                        "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
-                                                        isActive(href, exact)
-                                                            ? "bg-secondary/10 text-secondary"
-                                                            : "text-foreground hover:bg-muted/50",
-                                                    )}
-                                                >
-                                                    <Icon
-                                                        className={cn(
-                                                            "w-4 h-4 shrink-0",
-                                                            isActive(
-                                                                href,
-                                                                exact,
-                                                            )
-                                                                ? "text-secondary"
-                                                                : "text-muted-foreground",
-                                                        )}
-                                                    />
-                                                    {label}
-                                                </Link>
-                                            </DrawerClose>
+                                        ({ href, label, icon, exact }) => (
+                                            <DrawerNavLink
+                                                key={href}
+                                                href={href}
+                                                label={label}
+                                                icon={icon}
+                                                active={isActive(href, exact)}
+                                            />
                                         ),
                                     )}
 
                                     {user && (
-                                        <DrawerClose asChild>
-                                            <Link
+                                        <>
+                                            {/* Espace acheteur : accessible
+                                                depuis le menu profil sur
+                                                desktop, il manquait ici. */}
+                                            {ACCOUNT_LINKS.map(
+                                                ({ href, label, icon }) => (
+                                                    <DrawerNavLink
+                                                        key={href}
+                                                        href={href}
+                                                        label={label}
+                                                        icon={icon}
+                                                        active={pathname.startsWith(
+                                                            href,
+                                                        )}
+                                                    />
+                                                ),
+                                            )}
+
+                                            <DrawerNavLink
                                                 href={
                                                     isOrganizer
                                                         ? "/dashboard"
                                                         : "/dashboard/demande-organisateur"
                                                 }
-                                                className={cn(
-                                                    "flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-colors",
-                                                    pathname.startsWith(
-                                                        "/dashboard",
-                                                    )
-                                                        ? "bg-secondary/10 text-secondary"
-                                                        : "text-foreground hover:bg-muted/50",
+                                                label={
+                                                    isOrganizer
+                                                        ? "Tableau de bord"
+                                                        : "Devenir organisateur"
+                                                }
+                                                icon={IconLayoutDashboard}
+                                                active={pathname.startsWith(
+                                                    "/dashboard",
                                                 )}
-                                            >
-                                                <IconLayoutDashboard
-                                                    className={cn(
-                                                        "w-4 h-4 shrink-0",
-                                                        pathname.startsWith(
-                                                            "/dashboard",
-                                                        )
-                                                            ? "text-secondary"
-                                                            : "text-muted-foreground",
-                                                    )}
-                                                />
-                                                {isOrganizer
-                                                    ? "Tableau de bord"
-                                                    : "Devenir organisateur"}
-                                            </Link>
-                                        </DrawerClose>
+                                            />
+                                        </>
                                     )}
                                 </nav>
 

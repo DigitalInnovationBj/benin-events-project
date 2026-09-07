@@ -3,6 +3,27 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+/**
+ * URL utilisée par la CLI Prisma (migrate, db, studio).
+ *
+ * Les migrations doivent passer par l'endpoint DIRECT de Neon, pas par le
+ * pooler : elles ouvrent une connexion de session et posent des verrous
+ * consultatifs, que PgBouncer en mode transaction ne relaie pas — d'où des
+ * `P1002` (serveur atteint, connexion expirée) au `migrate deploy` du build.
+ *
+ * Le runtime, lui, garde le pooler (cf. src/lib/prisma.ts) : c'est ce qu'il
+ * faut pour des lambdas nombreuses et courtes.
+ */
+function migrationUrl(): string | undefined {
+    const url = process.env["DATABASE_URL_UNPOOLED"] ?? process.env["DATABASE_URL"];
+    if (!url) return undefined;
+
+    // Neon suspend les instances inactives : le réveil peut dépasser le
+    // délai de connexion par défaut.
+    if (url.includes("connect_timeout=")) return url;
+    return `${url}${url.includes("?") ? "&" : "?"}connect_timeout=30`;
+}
+
 export default defineConfig({
     schema: "prisma/schema.prisma",
     migrations: {
@@ -10,6 +31,6 @@ export default defineConfig({
         seed: "tsx prisma/seed.ts",
     },
     datasource: {
-        url: process.env["DATABASE_URL"],
+        url: migrationUrl(),
     },
 });
