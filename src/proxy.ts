@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
-const PROTECTED_ROUTES = ["/dashboard", "/admin", "/agent"];
+// /mes-billets et /mon-compte sont l'espace acheteur : publiquement visibles
+// dans la navigation, mais réservés aux utilisateurs connectés. Les pages
+// revalident la session de leur côté (le proxy n'est qu'une première barrière).
+const PROTECTED_ROUTES = [
+    "/dashboard",
+    "/admin",
+    "/agent",
+    "/mes-billets",
+    "/mon-compte",
+];
 
 function matches(path: string, routes: string[]) {
     return routes.some((r) => path === r || path.startsWith(r + "/"));

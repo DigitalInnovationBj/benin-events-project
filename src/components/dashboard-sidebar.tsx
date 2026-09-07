@@ -81,8 +81,8 @@ interface NavItem {
 
 const MAIN_NAV: NavItem[] = [
     { title: "Vue d'ensemble", url: "/dashboard", icon: IconLayoutDashboard, exact: true },
-    { title: "Mes commandes", url: "/dashboard/orders", icon: IconTicket },
-    { title: "Mon profil", url: "/dashboard/profile", icon: IconUserCircle },
+    { title: "Mes billets", url: "/mes-billets", icon: IconTicket },
+    { title: "Mon compte", url: "/mon-compte", icon: IconUserCircle },
 ];
 
 const ORGANIZER_NAV: NavItem[] = [
@@ -218,7 +218,7 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <Link href="/dashboard/profile">
+                            <Link href="/mon-compte">
                                 <IconUserCircle className="mr-2 h-4 w-4" />
                                 Mon profil
                             </Link>

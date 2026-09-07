@@ -311,7 +311,7 @@ export default async function DashboardPage() {
                         <Section
                             title="Commandes récentes"
                             action={
-                                <Link href="/dashboard/orders">
+                                <Link href="/mes-billets">
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -493,7 +493,7 @@ export default async function DashboardPage() {
                     {/* Actions rapides */}
                     <Section title="Actions rapides">
                         <div className="space-y-2">
-                            <Link href="/dashboard/orders" className="block">
+                            <Link href="/mes-billets" className="block">
                                 <Button
                                     variant="outline"
                                     className="w-full justify-start gap-2 h-10 text-sm"

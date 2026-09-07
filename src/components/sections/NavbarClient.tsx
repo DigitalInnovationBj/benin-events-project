@@ -9,7 +9,7 @@ import {
     IconLogin2,
     IconUserPlus,
     IconSearch,
-    IconLayoutBoardSplit,
+    IconMenu,
     IconHome,
     IconCalendarWeek,
     IconHelpCircle,
@@ -57,7 +57,12 @@ interface NavbarClientProps {
 
 const NAV_LINKS = [
     { href: "/", label: "Accueil", icon: IconHome, exact: true },
-    { href: "/events", label: "Évènements", icon: IconCalendarWeek, exact: false },
+    {
+        href: "/events",
+        label: "Évènements",
+        icon: IconCalendarWeek,
+        exact: false,
+    },
     { href: "/faq", label: "FAQ", icon: IconHelpCircle, exact: false },
     { href: "/contact", label: "Contact", icon: IconMail, exact: false },
 ];
@@ -222,14 +227,18 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                     size="sm"
                                     className="rounded-xl"
                                 >
-                                    <Link href={`/sign-in${authRedirect}`}>Se connecter</Link>
+                                    <Link href={`/sign-in${authRedirect}`}>
+                                        Se connecter
+                                    </Link>
                                 </Button>
                                 <Button
                                     asChild
                                     size="sm"
                                     className="rounded-xl"
                                 >
-                                    <Link href={`/sign-up${authRedirect}`}>S&apos;inscrire</Link>
+                                    <Link href={`/sign-up${authRedirect}`}>
+                                        S&apos;inscrire
+                                    </Link>
                                 </Button>
                             </>
                         )}
@@ -263,7 +272,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                     className="rounded-xl"
                                     aria-label="Ouvrir le menu"
                                 >
-                                    <IconLayoutBoardSplit className="w-5 h-5" />
+                                    <IconMenu className="w-5 h-5" />
                                 </Button>
                             </DrawerTrigger>
 
@@ -391,7 +400,9 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     asChild
                                                     className="w-full rounded-xl gap-2"
                                                 >
-                                                    <Link href={`/sign-in${authRedirect}`}>
+                                                    <Link
+                                                        href={`/sign-in${authRedirect}`}
+                                                    >
                                                         <IconLogin2 className="w-4 h-4" />
                                                         Se connecter
                                                     </Link>
@@ -403,7 +414,9 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     variant="outline"
                                                     className="w-full rounded-xl gap-2"
                                                 >
-                                                    <Link href={`/sign-up${authRedirect}`}>
+                                                    <Link
+                                                        href={`/sign-up${authRedirect}`}
+                                                    >
                                                         <IconUserPlus className="w-4 h-4" />
                                                         S&apos;inscrire
                                                     </Link>

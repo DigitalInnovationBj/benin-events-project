@@ -15,6 +15,7 @@ import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
 import { stockConsumingOrderFilter } from "@/lib/stock";
 import { MAX_TICKETS_PER_ORDER } from "@/lib/cart";
+import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
 
@@ -441,4 +442,44 @@ export async function getOrdersToRefund(eventId: string) {
     });
 
     return { orders };
+}
+
+// ─────────────────────────────────────────────
+// resendOrderTickets — renvoi des billets à l'acheteur
+//
+// Un envoi Resend peut échouer alors que le paiement est confirmé : sans
+// action de renvoi, l'acheteur n'avait aucun recours et le support non plus.
+// ─────────────────────────────────────────────
+
+export async function resendOrderTickets(orderId: string) {
+    const user = await getCurrentUser();
+    if (!user) return { error: "Vous devez être connecté." };
+
+    // Un renvoi déclenche un email et regénère les PDF : on borne les abus.
+    if (!rateLimit(`resend-tickets:${user.id}`, 5, 60 * 60 * 1000)) {
+        return {
+            error: "Trop de renvois demandés. Réessayez dans une heure.",
+        };
+    }
+
+    const order = await prisma.order.findFirst({
+        where: { id: orderId, userId: user.id },
+        select: { id: true, status: true },
+    });
+
+    if (!order) return { error: "Commande introuvable." };
+    if (order.status !== "COMPLETED") {
+        return { error: "Cette commande n'est pas confirmée." };
+    }
+
+    try {
+        await sendOrderConfirmationEmails(order.id);
+    } catch {
+        return {
+            error: "L'envoi a échoué. Réessayez dans quelques minutes.",
+        };
+    }
+
+    revalidatePath("/mes-billets");
+    return { success: true };
 }

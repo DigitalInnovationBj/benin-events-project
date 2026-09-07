@@ -16,7 +16,7 @@ export async function setNewsletterOptIn(optIn: boolean) {
         data: { newsletterOptIn: optIn },
     });
 
-    revalidatePath("/dashboard/profile");
+    revalidatePath("/mon-compte");
     return { success: true };
 }
 

@@ -431,6 +431,12 @@ model Order {
 
   items OrderItem[]
 
+  /// Livraison des billets par email. Sans cette trace, un envoi Resend en
+  /// échec laissait une commande payée dont l'acheteur ne recevait rien, sans
+  /// aucun moyen de le détecter ni de renvoyer les billets.
+  ticketsSentAt    DateTime?
+  ticketsSendError String?   @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

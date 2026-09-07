@@ -4,43 +4,43 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    /* Fonds légèrement teintés vers le violet de marque plutôt que gris purs :
-       le blanc absolu jurait avec le violet primaire. */
-    --background: oklch(0.995 0.002 309);
-    --foreground: oklch(0.18 0.02 309);
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.18 0.02 309);
+    --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.18 0.02 309);
+    --popover-foreground: oklch(0.145 0 0);
     --primary: oklch(0.2763 0.1343 308.9991);
     --primary-foreground: oklch(0.994 0 0);
-    --secondary: oklch(0.7 0.15 66);
-    --secondary-foreground: oklch(0.16 0.02 66);
-    --muted: oklch(0.965 0.004 309);
-    --muted-foreground: oklch(0.5 0.02 309);
-    --accent: oklch(0.955 0.012 309);
-    --accent-foreground: oklch(0.2763 0.1343 308.9991);
+    --secondary: oklch(0.8024 0.1595 74.5129);
+    --secondary-foreground: oklch(0 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(1 0 0);
+    /* Tokens sémantiques : les statuts étaient des emerald/blue/yellow codés
+       en dur dans les composants. Aucune couleur de marque n'est modifiée. */
     --success: oklch(0.58 0.15 155);
     --warning: oklch(0.72 0.16 75);
     --info: oklch(0.6 0.16 250);
-    --border: oklch(0.9 0.008 309);
-    --input: oklch(0.9 0.008 309);
-    --ring: oklch(0.2763 0.1343 308.9991);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
     --chart-1: oklch(0.81 0.1 252);
     --chart-2: oklch(0.62 0.19 260);
     --chart-3: oklch(0.55 0.22 263);
     --chart-4: oklch(0.49 0.22 264);
     --chart-5: oklch(0.42 0.18 266);
-    --sidebar: oklch(0.985 0.004 309);
-    --sidebar-foreground: oklch(0.18 0.02 309);
-    --sidebar-primary: oklch(0.2763 0.1343 308.9991);
-    --sidebar-primary-foreground: oklch(0.994 0 0);
-    --sidebar-accent: oklch(0.955 0.012 309);
-    --sidebar-accent-foreground: oklch(0.2763 0.1343 308.9991);
-    --sidebar-border: oklch(0.9 0.008 309);
-    --sidebar-ring: oklch(0.2763 0.1343 308.9991);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
 
     --radius: 0.625rem;
     --shadow-x: 0;
@@ -67,45 +67,43 @@
 }
 
 .dark {
-    /* Fond ancré sur le violet de marque #251333 (déjà déclaré comme
-       `themeColor` dans layout.tsx), au lieu du gris neutre précédent. */
-    --background: oklch(0.19 0.045 309);
-    --foreground: oklch(0.97 0.005 309);
-    --card: oklch(0.24 0.05 309);
-    --card-foreground: oklch(0.97 0.005 309);
-    --popover: oklch(0.27 0.05 309);
-    --popover-foreground: oklch(0.97 0.005 309);
-    /* Le violet L=0.276 du light est illisible sur fond sombre : on l'éclaircit. */
-    --primary: oklch(0.62 0.19 309);
-    --primary-foreground: oklch(0.16 0.03 309);
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.269 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.2763 0.1343 308.9991);
+    --primary-foreground: oklch(0.994 0 0);
     --secondary: oklch(0.8024 0.1595 74.5129);
-    --secondary-foreground: oklch(0.16 0.03 66);
-    --muted: oklch(0.27 0.04 309);
-    --muted-foreground: oklch(0.72 0.02 309);
-    --accent: oklch(0.33 0.06 309);
-    --accent-foreground: oklch(0.97 0.005 309);
+    --secondary-foreground: oklch(0 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.371 0 0);
+    --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --destructive-foreground: oklch(0.985 0 0);
     --success: oklch(0.72 0.16 155);
     --warning: oklch(0.82 0.16 80);
     --info: oklch(0.72 0.14 250);
-    /* Auparavant `oklch(0 0 0)` : noir pur, donc invisible sur les cartes. */
-    --border: oklch(0.34 0.04 309);
-    --input: oklch(0.34 0.04 309);
+    /* Auparavant `oklch(0 0 0)` : noir pur, donc invisible sur --card. */
+    --border: oklch(0.275 0 0);
+    /* Auparavant un orange (0.7212 0.161 56) absent de la palette. */
+    --input: oklch(0.275 0 0);
     --ring: oklch(0.8024 0.1595 74.5129);
     --chart-1: oklch(0.81 0.1 252);
     --chart-2: oklch(0.62 0.19 260);
     --chart-3: oklch(0.55 0.22 263);
     --chart-4: oklch(0.49 0.22 264);
     --chart-5: oklch(0.42 0.18 266);
-    --sidebar: oklch(0.24 0.05 309);
-    --sidebar-foreground: oklch(0.97 0.005 309);
-    --sidebar-primary: oklch(0.62 0.19 309);
-    --sidebar-primary-foreground: oklch(0.16 0.03 309);
-    --sidebar-accent: oklch(0.33 0.06 309);
-    --sidebar-accent-foreground: oklch(0.97 0.005 309);
-    --sidebar-border: oklch(0.34 0.04 309);
-    --sidebar-ring: oklch(0.8024 0.1595 74.5129);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.275 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
 
     --radius: 0.625rem;
     --shadow-x: 0;

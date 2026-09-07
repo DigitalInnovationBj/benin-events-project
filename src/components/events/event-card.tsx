@@ -196,7 +196,7 @@ function GridCard({
                                 .map(({ category }) => (
                                     <span
                                         key={category.slug}
-                                        className="text-xs bg-primary text-primary-foreground font-medium px-2.5 py-0.5 rounded-full"
+                                        className="text-xs bg-primary text-secondary font-medium px-2.5 py-0.5 rounded-full"
                                     >
                                         {category.name}
                                     </span>
@@ -323,7 +323,7 @@ function ListItem({
                         {event.categories.slice(0, 2).map(({ category }) => (
                             <span
                                 key={category.slug}
-                                className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-medium"
+                                className="text-xs bg-primary text-secondary px-2 py-0.5 rounded-full font-medium"
                             >
                                 {category.name}
                             </span>

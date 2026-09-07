@@ -17,9 +17,23 @@ import { Button } from "@/components/ui/button";
 import EventCountdown from "@/components/events/event-countdown";
 import EventInteractions from "@/components/events/event-interactions";
 import { TicketSelector } from "@/components/events/ticket-selector";
+import { EventJsonLd } from "@/components/events/event-json-ld";
 
 interface Props {
     params: Promise<{ slug: string }>;
+}
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+/** Description en texte brut, pour les métadonnées et les données structurées. */
+function toPlainDescription(html: string): string {
+    return (
+        html
+            .replace(/<[^>]*>/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .substring(0, 160) + "…"
+    );
 }
 
 // ─────────────────────────────────────────────
@@ -44,25 +58,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const ogImageUrl = event.ogImage || event.imageUrl;
 
-    const plainDescription = event.description
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .substring(0, 160) + "…";
+    const plainDescription = toPlainDescription(event.description);
 
     return {
-        title: `${event.ogTitle || event.title} | Benin Events`,
+        // Le template du layout racine ajoute déjà « | Benin Events ».
+        title: event.ogTitle || event.title,
         description: plainDescription,
+        // Sans canonical par page, toutes les pages héritaient de celui du
+        // layout, qui pointe vers l'accueil.
+        alternates: { canonical: `/events/${slug}` },
         openGraph: {
+            type: "article",
             title: event.ogTitle || event.title,
             description: plainDescription,
-            images: ogImageUrl ? [ogImageUrl] : [],
+            url: `/events/${slug}`,
+            // `images` omis quand il n'y en a pas : Next retombe alors sur
+            // l'opengraph-image générée du segment.
+            ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
         },
         twitter: {
             card: "summary_large_image",
             title: event.ogTitle || event.title,
             description: plainDescription,
-            images: ogImageUrl ? [ogImageUrl] : [],
+            ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
         },
     };
 }
@@ -187,6 +205,8 @@ export default async function PublicEventPage({ params }: Props) {
         event.tickets.map((t) => t.id),
     );
 
+    const plainDescription = toPlainDescription(event.description);
+
     const ticketsWithRemaining = event.tickets.map((ticket) => ({
         ...ticket,
         remainingStock: remainingByTicket.get(ticket.id) ?? null,
@@ -203,6 +223,24 @@ export default async function PublicEventPage({ params }: Props) {
 
     return (
         <div className="bg-background">
+            <EventJsonLd
+                url={`${APP_URL}/events/${event.slug}`}
+                title={event.title}
+                description={plainDescription}
+                imageUrl={event.ogImage || event.imageUrl}
+                startDate={event.startDate}
+                endDate={event.endDate}
+                eventType={event.eventType}
+                location={event.location}
+                isCancelled={event.isCancelled}
+                organizerName={event.organizer.name}
+                tickets={ticketsWithRemaining.map((t) => ({
+                    title: t.title,
+                    price: t.price,
+                    remainingStock: t.remainingStock,
+                }))}
+            />
+
             {event.isCancelled && (
                 <div className="bg-destructive text-destructive-foreground text-center py-3 px-4 text-sm font-medium">
                     Cet évènement a été annulé

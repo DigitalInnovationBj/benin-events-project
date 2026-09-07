@@ -42,7 +42,7 @@ const ORGANISATEURS_LINKS = [
         href: "/dashboard/demande-organisateur",
         icon: IconUserPlus,
     },
-    { label: "Mon profil", href: "/dashboard/profile", icon: IconUserCircle },
+    { label: "Mon compte", href: "/mon-compte", icon: IconUserCircle },
 ];
 
 const LEGAL_LINKS = [

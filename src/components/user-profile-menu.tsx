@@ -21,8 +21,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, Loader2 } from "lucide-react";
+import { IconLogout, IconLoader2, IconTicket, IconUserCircle } from "@tabler/icons-react";
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "./ui/button";
 
 interface Props {
@@ -71,6 +72,19 @@ export function UserProfileMenu({ name, email, imageUrl }: Props) {
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link href="/mes-billets">
+                            <IconTicket className="mr-2 h-4 w-4" aria-hidden="true" />
+                            <span>Mes billets</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link href="/mon-compte">
+                            <IconUserCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+                            <span>Mon compte</span>
+                        </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                         className="text-destructive focus:bg-destructive/10 cursor-pointer" 
                         onSelect={(e) => {
@@ -78,7 +92,7 @@ export function UserProfileMenu({ name, email, imageUrl }: Props) {
                             setIsAlertOpen(true);
                         }}
                     >
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <IconLogout className="mr-2 h-4 w-4" aria-hidden="true" />
                         <span>Se déconnecter</span>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -102,7 +116,7 @@ export function UserProfileMenu({ name, email, imageUrl }: Props) {
                             disabled={isLoading} 
                             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                         >
-                            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                            {isLoading ? <IconLoader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" /> : null}
                             {isLoading ? "Déconnexion en cours..." : "Oui, me déconnecter"}
                         </AlertDialogAction>
                     </AlertDialogFooter>

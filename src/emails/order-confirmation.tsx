@@ -284,7 +284,7 @@ export function OrderConfirmationEmail({
                         <Text style={footerText}>
                             Retrouvez toutes vos commandes sur{" "}
                             <a
-                                href={`${appUrl}/dashboard/orders`}
+                                href={`${appUrl}/mes-billets`}
                                 style={footerLink}
                             >
                                 votre espace

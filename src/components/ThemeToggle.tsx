@@ -1,24 +1,16 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useHydrated } from "@/hooks/use-hydrated";
-import { IconSun, IconMoon, IconDeviceDesktop } from "@tabler/icons-react";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { IconSun, IconMoon } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-
-const OPTIONS = [
-    { value: "light", label: "Clair", icon: IconSun },
-    { value: "dark", label: "Sombre", icon: IconMoon },
-    { value: "system", label: "Système", icon: IconDeviceDesktop },
-] as const;
+import { useHydrated } from "@/hooks/use-hydrated";
 
 /**
- * Sélecteur de thème clair / sombre / système.
+ * Bascule clair / sombre.
+ *
+ * Le site est en sombre par défaut ; la préférence système n'est pas suivie
+ * (`enableSystem={false}` dans le layout racine), il n'y a donc que deux
+ * états à proposer.
  *
  * Le thème n'est connu qu'après hydratation (`next-themes` lit localStorage) :
  * tant que le composant n'est pas monté, on rend un bouton neutre de même
@@ -26,7 +18,7 @@ const OPTIONS = [
  * d'hydratation.
  */
 export function ThemeToggle({ className }: { className?: string }) {
-    const { theme, setTheme } = useTheme();
+    const { resolvedTheme, setTheme } = useTheme();
     const hydrated = useHydrated();
 
     if (!hydrated) {
@@ -38,40 +30,28 @@ export function ThemeToggle({ className }: { className?: string }) {
                 aria-hidden="true"
                 tabIndex={-1}
             >
-                <IconSun className="w-4 h-4" />
+                <IconMoon className="w-4 h-4" />
             </Button>
         );
     }
 
-    const current = OPTIONS.find((o) => o.value === theme) ?? OPTIONS[2];
-    const CurrentIcon = current.icon;
+    const isDark = resolvedTheme === "dark";
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className={className}
-                    aria-label={`Thème : ${current.label}. Changer de thème`}
-                >
-                    <CurrentIcon className="w-4 h-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                {OPTIONS.map(({ value, label, icon: Icon }) => (
-                    <DropdownMenuItem
-                        key={value}
-                        onClick={() => setTheme(value)}
-                        className={
-                            theme === value ? "bg-accent font-semibold" : ""
-                        }
-                    >
-                        <Icon className="w-4 h-4" aria-hidden="true" />
-                        {label}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <Button
+            variant="ghost"
+            size="icon"
+            className={className}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            aria-label={
+                isDark ? "Passer au thème clair" : "Passer au thème sombre"
+            }
+        >
+            {isDark ? (
+                <IconSun className="w-4 h-4" aria-hidden="true" />
+            ) : (
+                <IconMoon className="w-4 h-4" aria-hidden="true" />
+            )}
+        </Button>
     );
 }

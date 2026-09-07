@@ -176,11 +176,11 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
                 <div className="flex flex-col gap-3 pt-2">
                     {dbUser ? (
                         <Button asChild variant="secondary">
-                            <Link href="/dashboard/orders">Mes commandes</Link>
+                            <Link href="/mes-billets">Mes billets</Link>
                         </Button>
                     ) : (
                         <Button asChild variant="secondary">
-                            <Link href="/sign-in?redirect_url=%2Fdashboard%2Forders">Se connecter pour voir mes commandes</Link>
+                            <Link href="/sign-in?redirect_url=%2Fmes-billets">Se connecter pour voir mes billets</Link>
                         </Button>
                     )}
                     <Button asChild variant="outline">
