@@ -21,7 +21,15 @@ const STATIC_ROUTES: Array<{
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const events = await prisma.event.findMany({
-        where: { isPublished: true, isDeleted: false, isCancelled: false },
+        // Les évènements terminés étaient listés : leurs pages existent
+        // toujours mais n'ont plus rien à proposer, autant ne pas dépenser le
+        // budget d'exploration dessus.
+        where: {
+            isPublished: true,
+            isDeleted: false,
+            isCancelled: false,
+            endDate: { gte: new Date() },
+        },
         select: { slug: true, updatedAt: true },
         orderBy: { updatedAt: "desc" },
     });

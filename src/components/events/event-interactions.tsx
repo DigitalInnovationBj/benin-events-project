@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     IconHeart,
     IconBookmark,
@@ -8,7 +8,11 @@ import {
 import { IconShare2 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { toggleLike, toggleFavorite } from "@/actions/event.actions";
+import {
+    toggleLike,
+    toggleFavorite,
+    getEventInteractionState,
+} from "@/actions/event.actions";
 import ShareEventDialog from "./share-event-dialog";
 
 interface EventInteractionsProps {
@@ -16,9 +20,6 @@ interface EventInteractionsProps {
     initialLikeCount: number;
     initialFavoriteCount: number;
     initialShareCount: number;
-    initialIsLiked: boolean;
-    initialIsFavorited: boolean;
-    isLoggedIn: boolean;
     // Données pour le partage
     title: string;
     startDate: string;
@@ -30,9 +31,6 @@ export default function EventInteractions({
     eventId,
     initialLikeCount,
     initialFavoriteCount,
-    initialIsLiked,
-    initialIsFavorited,
-    isLoggedIn,
     title,
     startDate,
     eventType,
@@ -40,11 +38,32 @@ export default function EventInteractions({
 }: EventInteractionsProps) {
     const [likeCount, setLikeCount] = useState(initialLikeCount);
     const [favoriteCount, setFavoriteCount] = useState(initialFavoriteCount);
-    const [isLiked, setIsLiked] = useState(initialIsLiked);
-    const [isFavorited, setIsFavorited] = useState(initialIsFavorited);
+    // État propre à l'utilisateur : lu après montage, pour que la page reste
+    // prérendue et partageable en cache (cf. actions/event.actions).
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLiked, setIsLiked] = useState(false);
+    const [isFavorited, setIsFavorited] = useState(false);
     const [isLikeLoading, setIsLikeLoading] = useState(false);
     const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
     const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        getEventInteractionState(eventId)
+            .then((state) => {
+                if (cancelled) return;
+                setIsLoggedIn(state.isLoggedIn);
+                setIsLiked(state.isLiked);
+                setIsFavorited(state.isFavorited);
+            })
+            .catch(() => {
+                // Sans état connu, les boutons restent inactifs : l'action
+                // serveur refusera de toute façon un utilisateur non connecté.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [eventId]);
 
     // ── Like ────────────────────────────────────────────────────────────────
 

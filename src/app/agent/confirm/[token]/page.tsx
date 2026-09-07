@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import {
+    IconCircleCheck,
+    IconCircleX,
+    IconAlertCircle,
+} from "@tabler/icons-react";
 
 export default async function AgentConfirmPage({
     params,
@@ -28,7 +32,7 @@ export default async function AgentConfirmPage({
     if (!agent) {
         return (
             <ConfirmLayout>
-                <XCircle className="w-14 h-14 text-red-500 mx-auto mb-6" />
+                <IconCircleX className="w-14 h-14 text-red-500 mx-auto mb-6" />
                 <h1 className="text-2xl font-bold text-center mb-3">
                     Lien invalide
                 </h1>
@@ -45,7 +49,7 @@ export default async function AgentConfirmPage({
     if (agent.status === "REVOKED") {
         return (
             <ConfirmLayout>
-                <XCircle className="w-14 h-14 text-red-500 mx-auto mb-6" />
+                <IconCircleX className="w-14 h-14 text-red-500 mx-auto mb-6" />
                 <h1 className="text-2xl font-bold text-center mb-3">
                     Invitation révoquée
                 </h1>
@@ -62,7 +66,7 @@ export default async function AgentConfirmPage({
     if (agent.status === "CONFIRMED") {
         return (
             <ConfirmLayout>
-                <CheckCircle className="w-14 h-14 text-emerald-500 mx-auto mb-6" />
+                <IconCircleCheck className="w-14 h-14 text-emerald-500 mx-auto mb-6" />
                 <h1 className="text-2xl font-bold text-center mb-3">
                     Déjà confirmé
                 </h1>
@@ -84,7 +88,7 @@ export default async function AgentConfirmPage({
     // PENDING — show confirm button that triggers the server action
     return (
         <ConfirmLayout>
-            <AlertCircle className="w-14 h-14 text-yellow-500 mx-auto mb-6" />
+            <IconAlertCircle className="w-14 h-14 text-yellow-500 mx-auto mb-6" />
             <h1 className="text-2xl font-bold text-center mb-3">
                 Invitation agent
             </h1>

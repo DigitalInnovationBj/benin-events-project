@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { QrCode, ChevronDown, ChevronUp } from "lucide-react";
+import {
+    IconQrcode,
+    IconChevronDown,
+    IconChevronUp,
+} from "@tabler/icons-react";
 import { ReactQRCode } from "@lglab/react-qr-code";
 
 interface Props {
@@ -20,7 +24,7 @@ export function TicketQrCode({ verifyUrl, ticketTitle, quantity }: Props) {
                 className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-muted/40 transition-colors"
             >
                 <span className="flex items-center gap-2 font-medium">
-                    <QrCode className="w-4 h-4 text-secondary shrink-0" />
+                    <IconQrcode className="w-4 h-4 text-secondary shrink-0" />
                     <span className="truncate">{ticketTitle}</span>
                     {quantity > 1 && (
                         <span className="text-xs text-muted-foreground shrink-0">
@@ -29,9 +33,9 @@ export function TicketQrCode({ verifyUrl, ticketTitle, quantity }: Props) {
                     )}
                 </span>
                 {open ? (
-                    <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <IconChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />
                 ) : (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <IconChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
             </button>
 

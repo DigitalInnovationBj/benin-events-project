@@ -3,18 +3,18 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import {
-    Camera,
-    CheckCircle2,
-    XCircle,
-    Loader2,
-    Ticket,
-    User,
-    Clock,
-    AlertTriangle,
-    ShieldAlert,
-    CalendarX,
-    ScanLine,
-} from "lucide-react";
+    IconCamera,
+    IconCircleCheck,
+    IconCircleX,
+    IconLoader2,
+    IconTicket,
+    IconUser,
+    IconClock,
+    IconAlertTriangle,
+    IconShieldExclamation,
+    IconCalendarOff,
+    IconScan,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
@@ -61,11 +61,11 @@ const ERROR_STYLE: Record<ErrorVariant, { bg: string; border: string; icon: stri
 function ErrorIcon({ variant, className }: { variant: ErrorVariant; className?: string }) {
     const icon = ERROR_STYLE[variant].icon;
     const props = { className: `${ERROR_STYLE[variant].iconColor} ${className ?? "w-10 h-10"} mx-auto mb-3` };
-    if (icon === "clock") return <Clock {...props} />;
-    if (icon === "calendar-x") return <CalendarX {...props} />;
-    if (icon === "alert") return <AlertTriangle {...props} />;
-    if (icon === "shield") return <ShieldAlert {...props} />;
-    return <XCircle {...props} />;
+    if (icon === "clock") return <IconClock {...props} />;
+    if (icon === "calendar-x") return <IconCalendarOff {...props} />;
+    if (icon === "alert") return <IconAlertTriangle {...props} />;
+    if (icon === "shield") return <IconShieldExclamation {...props} />;
+    return <IconCircleX {...props} />;
 }
 
 // ─────────────────────────────────────────────
@@ -150,7 +150,7 @@ export function QrScanner({ eventId }: { eventId: string }) {
                 ) : (
                     !result && (
                         <div className="aspect-4/3 flex flex-col items-center justify-center gap-3 text-zinc-500">
-                            <ScanLine className="w-10 h-10" />
+                            <IconScan className="w-10 h-10" />
                             <p className="text-xs">Scanner inactif</p>
                         </div>
                     )
@@ -166,7 +166,7 @@ export function QrScanner({ eventId }: { eventId: string }) {
                             size="lg"
                             className="gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                         >
-                            <Camera className="w-5 h-5" />
+                            <IconCamera className="w-5 h-5" />
                             Démarrer le scanner
                         </Button>
                     ) : (
@@ -176,7 +176,7 @@ export function QrScanner({ eventId }: { eventId: string }) {
                             size="lg"
                             className="gap-2"
                         >
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <IconLoader2 className="w-5 h-5 animate-spin" />
                             Scan en cours… (Arrêter)
                         </Button>
                     )}
@@ -186,11 +186,11 @@ export function QrScanner({ eventId }: { eventId: string }) {
             {/* ── Erreur caméra ───────────────────────────────── */}
             {cameraError && (
                 <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-2xl p-5 text-center space-y-3">
-                    <Camera className="w-8 h-8 text-red-400 mx-auto" />
+                    <IconCamera className="w-8 h-8 text-red-400 mx-auto" />
                     <p className="text-red-700 dark:text-red-300 text-sm font-medium">Caméra inaccessible</p>
                     <p className="text-red-600 dark:text-red-400 text-xs">{cameraError}</p>
                     <Button onClick={restart} variant="outline" size="sm" className="gap-2 mt-1">
-                        <Camera className="w-4 h-4" />
+                        <IconCamera className="w-4 h-4" />
                         Réessayer
                     </Button>
                 </div>
@@ -214,7 +214,7 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
     return (
         <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-6 space-y-4">
             <div className="text-center">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+                <IconCircleCheck className="w-12 h-12 text-emerald-500 mx-auto mb-2" />
                 <p className="font-bold text-xl text-emerald-800 dark:text-emerald-200">
                     {result.message}
                 </p>
@@ -223,13 +223,13 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
             <div className="space-y-2 border-t border-emerald-200 dark:border-emerald-700 pt-4">
                 {result.ticketTitle && (
                     <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
-                        <Ticket className="w-4 h-4 shrink-0" />
+                        <IconTicket className="w-4 h-4 shrink-0" />
                         <span className="font-medium">{result.ticketTitle}</span>
                     </div>
                 )}
                 {result.attendeeName && (
                     <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
-                        <User className="w-4 h-4 shrink-0" />
+                        <IconUser className="w-4 h-4 shrink-0" />
                         <span>
                             Bénéficiaire :{" "}
                             <span className="font-semibold">{result.attendeeName}</span>
@@ -238,7 +238,7 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
                 )}
                 {result.scannedCount !== undefined && result.quantity !== undefined && (
                     <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
-                        <ScanLine className="w-4 h-4 shrink-0" />
+                        <IconScan className="w-4 h-4 shrink-0" />
                         <span>
                             Entrée{result.quantity > 1 ? "s" : ""} validée{result.quantity > 1 ? "s" : ""} :{" "}
                             <span className="font-semibold">{result.scannedCount} / {result.quantity}</span>
@@ -248,7 +248,7 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
             </div>
 
             <Button onClick={onNext} variant="outline" size="sm" className="w-full gap-2 mt-2">
-                <Camera className="w-4 h-4" />
+                <IconCamera className="w-4 h-4" />
                 Scanner un autre billet
             </Button>
         </div>
@@ -281,13 +281,13 @@ function InvalidResult({ result, onNext }: { result: ScanResult; onNext: () => v
                     )}
                     {result.ticketTitle && (
                         <div className={`flex items-center gap-2.5 text-sm ${style.textColor}`}>
-                            <Ticket className="w-4 h-4 shrink-0 opacity-70" />
+                            <IconTicket className="w-4 h-4 shrink-0 opacity-70" />
                             <span className="font-medium">{result.ticketTitle}</span>
                         </div>
                     )}
                     {result.attendeeName && (
                         <div className={`flex items-center gap-2.5 text-sm ${style.textColor}`}>
-                            <User className="w-4 h-4 shrink-0 opacity-70" />
+                            <IconUser className="w-4 h-4 shrink-0 opacity-70" />
                             <span>
                                 Bénéficiaire :{" "}
                                 <span className="font-semibold">{result.attendeeName}</span>
@@ -296,7 +296,7 @@ function InvalidResult({ result, onNext }: { result: ScanResult; onNext: () => v
                     )}
                     {result.scannedCount !== undefined && result.quantity !== undefined && (
                         <div className={`flex items-center gap-2.5 text-sm ${style.textColor}`}>
-                            <ScanLine className="w-4 h-4 shrink-0 opacity-70" />
+                            <IconScan className="w-4 h-4 shrink-0 opacity-70" />
                             <span>
                                 Entrées utilisées :{" "}
                                 <span className="font-semibold">{result.scannedCount} / {result.quantity}</span>
@@ -307,7 +307,7 @@ function InvalidResult({ result, onNext }: { result: ScanResult; onNext: () => v
             )}
 
             <Button onClick={onNext} variant="outline" size="sm" className="w-full gap-2 mt-2">
-                <Camera className="w-4 h-4" />
+                <IconCamera className="w-4 h-4" />
                 Scanner un autre billet
             </Button>
         </div>

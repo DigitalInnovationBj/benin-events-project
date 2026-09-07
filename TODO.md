@@ -76,21 +76,37 @@ Fichiers : `src/app/layout.tsx` (l. ~142),
 
 ---
 
-## 7. Reliquats techniques
+## ~~7. Reliquats techniques~~ — en grande partie fait
 
-- **`generateStaticParams` absent** sur `/events/[slug]` : toutes les pages
-  évènement sont rendues à la demande.
-- **`src/components/ui/button.tsx`** est resté sur une génération shadcn
-  antérieure au reste du dossier (`forwardRef`, `focus-visible:ring-1`, pas de
-  `data-slot` ni d'`aria-invalid`).
-- **Dashboard et agent encore en `lucide-react`** — le site client est passé à
-  Tabler, conformément à `AGENTS.md` ; il reste ~13 fichiers.
-- **Dépendances jamais importées** : `gsap`, `@gsap/react`,
-  `embla-carousel-react`. À retirer, ou à assumer pour de futures animations.
-- **2 erreurs ESLint préexistantes** :
-  `src/app/dashboard/events/[id]/FeaturedButton.tsx` (setState dans un effet)
-  et `src/emails/event-campaign.tsx` (`<a>` au lieu de `<Link>`).
-- **`sitemap.ts`** liste aussi les évènements passés.
+- **`generateStaticParams`** ajouté sur `/events/[slug]`, avec
+  `revalidate = 300`. L'ajouter seul n'aurait rien changé : la page appelait
+  `getCurrentUser()`, donc `headers()`. L'état like/favori est passé côté
+  client (`getEventInteractionState`), et deux requêtes mortes ont été
+  supprimées — `hasExistingTicket` n'était plus lu depuis le retrait de
+  l'ancien dialog d'achat. Vérifié au build : `● /events/[slug] 5m`.
+- **`ui/button.tsx`** modernisé : `forwardRef` retiré (React 19 passe `ref`
+  comme prop), `data-slot` et styles `aria-invalid` ajoutés. Les classes de
+  variantes sont inchangées — aucun déplacement visuel.
+- **Icônes** : `lucide-react` ne subsiste plus que dans `components/ui/`
+  (généré par shadcn) et dans `ask-ai-button.tsx`, laissé en attente du
+  point 6.
+- **5 composants shadcn jamais importés supprimés** : `nav-documents`,
+  `nav-main`, `nav-secondary`, `nav-user`, `section-cards` — des restes du
+  bloc dashboard livré par défaut.
+- **`sitemap.ts`** ne liste plus les évènements terminés.
+
+**Reste à faire, côté installation :**
+
+```
+pnpm remove gsap @gsap/react embla-carousel-react
+```
+
+Vérifié : zéro import dans `src/`, et aucun `ui/carousel.tsx` qui dépendrait
+d'Embla.
+
+**Erreurs ESLint préexistantes (3), hors périmètre :**
+`FeaturedButton.tsx` et `originkit/ui/spotlight-frames.tsx` (setState dans un
+effet), `emails/event-campaign.tsx` (`<a>` au lieu de `<Link>`).
 
 ---
 

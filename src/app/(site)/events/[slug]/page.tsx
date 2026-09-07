@@ -3,7 +3,6 @@ import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/permissions";
 import { getRemainingStock } from "@/lib/stock";
 import {
     IconCalendar,
@@ -34,6 +33,33 @@ function toPlainDescription(html: string): string {
             .trim()
             .substring(0, 160) + "…"
     );
+}
+
+// Le stock affiché et les compteurs sociaux tolèrent quelques minutes de
+// décalage ; l'état propre à l'utilisateur (like, favori) est lu côté client.
+export const revalidate = 300;
+
+/**
+ * Prérend les évènements à venir.
+ *
+ * `dynamicParams` reste à sa valeur par défaut (true) : un évènement publié
+ * après le build, ou passé, est rendu à la demande puis mis en cache.
+ */
+export async function generateStaticParams() {
+    const events = await prisma.event.findMany({
+        where: {
+            isPublished: true,
+            isDeleted: false,
+            isCancelled: false,
+            endDate: { gte: new Date() },
+        },
+        select: { slug: true },
+        orderBy: { startDate: "asc" },
+        // Borné : le build ne doit pas dépendre de la taille du catalogue.
+        take: 200,
+    });
+
+    return events.map(({ slug }) => ({ slug }));
 }
 
 // ─────────────────────────────────────────────
@@ -91,7 +117,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicEventPage({ params }: Props) {
     const { slug } = await params;
-    const sessionUser = await getCurrentUser();
 
     // ── Fetch event ────────────────────────────────────────────────────────
     const event = await prisma.event.findUnique({
@@ -120,42 +145,6 @@ export default async function PublicEventPage({ params }: Props) {
     });
 
     if (!event || event.isDeleted) notFound();
-
-    // ── Statut like / favori de l'utilisateur courant ──────────────────────
-    let isLiked = false;
-    let isFavorited = false;
-    let isLoggedIn = false;
-    let hasExistingTicket = false;
-
-    if (sessionUser) {
-        isLoggedIn = true;
-
-        const [like, favorite, attendeeItem, legacyOrder] = await Promise.all([
-            prisma.like.findUnique({
-                where: { userId_eventId: { userId: sessionUser.id, eventId: event.id } },
-            }),
-            prisma.favorite.findUnique({
-                where: { userId_eventId: { userId: sessionUser.id, eventId: event.id } },
-            }),
-            // Billet via attendeeEmail (nouveau système)
-            prisma.orderItem.findFirst({
-                where: {
-                    attendeeEmail: sessionUser.email,
-                    order: { eventId: event.id, status: "COMPLETED" },
-                },
-                select: { id: true },
-            }),
-            // Billet via userId (ancien système ou achat sans attendeeEmail)
-            prisma.order.findFirst({
-                where: { userId: sessionUser.id, eventId: event.id, status: "COMPLETED" },
-                select: { id: true },
-            }),
-        ]);
-
-        isLiked = !!like;
-        isFavorited = !!favorite;
-        hasExistingTicket = !!(attendeeItem || legacyOrder);
-    }
 
     // ── Données organisateur ───────────────────────────────────────────────
     const organizerDisplayName =
@@ -256,7 +245,7 @@ export default async function PublicEventPage({ params }: Props) {
                 Titre, catégories et compteur vivaient en surimpression : sur
                 mobile ils se chevauchaient et devenaient illisibles.
             ══════════════════════════════════════════════════════════════ */}
-            <div className="relative w-full h-56 sm:h-72 md:h-[26rem] bg-muted">
+            <div className="relative w-full h-56 sm:h-72 md:h-104 bg-muted">
                 {event.imageUrl ? (
                     <Image
                         src={event.imageUrl}
@@ -377,9 +366,6 @@ export default async function PublicEventPage({ params }: Props) {
                         initialLikeCount={event._count.likes}
                         initialFavoriteCount={event._count.favorites}
                         initialShareCount={event.shareCount}
-                        initialIsLiked={isLiked}
-                        initialIsFavorited={isFavorited}
-                        isLoggedIn={isLoggedIn}
                         title={event.title}
                         startDate={event.startDate.toISOString()}
                         eventType={event.eventType}

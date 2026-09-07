@@ -526,6 +526,33 @@ export async function updateEvent(formData: FormData) {
 // toggleLike
 // ─────────────────────────────────────────────
 
+/**
+ * État like / favori de l'utilisateur courant pour un évènement.
+ *
+ * Lu depuis le client : le faire au rendu serveur imposait `getCurrentUser()`
+ * dans la page évènement, ce qui la basculait en dynamique et interdisait tout
+ * prérendu de la page la plus partagée du site.
+ */
+export async function getEventInteractionState(eventId: string) {
+    const dbUser = await getCurrentUser();
+    if (!dbUser) {
+        return { isLoggedIn: false, isLiked: false, isFavorited: false };
+    }
+
+    const [like, favorite] = await Promise.all([
+        prisma.like.findUnique({
+            where: { userId_eventId: { userId: dbUser.id, eventId } },
+            select: { userId: true },
+        }),
+        prisma.favorite.findUnique({
+            where: { userId_eventId: { userId: dbUser.id, eventId } },
+            select: { userId: true },
+        }),
+    ]);
+
+    return { isLoggedIn: true, isLiked: !!like, isFavorited: !!favorite };
+}
+
 export async function toggleLike(eventId: string) {
     try {
         const dbUser = await getCurrentUser();
