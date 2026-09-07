@@ -13,10 +13,11 @@ import {
     SliderSkeleton,
 } from "@/components/sections/section-skeletons";
 
-// NB : pas de `revalidate` ici. Le Header du layout lit la session
-// (`getCurrentUser`), ce qui opte toute la route en rendu dynamique — un
-// `revalidate` y serait sans effet. Mettre l'accueil en cache suppose d'abord
-// de sortir la session du rendu serveur de la navbar.
+// La navbar lit désormais la session côté client (cf. Header.tsx), donc plus
+// aucune API dynamique dans l'arbre : l'accueil est réellement cacheable.
+// 5 min suffisent à absorber les pics sans retarder la publication d'un
+// évènement.
+export const revalidate = 300;
 
 /**
  * Accueil.

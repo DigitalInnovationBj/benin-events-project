@@ -3,6 +3,7 @@
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
 import { deriveCitySlug, isCitySlug } from "@/lib/cities";
+import { buildSearchText } from "@/lib/search";
 import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -243,6 +244,11 @@ export async function createEventForOrganizer(
                             ? data.city
                             : deriveCitySlug(data.location ?? null)
                         : null,
+                searchText: buildSearchText(
+                    data.title,
+                    data.description,
+                    data.eventType === "IN_PERSON" ? (data.location ?? null) : null,
+                ),
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
                 postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),
@@ -484,6 +490,11 @@ export async function updateEvent(formData: FormData) {
                             ? data.city
                             : deriveCitySlug(data.location ?? null)
                         : null,
+                searchText: buildSearchText(
+                    data.title,
+                    data.description,
+                    data.eventType === "IN_PERSON" ? (data.location ?? null) : null,
+                ),
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
                 postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),

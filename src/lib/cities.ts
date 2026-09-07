@@ -9,6 +9,8 @@
  * approximative (`/events?q=Cotonou`).
  */
 
+import { normalizeSearch as normalize } from "@/lib/search";
+
 export type City = { slug: string; name: string };
 
 export const CITIES: readonly City[] = [
@@ -44,14 +46,6 @@ export function getCityName(slug: string): string | null {
 const CITIES_BY_SPECIFICITY = [...CITIES].sort(
     (a, b) => b.name.length - a.name.length,
 );
-
-/** Minuscules sans accents, pour comparer « Abomey-Calavi » et « abomey calavi ». */
-function normalize(value: string): string {
-    return value
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "");
-}
 
 export function deriveCitySlug(location: string | null): string | null {
     if (!location) return null;

@@ -316,6 +316,11 @@ model Event {
   ogTitle     String?
   ogImage     String?
 
+  /// Titre + description (HTML retiré) + lieu, en minuscules sans accents.
+  /// Alimenté à l'enregistrement (cf. src/lib/search.ts) : comparer la saisie
+  /// aux champs bruts faisait échouer la recherche sur les accents et la casse.
+  searchText  String? @db.Text
+
   // Relations
   organizerId String
   organizer   User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)

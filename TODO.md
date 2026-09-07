@@ -31,27 +31,36 @@ saisie corrigeables sur place (opérateur, numéro, stock) restent en toast.
 
 ---
 
-## 4. L'accueil n'est pas cacheable
+## ~~4. Accueil non cacheable~~ — fait
 
-Le `Header` lit la session au rendu serveur (`getCurrentUser`), ce qui bascule
-toute la route en dynamique — un `export const revalidate` y est donc sans
-effet. Sortir la session du rendu serveur de la navbar (session côté client,
-ou `Suspense` autour du seul bloc authentifié) rendrait l'accueil cacheable.
-C'est le gain de TTFB le plus rentable qui reste.
+`Header` lisait la session via `getCurrentUser()`, donc `headers()`, ce qui
+basculait en rendu dynamique **toute** route portant l'en-tête. La navbar lit
+désormais la session côté client (`useSession`), et l'accueil est prérendu avec
+`revalidate = 300`.
 
-Fichiers : `src/components/sections/Header.tsx`, `src/app/(site)/page.tsx`.
+Vérifié au build : `/` est passé de `ƒ` (dynamique) à `○ 5m`.
+
+Compromis assumé : le HTML mis en cache contient l'état déconnecté, la navbar
+se met à jour après hydratation (un placeholder de largeur fixe évite le
+décalage).
 
 ---
 
-## 5. La recherche `/events` est un simple `contains`
+## ~~5. Recherche insensible aux accents~~ — fait
 
-Pas de tolérance aux fautes ni aux accents : « conference » ne trouve pas
-« Conférence ». Sur un catalogue qui grandit, ça se verra.
+`Event.searchText` stocke titre + description (HTML retiré) + lieu, en
+minuscules sans accents. La saisie est normalisée de la même façon, découpée en
+mots, et chacun doit être présent dans n'importe quel ordre : « concert
+cotonou » trouve « Concert live à Cotonou ».
 
-Piste : recherche plein texte PostgreSQL (`tsvector` + index GIN), ou au
-minimum une normalisation des accents à l'indexation.
+Deux effets de bord corrigés au passage : la description étant du HTML, une
+requête pouvait matcher un nom de balise ; et le lieu n'était pas cherché.
 
-Fichier : `src/app/(site)/events/page.tsx`.
+**Reste ouvert — tolérance aux fautes de frappe.** « conert » ne trouve
+toujours pas « concert ». Demande l'extension `pg_trgm`, un index GIN sur
+`searchText` et un classement par similarité. À faire quand le catalogue
+grossira : l'index accélérerait aussi le `contains`, aujourd'hui en parcours
+séquentiel.
 
 ---
 
@@ -92,6 +101,9 @@ Fichiers : `src/app/layout.tsx` (l. ~142),
       Sans lui, la colonne `Event.city` est vide : le filtre « ville » et les
       compteurs de `CitiesSection` renvoient zéro pour tous les évènements
       existants.
+- [ ] Recherche : vérifier que « conference » trouve bien « Conférence », et
+      que la navbar n'affiche plus « Se connecter » à un utilisateur connecté
+      après le passage de l'accueil en cache.
 - [ ] Achat de deux catégories de billets en une commande : une seule `Order`,
       un seul push Mobile Money, emails et PDF corrects pour chaque billet.
 - [ ] Deux achats concurrents sur la dernière place d'une catégorie : un seul

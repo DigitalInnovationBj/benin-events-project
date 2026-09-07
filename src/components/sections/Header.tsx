@@ -1,17 +1,15 @@
-import { getCurrentUser } from "@/lib/permissions";
 import NavbarClient from "./NavbarClient";
 
-export default async function Header() {
-    const sessionUser = await getCurrentUser();
-
-    const user = sessionUser
-        ? {
-              name: sessionUser.name,
-              email: sessionUser.email,
-              image: sessionUser.image,
-              role: sessionUser.role as string,
-          }
-        : null;
-
-    return <NavbarClient user={user} />;
+/**
+ * En-tête du site public.
+ *
+ * Ne lit plus la session côté serveur : `getCurrentUser()` passe par
+ * `headers()`, ce qui basculait **toute** route contenant l'en-tête en rendu
+ * dynamique — y compris l'accueil, rendant tout `revalidate` inopérant.
+ *
+ * La navbar récupère désormais la session côté client (`useSession`), ce qui
+ * laisse la coquille de page entièrement statique et cacheable.
+ */
+export default function Header() {
+    return <NavbarClient />;
 }

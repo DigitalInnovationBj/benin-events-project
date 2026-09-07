@@ -10,6 +10,7 @@ import EventCard, { type EventForCard } from "@/components/events/event-card";
 import Image from "next/image";
 import { CITIES, isCitySlug } from "@/lib/cities";
 import { formatNumber } from "@/lib/format";
+import { normalizeSearch } from "@/lib/search";
 import { getRemainingStock } from "@/lib/stock";
 
 export const metadata: Metadata = {
@@ -119,10 +120,13 @@ export default async function EventsPage({
     };
 
     if (q) {
-        where.OR = [
-            { title: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-        ];
+        // Chaque mot doit être présent, dans n'importe quel ordre : « concert
+        // cotonou » trouve « Concert live à Cotonou ». La comparaison porte sur
+        // `searchText`, déjà en minuscules sans accents.
+        const terms = normalizeSearch(q).split(" ").filter(Boolean);
+        where.AND = terms.map((term) => ({
+            searchText: { contains: term },
+        }));
     }
 
     if (category) {

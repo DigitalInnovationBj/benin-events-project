@@ -30,6 +30,10 @@ Les migrations **ne tournent pas pendant le build**. `pnpm build` ne fait que
 - `pnpm db:deploy` — applique les migrations en attente (avant de déployer).
 - `pnpm db:status` — vérifie ce qui reste à appliquer.
 
+Après un `prisma migrate dev`, lancer `pnpm prisma generate` : dans ce projet,
+la migration applique le SQL mais ne régénère pas le client, et tout code
+utilisant le nouveau champ échoue en `Unknown argument`.
+
 Pourquoi : `prisma migrate deploy` prend un verrou consultatif PostgreSQL
 global à chaque exécution, même quand il n'a rien à appliquer. Deux builds
 Vercel simultanés, ou un build interrompu qui laisse le verrou en place,

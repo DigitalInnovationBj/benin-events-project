@@ -37,21 +37,12 @@ import {
 import { cn } from "@/lib/utils";
 import { UserProfileMenu } from "@/components/user-profile-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useSession } from "@/lib/auth-client";
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
 
-interface NavUser {
-    name: string | null;
-    email: string;
-    image: string | null;
-    role: string;
-}
-
-interface NavbarClientProps {
-    user: NavUser | null;
-}
 
 // ─────────────────────────────────────────────
 // Liens de navigation
@@ -118,8 +109,12 @@ function DrawerNavLink({
 // Composant
 // ─────────────────────────────────────────────
 
-export default function NavbarClient({ user }: NavbarClientProps) {
+export default function NavbarClient() {
     const pathname = usePathname();
+    // Session lue côté client : la garder côté serveur rendait dynamique
+    // chaque page portant l'en-tête (cf. Header.tsx).
+    const { data: session, isPending: isSessionPending } = useSession();
+    const user = session?.user ?? null;
     const router = useRouter();
 
     // Après connexion/inscription, revenir sur la page courante
@@ -135,7 +130,8 @@ export default function NavbarClient({ user }: NavbarClientProps) {
     const isActive = (href: string, exact: boolean) =>
         exact ? pathname === href : pathname.startsWith(href);
 
-    const isOrganizer = user?.role === "ORGANIZER" || user?.role === "ADMIN";
+    const role = (user as { role?: string } | null)?.role;
+    const isOrganizer = role === "ORGANIZER" || role === "ADMIN";
 
     const handleSearch = () => {
         const q = searchQuery.trim();
@@ -240,7 +236,15 @@ export default function NavbarClient({ user }: NavbarClientProps) {
 
                         <ThemeToggle className="rounded-xl text-muted-foreground hover:text-foreground" />
 
-                        {user ? (
+                        {isSessionPending ? (
+                            /* Réserve la largeur : sans ça, les boutons de
+                               connexion s'affichent puis sont remplacés par le
+                               menu profil, décalant la barre. */
+                            <div
+                                className="h-10 w-44 animate-pulse rounded-xl bg-muted/60"
+                                aria-hidden="true"
+                            />
+                        ) : user ? (
                             <>
                                 <Button
                                     asChild
