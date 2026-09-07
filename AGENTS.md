@@ -24,6 +24,21 @@ Note: npm registry access is very slow on this machine — installs can take 15+
 Before generating any files, tell me what you plan to do and ask for approval before proceeding.
 Les migrations Prisma sont versionnées (`prisma/migrations/`) : toute évolution du schéma passe par `prisma migrate dev`, jamais `db push`.
 
+Les migrations **ne tournent pas pendant le build**. `pnpm build` ne fait que
+`next build` ; le schéma se déploie à part, délibérément :
+
+- `pnpm db:deploy` — applique les migrations en attente (avant de déployer).
+- `pnpm db:status` — vérifie ce qui reste à appliquer.
+
+Pourquoi : `prisma migrate deploy` prend un verrou consultatif PostgreSQL
+global à chaque exécution, même quand il n'a rien à appliquer. Deux builds
+Vercel simultanés, ou un build interrompu qui laisse le verrou en place,
+font échouer tous les suivants en `P1002`.
+
+La CLI Prisma passe par `DATABASE_URL_UNPOOLED` (endpoint direct Neon), pas par
+le pooler : les migrations ont besoin d'une connexion de session. Le runtime,
+lui, garde le pooler. Voir `prisma.config.ts`.
+
 # Design & UI
 
 Tailwind CSS 4 for styling (mobile first)
