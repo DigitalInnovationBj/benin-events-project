@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import HeroSpotlight from "@/components/sections/HeroSpotlight";
 import {
     IconArrowRight,
 } from "@tabler/icons-react";
@@ -26,45 +27,55 @@ export default function Hero() {
             </div>
 
             {/* ── Contenu ───────────────────────────────────────────────── */}
-            <div className="relative flex flex-col items-center justify-center max-w-6xl mx-auto min-h-[calc(100vh-4rem)] px-6 py-14 md:py-20 md:px-12">
-                {/* Titre */}
-                <h1 className="font-afo mb-6 text-center text-[clamp(3.5rem,9vw,6.5rem)] leading-none text-foreground">
-                    Tous les
-                    <span className="text-secondary"> meilleurs </span>
-                    évènements
-                    <br />
-                    <span className="text-muted-foreground/50">du Bénin.</span>
-                </h1>
+            {/* Le texte occupe la hauteur restante, la bande d'images se cale
+                en bas : l'ensemble tient dans un écran. */}
+            <div className="relative flex min-h-[calc(100vh-4rem)] flex-col">
+                <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-12 md:px-12 md:py-16">
+                    {/* Titre */}
+                    <h1 className="font-afo mb-6 text-center text-[clamp(3.5rem,9vw,6.5rem)] leading-none text-foreground">
+                        Tous les
+                        <span className="text-secondary"> meilleurs </span>
+                        évènements
+                        <br />
+                        <span className="text-muted-foreground/50">
+                            du Bénin.
+                        </span>
+                    </h1>
 
-                {/* Sous-titre */}
-                <p className="mb-10 max-w-2xl text-center text-base leading-relaxed text-muted-foreground md:text-lg">
-                    Concerts, festivals, soirées de gala, conférences… Découvrez
-                    et participez aux meilleurs évènements qui font vibrer le
-                    Bénin.
-                </p>
+                    {/* Sous-titre */}
+                    <p className="mb-10 max-w-2xl text-center text-base leading-relaxed text-muted-foreground md:text-lg">
+                        Concerts, festivals, soirées de gala, conférences…
+                        Découvrez et participez aux meilleurs évènements qui
+                        font vibrer le Bénin.
+                    </p>
 
-                {/* CTAs */}
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                    <Button
-                        asChild
-                        size="lg"
-                        variant="secondary"
-                        className="rounded-2xl gap-2"
-                    >
-                        <Link href="/events">
-                            Voir tous les évènements
-                            <IconArrowRight className="h-4 w-4" />
-                        </Link>
-                    </Button>
-                    <Button
-                        asChild
-                        size="lg"
-                        variant="outline"
-                        className="rounded-2xl"
-                    >
-                        <Link href="/dashboard">Organiser un évènement</Link>
-                    </Button>
+                    {/* CTAs */}
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                        <Button
+                            asChild
+                            size="lg"
+                            variant="secondary"
+                            className="rounded-2xl gap-2"
+                        >
+                            <Link href="/events">
+                                Voir tous les évènements
+                                <IconArrowRight className="h-4 w-4" />
+                            </Link>
+                        </Button>
+                        <Button
+                            asChild
+                            size="lg"
+                            variant="outline"
+                            className="rounded-2xl"
+                        >
+                            <Link href="/dashboard">Organiser un évènement</Link>
+                        </Button>
+                    </div>
                 </div>
+
+                {/* ── Bande d'images ────────────────────────────────────── */}
+                {/* Pleine largeur : elle sort volontairement du max-w-6xl. */}
+                <HeroSpotlight />
             </div>
         </section>
     );
