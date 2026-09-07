@@ -1,7 +1,6 @@
 import Link from "next/link";
 import {
     IconMapPin,
-    IconHeart,
     IconLayoutDashboard,
     IconCirclePlus,
     IconUserPlus,
@@ -231,9 +230,6 @@ export default function Footer() {
 
                     {/* Crédit */}
                     <div className="flex items-center gap-1.5">
-                        <IconHeart className="w-3 h-3 fill-green-600 text-green-600" aria-hidden="true" />
-                        <IconHeart className="w-3 h-3 fill-secondary text-secondary" aria-hidden="true" />
-                        <IconHeart className="w-3 h-3 fill-red-600 text-red-600" aria-hidden="true" />
                         <span>Développé par</span>
                         <a
                             href="https://digitalinnovation.bj"

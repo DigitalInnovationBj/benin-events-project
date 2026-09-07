@@ -29,7 +29,7 @@ const IMAGES: SpotlightImage[] = [
     { image: "/hero/event-04.webp", offsetY: -20 }, // Porte du Non-Retour, nuit
     { image: "/hero/event-05.webp", offsetY: 0 }, // Egungun, plumes orange
     { image: "/hero/event-06.webp", offsetY: 0 }, // artiste entre deux flammes
-    { image: "/hero/event-07.webp", offsetY: 0 }, // chanteuse, fond orange
+    { image: "/hero/event-07.webp", offsetY: 0 }, // Angélique Kidjo — lamelle ouverte au chargement
     { image: "/hero/event-08.webp", offsetY: 0 }, // danseurs aux coiffes à cornes
     { image: "/hero/event-09.webp", offsetY: 60 }, // danseuses dans la fumée
     { image: "/hero/event-10.webp", offsetY: 0 }, // artiste masqué
@@ -40,7 +40,7 @@ const IMAGES: SpotlightImage[] = [
 /**
  * Sur mobile, douze lamelles laissent moins de 30 px à chacune : la bande n'est
  * plus lisible. On garde donc six photos, choisies pour rester contrastées
- * entre voisines.
+ * entre voisines — dont celle qui s'ouvre au chargement.
  */
 const MOBILE_IMAGES: SpotlightImage[] = [0, 2, 4, 6, 8, 11].map(
     (index) => IMAGES[index],
@@ -73,7 +73,9 @@ export default function HeroSpotlight({ className }: { className?: string }) {
             <SpotlightFrames
                 images={isMobile ? MOBILE_IMAGES : IMAGES}
                 background="transparent"
-                startIndex={isMobile ? 2 : 5}
+                /* Angélique Kidjo dans les deux listes : 7ᵉ sur douze,
+                 * 4ᵉ sur la sélection mobile. */
+                startIndex={isMobile ? 3 : 6}
                 track={isMobile ? MOBILE_TRACK : DESKTOP_TRACK}
                 panel={{
                     height: isMobile ? MOBILE_HEIGHT : DESKTOP_HEIGHT,
