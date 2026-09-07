@@ -13,7 +13,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Send, Loader2 } from "lucide-react";
+import {
+    IconSend,
+    IconLoader2,
+} from "@tabler/icons-react";
 import { sendContactMessage } from "@/actions/contact.actions";
 
 const SUBJECTS = [
@@ -117,12 +120,12 @@ export default function ContactForm() {
             >
                 {isSubmitting ? (
                     <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <IconLoader2 className="w-4 h-4 animate-spin" />
                         Envoi en cours…
                     </>
                 ) : (
                     <>
-                        <Send className="w-4 h-4" />
+                        <IconSend className="w-4 h-4" />
                         Envoyer le message
                     </>
                 )}

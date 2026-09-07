@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { CITIES } from "@/lib/cities";
 import { Switch } from "@/components/ui/switch";
 import {
     IconLoader2,
@@ -33,6 +34,7 @@ type EventWithCategories = {
     description: string;
     eventType: "IN_PERSON" | "ONLINE";
     location: string | null;
+    city: string | null;
     onlineUrl: string | null;
     postPurchaseMessage: string | null;
     startDate: Date;
@@ -248,16 +250,44 @@ export function EventEditForm({ event, allCategories, isAdmin }: Props) {
 
                         {/* Lieu — présentiel uniquement */}
                         {eventType === "IN_PERSON" && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="location">Lieu *</Label>
-                                <Input
-                                    id="location"
-                                    name="location"
-                                    defaultValue={event.location ?? ""}
-                                    placeholder="Ex: Palais des Congrès, Cotonou"
-                                    required
-                                />
-                            </div>
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="location">Lieu *</Label>
+                                    <Input
+                                        id="location"
+                                        name="location"
+                                        defaultValue={event.location ?? ""}
+                                        placeholder="Ex: Palais des Congrès, Cotonou"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="city">Ville</Label>
+                                    <select
+                                        id="city"
+                                        name="city"
+                                        defaultValue={event.city ?? ""}
+                                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-hidden focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                    >
+                                        <option value="">
+                                            Déduire du lieu
+                                        </option>
+                                        {CITIES.map((city) => (
+                                            <option
+                                                key={city.slug}
+                                                value={city.slug}
+                                            >
+                                                {city.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Permet aux participants de filtrer les
+                                        évènements par ville.
+                                    </p>
+                                </div>
+                            </>
                         )}
 
                         {/* URL — en ligne uniquement */}

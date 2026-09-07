@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import {
-    Cookie,
-    Settings,
-    X,
-    ChevronLeft,
-    Shield,
-    BarChart2,
-    Target,
-} from "lucide-react";
+    IconCookie,
+    IconSettings,
+    IconX,
+    IconChevronLeft,
+    IconShield,
+    IconChartBar,
+    IconTarget,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -98,7 +98,7 @@ export default function CookieBanner() {
                         <div className="flex items-start justify-between gap-4 mb-3">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-                                    <Cookie className="w-4 h-4 text-secondary" />
+                                    <IconCookie className="w-4 h-4 text-secondary" />
                                 </div>
                                 <div>
                                     <p className="font-semibold text-sm leading-tight">
@@ -117,7 +117,7 @@ export default function CookieBanner() {
                                 aria-label="Fermer et refuser les cookies non essentiels"
                                 className="shrink-0 text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted"
                             >
-                                <X className="w-4 h-4" />
+                                <IconX className="w-4 h-4" />
                             </button>
                         </div>
 
@@ -140,7 +140,7 @@ export default function CookieBanner() {
                                 onClick={() => setCustomizing(true)}
                                 className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-xl hover:bg-muted"
                             >
-                                <Settings className="w-3.5 h-3.5" />
+                                <IconSettings className="w-3.5 h-3.5" />
                                 Personnaliser
                             </button>
                             <Button
@@ -157,7 +157,7 @@ export default function CookieBanner() {
                                 className="rounded-xl text-xs h-8 gap-1.5"
                                 onClick={acceptAll}
                             >
-                                <Shield className="w-3 h-3" />
+                                <IconShield className="w-3 h-3" />
                                 Tout accepter
                             </Button>
                         </div>
@@ -172,7 +172,7 @@ export default function CookieBanner() {
                                 className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-lg hover:bg-muted"
                                 aria-label="Retour"
                             >
-                                <ChevronLeft className="w-4 h-4" />
+                                <IconChevronLeft className="w-4 h-4" />
                             </button>
                             <p className="font-semibold text-sm">
                                 Personnaliser les cookies
@@ -184,7 +184,7 @@ export default function CookieBanner() {
                             {/* Essentiels — toujours activés */}
                             <div className="flex items-start justify-between gap-4 rounded-xl bg-muted/50 px-4 py-3">
                                 <div className="flex items-start gap-3">
-                                    <Shield className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                    <IconShield className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                                     <div>
                                         <Label className="text-sm font-semibold cursor-default">
                                             Essentiels
@@ -207,7 +207,7 @@ export default function CookieBanner() {
                             {/* Analytiques */}
                             <div className="flex items-start justify-between gap-4 rounded-xl border px-4 py-3 transition-colors hover:bg-muted/30">
                                 <div className="flex items-start gap-3">
-                                    <BarChart2 className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
+                                    <IconChartBar className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
                                     <div>
                                         <Label
                                             htmlFor="analytics-switch"
@@ -234,7 +234,7 @@ export default function CookieBanner() {
                             {/* Marketing */}
                             <div className="flex items-start justify-between gap-4 rounded-xl border px-4 py-3 transition-colors hover:bg-muted/30">
                                 <div className="flex items-start gap-3">
-                                    <Target className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
+                                    <IconTarget className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
                                     <div>
                                         <Label
                                             htmlFor="marketing-switch"

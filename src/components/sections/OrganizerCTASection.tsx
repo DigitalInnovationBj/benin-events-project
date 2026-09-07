@@ -1,6 +1,11 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowRight, Calendar, Users, Tag } from "lucide-react";
+import {
+    IconArrowRight,
+    IconCalendar,
+    IconUsers,
+    IconTag,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 
 export default async function OrganizerCTASection() {
@@ -12,17 +17,17 @@ export default async function OrganizerCTASection() {
 
     const stats = [
         {
-            icon: Calendar,
+            icon: IconCalendar,
             value: eventCount,
             label: "Évènements à venir",
         },
         {
-            icon: Users,
+            icon: IconUsers,
             value: organizerCount,
             label: "Organisateurs actifs",
         },
         {
-            icon: Tag,
+            icon: IconTag,
             value: categoryCount,
             label: "Catégories",
         },
@@ -64,7 +69,7 @@ export default async function OrganizerCTASection() {
                             >
                                 <Link href="/dashboard">
                                     Créer mon premier évènement
-                                    <ArrowRight className="w-4 h-4" />
+                                    <IconArrowRight className="w-4 h-4" />
                                 </Link>
                             </Button>
                             <Button

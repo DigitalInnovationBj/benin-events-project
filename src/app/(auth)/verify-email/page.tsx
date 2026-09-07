@@ -7,7 +7,11 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle, MailCheck } from "lucide-react";
+import {
+    IconLoader2,
+    IconAlertCircle,
+    IconMailCheck,
+} from "@tabler/icons-react";
 import { toast } from "sonner";
 
 function VerifyEmailContent() {
@@ -72,7 +76,7 @@ function VerifyEmailContent() {
                 <div className="bg-primary rounded-4xl p-8 sm:p-10 shadow-2xl">
                     <div className="text-center mb-8">
                         <div className="bg-secondary rounded-xl px-5 py-4 w-fit mx-auto flex items-center justify-center">
-                            <MailCheck className="h-8 w-8 text-primary" />
+                            <IconMailCheck className="h-8 w-8 text-primary" />
                         </div>
                         <h1 className="text-3xl mb-3 font-afo text-secondary mt-4">
                             Vérifiez votre email
@@ -87,7 +91,7 @@ function VerifyEmailContent() {
 
                     {error && (
                         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3">
-                            <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                            <IconAlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                             <p className="text-sm text-destructive font-medium">
                                 {error}
                             </p>
@@ -119,7 +123,7 @@ function VerifyEmailContent() {
                             className="w-full h-12 rounded-xl text-base font-bold bg-secondary text-primary hover:bg-secondary/90"
                         >
                             {isLoading ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <IconLoader2 className="h-5 w-5 animate-spin" />
                             ) : (
                                 "Vérifier"
                             )}

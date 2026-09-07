@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { Loader2, AlertCircle } from "lucide-react";
+import {
+    IconLoader2,
+    IconAlertCircle,
+} from "@tabler/icons-react";
 import { IconBrandGoogleFilled } from "@tabler/icons-react";
 import { toast } from "sonner";
 
@@ -32,7 +35,7 @@ function SignUpContent() {
     if (isPending || session) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-black">
-                <Loader2 className="h-8 w-8 animate-spin text-secondary" />
+                <IconLoader2 className="h-8 w-8 animate-spin text-secondary" />
             </div>
         );
     }
@@ -111,7 +114,7 @@ function SignUpContent() {
 
                     {error && (
                         <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                            <AlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                            <IconAlertCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
                             <p className="text-sm text-destructive font-medium">
                                 {error}
                             </p>
@@ -125,7 +128,7 @@ function SignUpContent() {
                         className="w-full overflow-hidden group border-white/10 dark:hover:bg-white/5 hover:border-secondary/50 h-14 rounded-xl text-base font-medium transition-all duration-300 mb-6"
                     >
                         {isLoading === "google" ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <IconLoader2 className="h-5 w-5 animate-spin" />
                         ) : (
                             <>
                                 <IconBrandGoogleFilled className="mr-3 h-6 w-6" />{" "}
@@ -188,7 +191,7 @@ function SignUpContent() {
                             className="w-full h-12 rounded-xl text-base font-bold bg-secondary text-primary hover:bg-secondary/90"
                         >
                             {isLoading === "email" ? (
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <IconLoader2 className="h-5 w-5 animate-spin" />
                             ) : (
                                 "Créer mon compte"
                             )}

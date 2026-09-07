@@ -1,7 +1,10 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { TrendingUp, ArrowRight } from "lucide-react";
-import EventCard, { type EventForCard } from "@/app/events/event-card";
+import {
+    IconTrendingUp,
+    IconArrowRight,
+} from "@tabler/icons-react";
+import EventCard, { type EventForCard } from "@/components/events/event-card";
 
 export default async function TrendingSection() {
     const events = await prisma.event.findMany({
@@ -32,7 +35,7 @@ export default async function TrendingSection() {
                 <div className="flex items-end justify-between mb-8">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-secondary" />
+                            <IconTrendingUp className="w-4 h-4 text-secondary" />
                             <span className="text-secondary text-xs font-bold uppercase tracking-widest">
                                 Populaires
                             </span>
@@ -45,7 +48,7 @@ export default async function TrendingSection() {
                         href="/events?sort=popular"
                         className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-secondary hover:gap-3 transition-all duration-200 shrink-0"
                     >
-                        Voir tous <ArrowRight className="w-4 h-4" />
+                        Voir tous <IconArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
 
@@ -65,7 +68,7 @@ export default async function TrendingSection() {
                         className="flex items-center gap-1.5 text-sm font-semibold text-secondary"
                     >
                         Voir les évènements populaires{" "}
-                        <ArrowRight className="w-4 h-4" />
+                        <IconArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
             </div>

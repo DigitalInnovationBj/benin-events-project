@@ -11,7 +11,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Send } from "lucide-react";
+import {
+    IconLoader2,
+    IconSend,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,12 +204,12 @@ export function RequestPartnerForm() {
             >
                 {isSubmitting ? (
                     <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <IconLoader2 className="w-4 h-4 animate-spin" />
                         Envoi en cours…
                     </>
                 ) : (
                     <>
-                        <Send className="w-4 h-4" />
+                        <IconSend className="w-4 h-4" />
                         Envoyer ma candidature
                     </>
                 )}

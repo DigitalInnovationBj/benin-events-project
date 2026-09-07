@@ -2,6 +2,7 @@
 
 import { getCurrentUser } from "@/lib/permissions";
 import prisma from "@/lib/prisma";
+import { deriveCitySlug, isCitySlug } from "@/lib/cities";
 import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -64,6 +65,7 @@ const createEventSchema = z
         description: z.string().min(10, "La description est trop courte"),
         eventType: z.enum(["IN_PERSON", "ONLINE"]),
         location: z.string().optional(),
+        city: z.string().optional(),
         onlineUrl: z
             .string()
             .url("L'URL de l'évènement est invalide")
@@ -138,6 +140,7 @@ export async function createEventForOrganizer(
             description: formData.get("description"),
             eventType: formData.get("eventType") ?? "IN_PERSON",
             location: formData.get("location") || undefined,
+            city: formData.get("city") || undefined,
             onlineUrl: formData.get("onlineUrl") || undefined,
             postPurchaseMessage: formData.get("postPurchaseMessage") || undefined,
             startDate: formData.get("startDate"),
@@ -232,6 +235,14 @@ export async function createEventForOrganizer(
                 description: data.description,
                 eventType: data.eventType,
                 location: data.eventType === "IN_PERSON" ? data.location : null,
+                // Ville normalisée : valeur choisie dans le formulaire,
+                // sinon déduite de l'adresse libre. Sert aux filtres et aux comptages.
+                city:
+                    data.eventType === "IN_PERSON"
+                        ? data.city && isCitySlug(data.city)
+                            ? data.city
+                            : deriveCitySlug(data.location ?? null)
+                        : null,
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
                 postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),
@@ -324,6 +335,7 @@ const updateEventSchema = z
         description: z.string().min(10, "La description est trop courte"),
         eventType: z.enum(["IN_PERSON", "ONLINE"]),
         location: z.string().optional(),
+        city: z.string().optional(),
         onlineUrl: z
             .string()
             .url("L'URL de l'évènement est invalide")
@@ -389,6 +401,7 @@ export async function updateEvent(formData: FormData) {
             description: formData.get("description"),
             eventType: formData.get("eventType") ?? "IN_PERSON",
             location: formData.get("location") || undefined,
+            city: formData.get("city") || undefined,
             onlineUrl: formData.get("onlineUrl") || undefined,
             postPurchaseMessage: formData.get("postPurchaseMessage") || undefined,
             startDate: formData.get("startDate"),
@@ -463,6 +476,14 @@ export async function updateEvent(formData: FormData) {
                 description: data.description,
                 eventType: data.eventType,
                 location: data.eventType === "IN_PERSON" ? data.location : null,
+                // Ville normalisée : valeur choisie dans le formulaire,
+                // sinon déduite de l'adresse libre. Sert aux filtres et aux comptages.
+                city:
+                    data.eventType === "IN_PERSON"
+                        ? data.city && isCitySlug(data.city)
+                            ? data.city
+                            : deriveCitySlug(data.location ?? null)
+                        : null,
                 onlineUrl: data.eventType === "ONLINE" ? data.onlineUrl : null,
                 postPurchaseMessage: data.postPurchaseMessage || null,
                 startDate: parseBeninLocalDate(data.startDate),

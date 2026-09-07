@@ -270,8 +270,13 @@ model Event {
   // Type d'évènement
   eventType   EventType @default(IN_PERSON)
 
-  /// Obligatoire pour les événements en présentiel
+  /// Obligatoire pour les événements en présentiel — adresse libre.
   location    String?
+
+  /// Ville normalisée (slug, ex. "cotonou"), dérivée de `location` à la
+  /// saisie. `location` reste du texte libre : ce champ existe pour filtrer et
+  /// compter de façon fiable, ce que le `contains` sur `location` ne permet pas.
+  city        String?
 
   /// Obligatoire pour les événements en ligne (validé côté applicatif) —
   /// n'est plus affiché publiquement, seulement aux acheteurs de billet.
@@ -327,6 +332,9 @@ model Event {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([city])
+  @@index([startDate])
 }
 
 // ─────────────────────────────────────────────

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import {
+    IconArrowRight,
+} from "@tabler/icons-react";
 
 export default function Hero() {
     return (
@@ -51,7 +53,7 @@ export default function Hero() {
                     >
                         <Link href="/events">
                             Voir tous les évènements
-                            <ArrowRight className="h-4 w-4" />
+                            <IconArrowRight className="h-4 w-4" />
                         </Link>
                     </Button>
                     <Button

@@ -13,6 +13,7 @@ import {
 import { sendRefundConfirmationEmail } from "@/lib/email";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
+import { stockConsumingOrderFilter } from "@/lib/stock";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
 
@@ -87,13 +88,33 @@ export async function initiateTicketPayment(input: PaymentInput) {
         where: { id: ticketId },
         include: {
             event: {
-                select: { id: true, title: true, slug: true, isDeleted: true },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    isDeleted: true,
+                    isPublished: true,
+                    isCancelled: true,
+                    endDate: true,
+                },
             },
         },
     });
 
     if (!ticket) return { error: "Billet introuvable." };
-    if (ticket.event.isDeleted) return { error: "Cet événement n'est plus disponible." };
+
+    // L'UI masque déjà ces cas, mais l'action est appelable directement :
+    // la vente doit être refusée côté serveur.
+    const { event } = ticket;
+    if (event.isDeleted || !event.isPublished) {
+        return { error: "Cet évènement n'est plus disponible." };
+    }
+    if (event.isCancelled) {
+        return { error: "Cet évènement a été annulé." };
+    }
+    if (event.endDate.getTime() < Date.now()) {
+        return { error: "Cet évènement est terminé." };
+    }
 
     // ── Construction des OrderItems (1 par billet) ────────────────────────
     const orderItemsData = assignments.map(a => ({
@@ -147,22 +168,10 @@ export async function initiateTicketPayment(input: PaymentInput) {
     const txResult = await prisma.$transaction(async (tx) => {
         if (ticket.totalStock !== null) {
             await tx.$queryRaw`SELECT id FROM "Ticket" WHERE id = ${ticket.id} FOR UPDATE`;
-            // Une commande PENDING ne réserve le stock que 20 min : un push
-            // Mobile Money FeexPay se résout en quelques minutes (USSD), donc
-            // un paiement abandonné ne doit pas geler les places longtemps.
-            const pendingCutoff = new Date(Date.now() - 20 * 60 * 1000);
             const sold = await tx.orderItem.aggregate({
                 where: {
                     ticketId: ticket.id,
-                    order: {
-                        OR: [
-                            { status: "COMPLETED" },
-                            {
-                                status: "PENDING",
-                                createdAt: { gte: pendingCutoff },
-                            },
-                        ],
-                    },
+                    order: stockConsumingOrderFilter(),
                 },
                 _sum: { quantity: true },
             });

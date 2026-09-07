@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Pagination } from "swiper/modules";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import type { Swiper as SwiperType } from "swiper";
 
 import "swiper/css";
@@ -12,17 +13,17 @@ import "swiper/css/pagination";
 import Link from "next/link";
 import Image from "next/image";
 import {
-    Calendar,
-    MapPin,
-    MonitorPlay,
-    Star,
-    ArrowRight,
-    ChevronLeft,
-    ChevronRight,
-} from "lucide-react";
+    IconCalendar,
+    IconMapPin,
+    IconDeviceTvOld,
+    IconStar,
+    IconArrowRight,
+    IconChevronLeft,
+    IconChevronRight,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { EventForCard } from "@/app/events/event-card";
+import type { EventForCard } from "@/components/events/event-card";
 
 // ─────────────────────────────────────────────
 // Helpers
@@ -55,6 +56,7 @@ interface Props {
 export default function FeaturedEventsSlider({ events }: Props) {
     const [swiper, setSwiper] = useState<SwiperType | null>(null);
     const [activeIndex, setActiveIndex] = useState(0);
+    const reducedMotion = useReducedMotion();
 
     const hasMultiple = events.length > 1;
 
@@ -65,7 +67,7 @@ export default function FeaturedEventsSlider({ events }: Props) {
                 <div className="max-w-6xl mx-auto px-6 md:px-12 pt-6 flex items-center justify-between">
                     {/* Badge "En vedette" */}
                     <div className="flex items-center gap-2">
-                        <Star className="w-4 h-4 fill-secondary text-secondary" />
+                        <IconStar className="w-4 h-4 fill-secondary text-secondary" />
                         <span className="text-secondary text-xs font-bold uppercase tracking-widest">
                             Évènements en vedette
                         </span>
@@ -91,13 +93,13 @@ export default function FeaturedEventsSlider({ events }: Props) {
                     effect="fade"
                     fadeEffect={{ crossFade: true }}
                     autoplay={
-                        hasMultiple
+                        hasMultiple && !reducedMotion
                             ? { delay: 6000, disableOnInteraction: false }
                             : false
                     }
                     pagination={{ clickable: true }}
                     loop={hasMultiple}
-                    speed={900}
+                    speed={reducedMotion ? 0 : 900}
                     className="featured-swiper h-full w-full"
                     onSwiper={setSwiper}
                     onSlideChange={(s) => setActiveIndex(s.realIndex)}
@@ -166,7 +168,7 @@ export default function FeaturedEventsSlider({ events }: Props) {
                                             {/* Date + Location */}
                                             <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/65 mb-8">
                                                 <span className="flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4 text-secondary shrink-0" />
+                                                    <IconCalendar className="w-4 h-4 text-secondary shrink-0" />
                                                     <span className="capitalize">
                                                         {dateLabel}
                                                     </span>
@@ -174,12 +176,12 @@ export default function FeaturedEventsSlider({ events }: Props) {
 
                                                 {isOnline ? (
                                                     <span className="flex items-center gap-2">
-                                                        <MonitorPlay className="w-4 h-4 text-blue-400 shrink-0" />
+                                                        <IconDeviceTvOld className="w-4 h-4 text-blue-400 shrink-0" />
                                                         Évènement en ligne
                                                     </span>
                                                 ) : event.location ? (
                                                     <span className="flex items-center gap-2">
-                                                        <MapPin className="w-4 h-4 text-secondary shrink-0" />
+                                                        <IconMapPin className="w-4 h-4 text-secondary shrink-0" />
                                                         {event.location}
                                                     </span>
                                                 ) : null}
@@ -199,7 +201,7 @@ export default function FeaturedEventsSlider({ events }: Props) {
                                                         href={`/events/${event.slug}`}
                                                     >
                                                         Voir l&apos;évènement
-                                                        <ArrowRight className="w-4 h-4" />
+                                                        <IconArrowRight className="w-4 h-4" />
                                                     </Link>
                                                 </Button>
                                             </div>
@@ -219,14 +221,14 @@ export default function FeaturedEventsSlider({ events }: Props) {
                             className="w-10 h-10 rounded-full border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/15 hover:border-white/40 transition-all duration-200"
                             aria-label="Évènement précédent"
                         >
-                            <ChevronLeft className="w-5 h-5" />
+                            <IconChevronLeft className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => swiper?.slideNext()}
                             className="w-10 h-10 rounded-full border border-white/20 bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/15 hover:border-white/40 transition-all duration-200"
                             aria-label="Évènement suivant"
                         >
-                            <ChevronRight className="w-5 h-5" />
+                            <IconChevronRight className="w-5 h-5" />
                         </button>
                     </div>
                 )}

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, Bookmark } from "lucide-react";
+import {
+    IconHeart,
+    IconBookmark,
+} from "@tabler/icons-react";
 import { IconShare2 } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -127,7 +130,7 @@ export default function EventInteractions({
                         : "bg-background/80 border border-border text-foreground hover:bg-background hover:border-red-400 hover:text-red-500",
                 )}
             >
-                <Heart
+                <IconHeart
                     className={cn(
                         "w-4 h-4 transition-all",
                         isLiked && "fill-white scale-110",
@@ -154,7 +157,7 @@ export default function EventInteractions({
                         : "bg-background/80 border border-border text-foreground hover:bg-background hover:border-secondary hover:text-secondary",
                 )}
             >
-                <Bookmark
+                <IconBookmark
                     className={cn(
                         "w-4 h-4 transition-all",
                         isFavorited && "fill-secondary-foreground scale-110",

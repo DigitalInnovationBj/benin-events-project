@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Smartphone } from "lucide-react";
+import { IconLoader2, IconDeviceMobile } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileMoneyWaitingProps {
@@ -15,10 +15,20 @@ export function MobileMoneyWaiting({
     onRetryCheck,
 }: MobileMoneyWaitingProps) {
     return (
-        <div className="flex flex-col items-center text-center gap-4 py-6">
+        // Le passage « en attente » → « toujours en attente » est le seul
+        // retour donné à l'utilisateur : il doit être annoncé aux lecteurs
+        // d'écran, qui ne verraient sinon aucun changement.
+        <div
+            className="flex flex-col items-center text-center gap-4 py-6"
+            role="status"
+            aria-live="polite"
+        >
             {timedOut ? (
                 <>
-                    <Smartphone className="w-10 h-10 text-muted-foreground" />
+                    <IconDeviceMobile
+                        className="w-10 h-10 text-muted-foreground"
+                        aria-hidden="true"
+                    />
                     <div>
                         <p className="font-semibold">Toujours en attente</p>
                         <p className="text-sm text-muted-foreground mt-1">
@@ -32,7 +42,10 @@ export function MobileMoneyWaiting({
                 </>
             ) : (
                 <>
-                    <Loader2 className="w-10 h-10 text-secondary animate-spin" />
+                    <IconLoader2
+                        className="w-10 h-10 text-secondary animate-spin"
+                        aria-hidden="true"
+                    />
                     <div>
                         <p className="font-semibold">Confirmez sur votre téléphone</p>
                         <p className="text-sm text-muted-foreground mt-1">

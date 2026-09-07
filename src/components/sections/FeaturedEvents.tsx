@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import FeaturedEventsSlider from "./FeaturedEventsSlider";
-import type { EventForCard } from "@/app/events/event-card";
+import type { EventForCard } from "@/components/events/event-card";
 
 // ─────────────────────────────────────────────
 // Server component — fetches featured events

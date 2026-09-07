@@ -4,17 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-    X,
-    LayoutDashboard,
-    LogIn,
-    UserRoundPlus,
-    Search,
-    LayoutPanelTop,
-    Home,
-    CalendarRange,
-    HelpCircle,
-    Mail,
-} from "lucide-react";
+    IconX,
+    IconLayoutDashboard,
+    IconLogin2,
+    IconUserPlus,
+    IconSearch,
+    IconLayoutBoardSplit,
+    IconHome,
+    IconCalendarWeek,
+    IconHelpCircle,
+    IconMail,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
     Drawer,
@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { UserProfileMenu } from "@/components/user-profile-menu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // ─────────────────────────────────────────────
 // Types
@@ -55,10 +56,10 @@ interface NavbarClientProps {
 // ─────────────────────────────────────────────
 
 const NAV_LINKS = [
-    { href: "/", label: "Accueil", icon: Home, exact: true },
-    { href: "/events", label: "Évènements", icon: CalendarRange, exact: false },
-    { href: "/faq", label: "FAQ", icon: HelpCircle, exact: false },
-    { href: "/contact", label: "Contact", icon: Mail, exact: false },
+    { href: "/", label: "Accueil", icon: IconHome, exact: true },
+    { href: "/events", label: "Évènements", icon: IconCalendarWeek, exact: false },
+    { href: "/faq", label: "FAQ", icon: IconHelpCircle, exact: false },
+    { href: "/contact", label: "Contact", icon: IconMail, exact: false },
 ];
 
 // ─────────────────────────────────────────────
@@ -108,7 +109,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
 
                 <div className="py-1">
                     <div className="relative">
-                        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                        <IconSearch className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                         <input
                             autoFocus
                             type="text"
@@ -182,8 +183,10 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                             aria-label="Rechercher"
                             onClick={() => setSearchOpen(true)}
                         >
-                            <Search className="w-5 h-5" />
+                            <IconSearch className="w-5 h-5" />
                         </Button>
+
+                        <ThemeToggle className="rounded-xl text-muted-foreground hover:text-foreground" />
 
                         {user ? (
                             <>
@@ -242,8 +245,10 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                             aria-label="Rechercher"
                             onClick={() => setSearchOpen(true)}
                         >
-                            <Search className="w-5 h-5" />
+                            <IconSearch className="w-5 h-5" />
                         </Button>
+
+                        <ThemeToggle className="rounded-xl text-muted-foreground hover:text-foreground" />
 
                         {/* Burger */}
                         <Drawer
@@ -258,7 +263,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                     className="rounded-xl"
                                     aria-label="Ouvrir le menu"
                                 >
-                                    <LayoutPanelTop className="w-5 h-5" />
+                                    <IconLayoutBoardSplit className="w-5 h-5" />
                                 </Button>
                             </DrawerTrigger>
 
@@ -280,7 +285,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                             className="rounded-xl"
                                             aria-label="Fermer le menu"
                                         >
-                                            <X className="w-5 h-5" />
+                                            <IconX className="w-5 h-5" />
                                         </Button>
                                     </DrawerClose>
                                 </div>
@@ -338,7 +343,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                         : "text-foreground hover:bg-muted/50",
                                                 )}
                                             >
-                                                <LayoutDashboard
+                                                <IconLayoutDashboard
                                                     className={cn(
                                                         "w-4 h-4 shrink-0",
                                                         pathname.startsWith(
@@ -387,7 +392,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     className="w-full rounded-xl gap-2"
                                                 >
                                                     <Link href={`/sign-in${authRedirect}`}>
-                                                        <LogIn className="w-4 h-4" />
+                                                        <IconLogin2 className="w-4 h-4" />
                                                         Se connecter
                                                     </Link>
                                                 </Button>
@@ -399,7 +404,7 @@ export default function NavbarClient({ user }: NavbarClientProps) {
                                                     className="w-full rounded-xl gap-2"
                                                 >
                                                     <Link href={`/sign-up${authRedirect}`}>
-                                                        <UserRoundPlus className="w-4 h-4" />
+                                                        <IconUserPlus className="w-4 h-4" />
                                                         S&apos;inscrire
                                                     </Link>
                                                 </Button>

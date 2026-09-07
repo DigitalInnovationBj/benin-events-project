@@ -1,54 +1,54 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import {
-    ArrowRight,
-    Music2,
-    Sparkles,
-    Mic,
-    Trophy,
-    Palette,
-    Clapperboard,
-    Gem,
-    ShoppingBag,
-    UtensilsCrossed,
-    Laptop,
-    Church,
-    Users,
-    Calendar,
-    type LucideIcon,
-} from "lucide-react";
+    IconArrowRight,
+    IconMusic,
+    IconSparkles,
+    IconMicrophone,
+    IconTrophy,
+    IconPalette,
+    IconMovie,
+    IconDiamond,
+    IconShoppingBag,
+    IconToolsKitchen2,
+    IconDeviceLaptop,
+    IconBuildingChurch,
+    IconUsers,
+    IconCalendar,
+} from "@tabler/icons-react";
+import type { ComponentType } from "react";
 
 // ─────────────────────────────────────────────
 // Icon mapping
 // ─────────────────────────────────────────────
 
-function getCategoryIcon(slug: string): LucideIcon {
+function getCategoryIcon(slug: string): ComponentType<{ className?: string }> {
     const s = slug.toLowerCase();
     if (s.includes("concert") || s.includes("musique") || s.includes("music"))
-        return Music2;
+        return IconMusic;
     if (s.includes("festival") || s.includes("fete") || s.includes("fête"))
-        return Sparkles;
+        return IconSparkles;
     if (
         s.includes("conf") ||
         s.includes("seminaire") ||
         s.includes("séminaire") ||
         s.includes("forum")
     )
-        return Mic;
+        return IconMicrophone;
     if (
         s.includes("sport") ||
         s.includes("foot") ||
         s.includes("basket") ||
         s.includes("athleti")
     )
-        return Trophy;
+        return IconTrophy;
     if (
         s.includes("art") ||
         s.includes("expo") ||
         s.includes("culture") ||
         s.includes("peinture")
     )
-        return Palette;
+        return IconPalette;
     if (
         s.includes("theatre") ||
         s.includes("théâtre") ||
@@ -56,34 +56,34 @@ function getCategoryIcon(slug: string): LucideIcon {
         s.includes("comedie") ||
         s.includes("comédie")
     )
-        return Clapperboard;
+        return IconMovie;
     if (
         s.includes("gala") ||
         s.includes("soiree") ||
         s.includes("soirée") ||
         s.includes("nuit")
     )
-        return Gem;
-    if (s.includes("mode") || s.includes("fashion")) return ShoppingBag;
+        return IconDiamond;
+    if (s.includes("mode") || s.includes("fashion")) return IconShoppingBag;
     if (
         s.includes("food") ||
         s.includes("gastro") ||
         s.includes("culinaire") ||
         s.includes("cuisine")
     )
-        return UtensilsCrossed;
+        return IconToolsKitchen2;
     if (
         s.includes("tech") ||
         s.includes("digital") ||
         s.includes("numérique") ||
         s.includes("startup")
     )
-        return Laptop;
+        return IconDeviceLaptop;
     if (s.includes("religion") || s.includes("culte") || s.includes("priere"))
-        return Church;
+        return IconBuildingChurch;
     if (s.includes("enfant") || s.includes("famille") || s.includes("kids"))
-        return Users;
-    return Calendar;
+        return IconUsers;
+    return IconCalendar;
 }
 
 // ─────────────────────────────────────────────
@@ -123,7 +123,7 @@ export default async function CategoriesSection() {
                         href="/events"
                         className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-secondary hover:gap-3 transition-all duration-200 shrink-0"
                     >
-                        Tout voir <ArrowRight className="w-4 h-4" />
+                        Tout voir <IconArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
 
@@ -168,7 +168,7 @@ export default async function CategoriesSection() {
                         className="flex items-center gap-1.5 text-sm font-semibold text-secondary"
                     >
                         Voir tous les évènements{" "}
-                        <ArrowRight className="w-4 h-4" />
+                        <IconArrowRight className="w-4 h-4" />
                     </Link>
                 </div>
             </div>

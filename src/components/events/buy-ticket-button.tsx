@@ -19,7 +19,16 @@ import { MobileMoneyWaiting } from "@/components/payments/MobileMoneyWaiting";
 import { usePaymentPolling } from "@/hooks/use-payment-polling";
 import { getNetwork, isValidLocalNumber, type FeexpayNetwork } from "@/lib/feexpay-networks";
 import { toast } from "sonner";
-import { Minus, Plus, Loader2, Ticket, User, Users, Tag, X } from "lucide-react";
+import {
+    IconMinus,
+    IconPlus,
+    IconLoader2,
+    IconTicket,
+    IconUser,
+    IconUsers,
+    IconTag,
+    IconX,
+} from "@tabler/icons-react";
 
 interface Props {
     eventId: string;
@@ -224,7 +233,7 @@ export function BuyTicketButton({
                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <Ticket className="w-5 h-5 text-secondary shrink-0" />
+                            <IconTicket className="w-5 h-5 text-secondary shrink-0" />
                             {ticket.title}
                         </DialogTitle>
                     </DialogHeader>
@@ -242,7 +251,7 @@ export function BuyTicketButton({
                         {isLoggedIn ? (
                             <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl border">
                                 <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
-                                    <User className="w-4 h-4 text-secondary" />
+                                    <IconUser className="w-4 h-4 text-secondary" />
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-sm font-medium truncate">{buyerName}</p>
@@ -298,7 +307,7 @@ export function BuyTicketButton({
                                     onClick={() => changeQuantity(Math.max(1, quantity - 1))}
                                     disabled={quantity <= 1 || isPending}
                                 >
-                                    <Minus className="w-3 h-3" />
+                                    <IconMinus className="w-3 h-3" />
                                 </Button>
                                 <span className="w-6 text-center font-bold text-lg">{quantity}</span>
                                 <Button
@@ -308,7 +317,7 @@ export function BuyTicketButton({
                                     onClick={() => changeQuantity(Math.min(maxQty, quantity + 1))}
                                     disabled={quantity >= maxQty || isPending}
                                 >
-                                    <Plus className="w-3 h-3" />
+                                    <IconPlus className="w-3 h-3" />
                                 </Button>
                             </div>
                         </div>
@@ -322,7 +331,7 @@ export function BuyTicketButton({
                         {/* ── Attribution par billet ────────────────── */}
                         <div className="space-y-2">
                             <div className="flex items-center gap-2 mb-1">
-                                <Users className="w-4 h-4 text-muted-foreground" />
+                                <IconUsers className="w-4 h-4 text-muted-foreground" />
                                 <span className="text-sm font-medium">Attribution des billets</span>
                             </div>
 
@@ -390,7 +399,7 @@ export function BuyTicketButton({
                                 {appliedPromo ? (
                                     <div className="flex items-center justify-between gap-2 bg-secondary/10 border border-secondary/30 rounded-lg px-3 py-2">
                                         <div className="flex items-center gap-2 min-w-0">
-                                            <Tag className="w-3.5 h-3.5 text-secondary shrink-0" />
+                                            <IconTag className="w-3.5 h-3.5 text-secondary shrink-0" />
                                             <span className="text-sm font-medium truncate">
                                                 {appliedPromo.name} appliqué
                                             </span>
@@ -401,7 +410,7 @@ export function BuyTicketButton({
                                             className="text-muted-foreground hover:text-foreground shrink-0"
                                             aria-label="Retirer le code promo"
                                         >
-                                            <X className="w-4 h-4" />
+                                            <IconX className="w-4 h-4" />
                                         </button>
                                     </div>
                                 ) : (
@@ -422,7 +431,7 @@ export function BuyTicketButton({
                                             disabled={!promoInput.trim() || isPending || isValidatingPromo}
                                         >
                                             {isValidatingPromo ? (
-                                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
                                             ) : (
                                                 "Appliquer"
                                             )}
@@ -474,7 +483,7 @@ export function BuyTicketButton({
                                     size="lg"
                                     className="gap-2"
                                 >
-                                    {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {isPending && <IconLoader2 className="w-4 h-4 animate-spin" />}
                                     {isPending
                                         ? "Envoi…"
                                         : isFree

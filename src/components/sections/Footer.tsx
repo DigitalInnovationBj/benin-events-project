@@ -1,21 +1,21 @@
 import Link from "next/link";
 import {
-    MapPin,
-    Heart,
-    LayoutDashboard,
-    PlusCircle,
-    UserRoundPlus,
-    UserCircle,
-    FileText,
-    ShieldCheck,
-    ScrollText,
-    Cookie,
-    Home,
-    CalendarRange,
-    HelpCircle,
-    Mail,
-    Handshake,
-} from "lucide-react";
+    IconMapPin,
+    IconHeart,
+    IconLayoutDashboard,
+    IconCirclePlus,
+    IconUserPlus,
+    IconUserCircle,
+    IconFileText,
+    IconShieldCheck,
+    IconFileDescription,
+    IconCookie,
+    IconHome,
+    IconCalendarWeek,
+    IconHelpCircle,
+    IconMail,
+    IconHeartHandshake,
+} from "@tabler/icons-react";
 import { SOCIAL_LINKS } from "@/lib/socials";
 
 // ─────────────────────────────────────────────
@@ -23,33 +23,33 @@ import { SOCIAL_LINKS } from "@/lib/socials";
 // ─────────────────────────────────────────────
 
 const PLATEFORME_LINKS = [
-    { label: "Accueil", href: "/", icon: Home },
-    { label: "Évènements", href: "/events", icon: CalendarRange },
-    { label: "FAQ", href: "/faq", icon: HelpCircle },
-    { label: "Contact", href: "/contact", icon: Mail },
-    { label: "Devenir partenaire", href: "/devenir-partenaire", icon: Handshake },
+    { label: "Accueil", href: "/", icon: IconHome },
+    { label: "Évènements", href: "/events", icon: IconCalendarWeek },
+    { label: "FAQ", href: "/faq", icon: IconHelpCircle },
+    { label: "Contact", href: "/contact", icon: IconMail },
+    { label: "Devenir partenaire", href: "/devenir-partenaire", icon: IconHeartHandshake },
 ];
 
 const ORGANISATEURS_LINKS = [
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Dashboard", href: "/dashboard", icon: IconLayoutDashboard },
     {
         label: "Créer un évènement",
         href: "/dashboard/events/new",
-        icon: PlusCircle,
+        icon: IconCirclePlus,
     },
     {
         label: "Devenir organisateur",
         href: "/dashboard/demande-organisateur",
-        icon: UserRoundPlus,
+        icon: IconUserPlus,
     },
-    { label: "Mon profil", href: "/dashboard/profile", icon: UserCircle },
+    { label: "Mon profil", href: "/dashboard/profile", icon: IconUserCircle },
 ];
 
 const LEGAL_LINKS = [
-    { label: "Mentions légales", href: "/mentions-legales", icon: FileText },
-    { label: "Confidentialité", href: "/confidentialite", icon: ShieldCheck },
-    { label: "CGU", href: "/cgu", icon: ScrollText },
-    { label: "Cookies", href: "/cookies", icon: Cookie },
+    { label: "Mentions légales", href: "/mentions-legales", icon: IconFileText },
+    { label: "Confidentialité", href: "/confidentialite", icon: IconShieldCheck },
+    { label: "CGU", href: "/cgu", icon: IconFileDescription },
+    { label: "Cookies", href: "/cookies", icon: IconCookie },
 ];
 
 // ─────────────────────────────────────────────
@@ -116,13 +116,13 @@ export default function Footer() {
 
                         {/* Localisation */}
                         <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                            <MapPin className="w-3.5 h-3.5 text-secondary shrink-0" />
+                            <IconMapPin className="w-3.5 h-3.5 text-secondary shrink-0" />
                             Cotonou, République du Bénin
                         </div>
 
                         {/* Email */}
                         <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-                            <Mail className="w-3.5 h-3.5 text-secondary shrink-0" />
+                            <IconMail className="w-3.5 h-3.5 text-secondary shrink-0" />
                             <a
                                 href="mailto:contact@beninevents.com"
                                 className="text-secondary hover:underline transition-colors"
@@ -224,9 +224,9 @@ export default function Footer() {
                     {/* Made with love */}
                     <div className="flex items-center gap-1.5">
                         <span>Fait avec</span>
-                        <Heart className="w-3 h-3 fill-green-600 text-green-600" />
-                        <Heart className="w-3 h-3 fill-secondary text-secondary" />
-                        <Heart className="w-3 h-3 fill-red-600 text-red-600" />
+                        <IconHeart className="w-3 h-3 fill-green-600 text-green-600" />
+                        <IconHeart className="w-3 h-3 fill-secondary text-secondary" />
+                        <IconHeart className="w-3 h-3 fill-red-600 text-red-600" />
                         <a
                             href="https://digitalinnovation.bj"
                             target="_blank"

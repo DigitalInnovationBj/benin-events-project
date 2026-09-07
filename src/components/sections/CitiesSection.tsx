@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { IconMapPin } from "@tabler/icons-react";
 
 const CITIES = [
     {
@@ -42,21 +42,27 @@ const CITIES = [
 ] as const;
 
 export default async function CitiesSection() {
-    const upcomingEvents = await prisma.event.findMany({
+    // Un groupBy sur la colonne `city` : avant, toutes les lignes à venir
+    // étaient chargées puis filtrées en JS sur le texte libre de `location`.
+    const counts = await prisma.event.groupBy({
+        by: ["city"],
         where: {
             startDate: { gte: new Date() },
-            location: { not: null },
+            city: { not: null },
             isDeleted: false,
             isPublished: true,
+            isCancelled: false,
         },
-        select: { location: true },
+        _count: { _all: true },
     });
+
+    const countBySlug = new Map(
+        counts.map((row) => [row.city, row._count._all]),
+    );
 
     const citiesWithCount = CITIES.map((city) => ({
         ...city,
-        count: upcomingEvents.filter((e) =>
-            e.location?.toLowerCase().includes(city.name.toLowerCase()),
-        ).length,
+        count: countBySlug.get(city.slug) ?? 0,
     }));
 
     return (
@@ -64,7 +70,7 @@ export default async function CitiesSection() {
             <div className="max-w-6xl mx-auto px-6 md:px-12">
                 <div className="mb-8">
                     <div className="flex items-center gap-2 mb-2">
-                        <MapPin className="w-4 h-4 text-secondary" />
+                        <IconMapPin className="w-4 h-4 text-secondary" aria-hidden="true" />
                         <span className="text-secondary text-xs font-bold uppercase tracking-widest">
                             Destinations
                         </span>
@@ -78,7 +84,7 @@ export default async function CitiesSection() {
                     {citiesWithCount.map((city) => (
                         <Link
                             key={city.slug}
-                            href={`/events?q=${city.name}`}
+                            href={`/events?city=${city.slug}`}
                             className="group"
                         >
                             <div

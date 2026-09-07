@@ -1,9 +1,8 @@
-import type { LucideIcon } from "lucide-react";
-import Header from "@/components/sections/Header";
-import Footer from "@/components/sections/Footer";
+import type { ComponentType } from "react";
 
 interface LegalLayoutProps {
-    icon: LucideIcon;
+    /** Accepte indifféremment une icône Tabler ou Lucide. */
+    icon: ComponentType<{ className?: string }>;
     badge: string;
     title: string;
     subtitle: string;
@@ -75,9 +74,7 @@ export default function LegalLayout({
     children,
 }: LegalLayoutProps) {
     return (
-        <main className="min-h-screen bg-background">
-            <Header />
-
+        <div className="bg-background">
             {/* En-tête */}
             <div className="border-b bg-card">
                 <div className="max-w-6xl mx-auto px-6 py-8 md:px-12">
@@ -101,8 +98,6 @@ export default function LegalLayout({
                 </p>
                 <div className="space-y-12">{children}</div>
             </div>
-
-            <Footer />
-        </main>
+        </div>
     );
 }

@@ -1,38 +1,38 @@
 import Link from "next/link";
 import {
-    Search,
-    Ticket,
-    PartyPopper,
-    PlusCircle,
-    Megaphone,
-    BarChart2,
-} from "lucide-react";
+    IconSearch,
+    IconTicket,
+    IconConfetti,
+    IconCirclePlus,
+    IconSpeakerphone,
+    IconChartBar,
+} from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import type { LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
 
 const PARTICIPANT_STEPS: {
     number: string;
-    icon: LucideIcon;
+    icon: ComponentType<{ className?: string }>;
     title: string;
     description: string;
 }[] = [
     {
         number: "01",
-        icon: Search,
+        icon: IconSearch,
         title: "Découvrez",
         description:
             "Explorez des centaines d'évènements au Bénin par catégorie, ville ou date.",
     },
     {
         number: "02",
-        icon: Ticket,
+        icon: IconTicket,
         title: "Réservez",
         description:
             "Choisissez votre billet en quelques clics et recevez votre confirmation.",
     },
     {
         number: "03",
-        icon: PartyPopper,
+        icon: IconConfetti,
         title: "Participez",
         description:
             "Vivez des expériences inoubliables et partagez-les avec votre communauté.",
@@ -41,27 +41,27 @@ const PARTICIPANT_STEPS: {
 
 const ORGANIZER_STEPS: {
     number: string;
-    icon: LucideIcon;
+    icon: ComponentType<{ className?: string }>;
     title: string;
     description: string;
 }[] = [
     {
         number: "01",
-        icon: PlusCircle,
+        icon: IconCirclePlus,
         title: "Créez",
         description:
             "Publiez votre évènement avec photos, billets, lieu et description complète.",
     },
     {
         number: "02",
-        icon: Megaphone,
+        icon: IconSpeakerphone,
         title: "Promouvez",
         description:
             "Touchez des milliers de participants potentiels à travers tout le Bénin.",
     },
     {
         number: "03",
-        icon: BarChart2,
+        icon: IconChartBar,
         title: "Gérez",
         description:
             "Suivez vos ventes et interagissez avec votre audience en temps réel.",

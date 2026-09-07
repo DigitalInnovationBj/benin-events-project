@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import UpcomingThisWeekSlider from "./UpcomingThisWeekSlider";
-import type { EventForCard } from "@/app/events/event-card";
+import type { EventForCard } from "@/components/events/event-card";
 
 export default async function UpcomingThisWeek() {
     const now = new Date();
