@@ -258,7 +258,7 @@ export function TicketEditDialog({
                             )}
                         </div>
 
-                        <div className="flex gap-3 pt-2">
+                        <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 flex gap-3 border-t bg-background px-6 py-4">
                             <Button
                                 type="button"
                                 variant="outline"
