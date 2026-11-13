@@ -94,6 +94,8 @@ export interface CreatePaymentResponse {
 // planter leur backend (502 Internal Server Error, confirmé en test direct).
 // On assainit systématiquement ici pour ne jamais dépendre de la propreté
 // du texte saisi par l'organisateur.
+const FEEXPAY_DESCRIPTION_MAX = 40;
+
 function sanitizeFeexpayDescription(text: string): string {
     return text
         .normalize("NFD")
@@ -101,7 +103,10 @@ function sanitizeFeexpayDescription(text: string): string {
         .replace(/[^a-zA-Z0-9 .,'-]/g, " ") // tout le reste (×, —, emojis...) → espace
         .replace(/\s+/g, " ")
         .trim()
-        .slice(0, 100);
+        // FeexPay rejette toute description de plus de 40 caractères
+        // (400 « description must be shorter than or equal to 40 characters »).
+        .slice(0, FEEXPAY_DESCRIPTION_MAX)
+        .trim();
 }
 
 export async function createPayment(
