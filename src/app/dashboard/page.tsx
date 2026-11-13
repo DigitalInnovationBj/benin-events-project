@@ -82,7 +82,7 @@ export default async function DashboardPage() {
 
     // L'organisateur a son propre accueil, centré sur ses évènements. Les
     // vues utilisateur et administrateur restent celles ci-dessous.
-    if (role === "ORGANIZER") {
+    if (dbUser.role === "ORGANIZER") {
         return <OrganizerHome user={{ id: dbUser.id, name: displayName }} />;
     }
 
