@@ -1,7 +1,7 @@
 import { render } from "@react-email/components";
 import { resend } from "@/lib/resend";
 import QRCode from "qrcode";
-import { generateTicketPdf } from "@/lib/ticket-pdf";
+import { generateTicketPdf, type TicketPdfData } from "@/lib/ticket-pdf";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation";
 import { OrganizerRequestAdminEmail } from "@/emails/organizer-request-admin";
 import { OrganizerRequestDecisionEmail } from "@/emails/organizer-request-decision";
@@ -65,6 +65,8 @@ export interface OrderItemForEmail {
     quantity: number;
     price: number;
     emailTemplate: "PRIMARY" | "SECONDARY";
+    /** Habillage du billet PDF (thème de l'évènement, titre seul, validité). */
+    pdfTheme?: Pick<TicketPdfData, "theme" | "shortTitle" | "validity">;
 }
 
 export interface SendOrderConfirmationParams {
@@ -127,6 +129,7 @@ export async function sendOrderConfirmationEmail(
                 ticketTotal: totalTickets,
                 qrDataUri,
                 template: item.emailTemplate,
+                ...item.pdfTheme,
             });
             const slug = eventTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
             return {
@@ -426,6 +429,7 @@ export interface SendTicketGiftParams {
     ticketTitle: string;
     price: number;
     emailTemplate: "PRIMARY" | "SECONDARY";
+    pdfTheme?: Pick<TicketPdfData, "theme" | "shortTitle" | "validity">;
     orderItemId: string;
     orderReference: string;
     onlineUrl?: string | null;
@@ -435,7 +439,7 @@ export interface SendTicketGiftParams {
 export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
     const {
         to, recipientName, senderName, eventTitle, eventDate,
-        eventLocation, eventType, ticketTitle, price, emailTemplate,
+        eventLocation, eventType, ticketTitle, price, emailTemplate, pdfTheme,
         orderItemId, orderReference, onlineUrl, postPurchaseMessage,
     } = params;
 
@@ -463,6 +467,7 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
             ticketIndex: 1, ticketTotal: 1,
             qrDataUri,
             template: emailTemplate,
+            ...pdfTheme,
         }),
     ]);
 

@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
     serverExternalPackages: ["@react-pdf/renderer"],
 
+    // Polices et images lues depuis le disque par les billets PDF
+    // (path.join(process.cwd(), …)) : on les embarque explicitement dans les
+    // fonctions serverless, le traçage automatique ne suivant pas ces chemins.
+    outputFileTracingIncludes: {
+        "/**": ["./src/app/fonts/**", "./src/assets/tickets/**"],
+    },
+
     // `babel-plugin-react-compiler` était installé sans être activé.
     reactCompiler: true,
 

@@ -10,6 +10,8 @@ import {
     View,
     renderToBuffer,
 } from "@react-pdf/renderer";
+import type { EventThemeKey } from "@/themes/registry";
+import { AdjatcheTicketPage } from "@/themes/adjatche/ticket-pdf";
 
 // ─────────────────────────────────────────────
 // Polices — enregistrées une seule fois au module load
@@ -65,6 +67,11 @@ export interface TicketPdfData {
     ticketTotal: number;
     qrDataUri: string;   // data:image/png;base64,...
     template: "PRIMARY" | "SECONDARY";
+    /** Habillage de l'évènement (Event.theme) : remplace le modèle standard. */
+    theme?: EventThemeKey | null;
+    /** Titre seul du billet et jours de validité, pour les modèles habillés. */
+    shortTitle?: string;
+    validity?: string | null;
 }
 
 // ─────────────────────────────────────────────
@@ -368,6 +375,22 @@ const themes = {
 // ─────────────────────────────────────────────
 
 export async function generateTicketPdf(data: TicketPdfData): Promise<Buffer> {
+    if (data.theme === "adjatche") {
+        return renderToBuffer(
+            <Document>
+                <AdjatcheTicketPage
+                    ticketTitle={data.shortTitle ?? data.ticketTitle}
+                    validity={data.validity ?? null}
+                    price={data.price}
+                    orderReference={data.orderReference}
+                    ticketIndex={data.ticketIndex}
+                    ticketTotal={data.ticketTotal}
+                    qrDataUri={data.qrDataUri}
+                />
+            </Document>,
+        ) as Promise<Buffer>;
+    }
+
     const theme = themes[data.template];
     const element = <TicketDocument data={data} theme={theme} />;
     return renderToBuffer(element) as Promise<Buffer>;

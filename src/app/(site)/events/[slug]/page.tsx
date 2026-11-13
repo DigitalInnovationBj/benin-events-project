@@ -17,6 +17,16 @@ import EventInteractions from "@/components/events/event-interactions";
 import { TicketSelector } from "@/components/events/ticket-selector";
 import { TicketsAnchorButton } from "@/components/events/tickets-anchor-button";
 import { EventJsonLd } from "@/components/events/event-json-ld";
+import { asEventTheme } from "@/themes/registry";
+import {
+    AdjatcheBanner,
+    AdjatcheCtaDecor,
+    AdjatcheOrganizers,
+    AdjatcheTagline,
+    AdjatcheTicketsHeader,
+    adjatchePattern,
+    adjatcheRootClass,
+} from "@/themes/adjatche/page-parts";
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -191,6 +201,8 @@ export default async function PublicEventPage({ params }: Props) {
     );
 
     const plainDescription = toPlainDescription(event.description);
+    // Habillage personnalisé (même gabarit, autre charte graphique).
+    const isAdjatche = asEventTheme(event.theme) === "adjatche";
 
     const ticketsWithRemaining = event.tickets.map((ticket) => ({
         ...ticket,
@@ -214,7 +226,7 @@ export default async function PublicEventPage({ params }: Props) {
     // ──────────────────────────────────────────────────────────────────────
 
     return (
-        <div className="bg-background">
+        <div className={isAdjatche ? `${adjatcheRootClass} bg-background` : "bg-background"}>
             <EventJsonLd
                 url={`${APP_URL}/events/${event.slug}`}
                 title={event.title}
@@ -246,7 +258,9 @@ export default async function PublicEventPage({ params }: Props) {
                 mobile ils se chevauchaient et devenaient illisibles.
             ══════════════════════════════════════════════════════════════ */}
             <div className="relative w-full h-56 sm:h-72 md:h-104 bg-muted">
-                {event.imageUrl ? (
+                {isAdjatche ? (
+                    <AdjatcheBanner />
+                ) : event.imageUrl ? (
                     <Image
                         src={event.imageUrl}
                         alt=""
@@ -297,7 +311,9 @@ export default async function PublicEventPage({ params }: Props) {
                                 En ligne
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs font-bold text-white shadow-md backdrop-blur-sm">
+                            <span className={isAdjatche
+                                ? "flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground shadow-md"
+                                : "flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs font-bold text-white shadow-md backdrop-blur-sm"}>
                                 <IconMapPin
                                     className="h-3.5 w-3.5"
                                     aria-hidden="true"
@@ -329,6 +345,7 @@ export default async function PublicEventPage({ params }: Props) {
                 <h1 className="font-afo text-3xl leading-tight sm:text-4xl md:text-6xl">
                     {event.title}
                 </h1>
+                {isAdjatche && <AdjatcheTagline />}
 
                 {/* Date et lieu : les deux informations que l'on cherche en premier */}
                 <div className="mt-4 flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5">
@@ -398,7 +415,7 @@ export default async function PublicEventPage({ params }: Props) {
                         <section className="bg-card border rounded-2xl p-6 shadow-sm space-y-4">
                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                 <h2 className="flex items-center gap-2.5 font-afo text-2xl sm:text-3xl">
-                                    <IconMapPin className="h-6 w-6 shrink-0 text-emerald-500" />
+                                    <IconMapPin className={isAdjatche ? "h-6 w-6 shrink-0 text-secondary" : "h-6 w-6 shrink-0 text-emerald-500"} />
                                     Localisation
                                 </h2>
                                 <a
@@ -439,6 +456,9 @@ export default async function PublicEventPage({ params }: Props) {
                     ) : null}
 
                     {/* Organisateur */}
+                    {isAdjatche ? (
+                        <AdjatcheOrganizers email={organizerEmail} />
+                    ) : (
                     <section className="bg-card border rounded-2xl p-6 shadow-sm flex items-center gap-5">
                         <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-secondary font-bold text-2xl shrink-0">
                             {organizerDisplayName[0]?.toUpperCase() || "O"}
@@ -458,6 +478,7 @@ export default async function PublicEventPage({ params }: Props) {
                             </p>
                         </div>
                     </section>
+                    )}
                 </div>
 
                 {/* ── Colonne droite : Billetterie sticky ──────────────── */}
@@ -468,7 +489,9 @@ export default async function PublicEventPage({ params }: Props) {
                         id="billetterie"
                         className="sticky top-24 space-y-6 scroll-mt-20"
                     >
-                        <div className="bg-card border rounded-3xl p-6 md:p-8 shadow-xl">
+                        <div className={isAdjatche ? "bg-card border rounded-3xl shadow-xl overflow-hidden" : "bg-card border rounded-3xl p-6 md:p-8 shadow-xl"}>
+                            {isAdjatche && <AdjatcheTicketsHeader />}
+                            <div className={isAdjatche ? "p-6 md:p-8" : undefined}>
                             <h3 className="mb-5 font-afo text-3xl">
                                 Billetterie
                             </h3>
@@ -485,6 +508,7 @@ export default async function PublicEventPage({ params }: Props) {
                                     remainingStock: t.remainingStock,
                                 }))}
                             />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -501,7 +525,12 @@ export default async function PublicEventPage({ params }: Props) {
                 CTA bas de page
             ══════════════════════════════════════════════════════════════ */}
             <section className="max-w-6xl mx-auto px-5 pb-12 md:px-12 md:pb-16">
-                <div className="bg-card border rounded-3xl p-8 md:p-10 shadow-sm text-center">
+                <div
+                    className={isAdjatche ? "relative overflow-hidden border rounded-3xl p-8 md:p-10 shadow-sm text-center" : "bg-card border rounded-3xl p-8 md:p-10 shadow-sm text-center"}
+                    style={isAdjatche ? adjatchePattern : undefined}
+                >
+                    {isAdjatche && <AdjatcheCtaDecor />}
+                    <div className="relative">
                     <p className="text-sm uppercase tracking-wider text-muted-foreground mb-2">
                         Découvrir plus
                     </p>
@@ -515,6 +544,7 @@ export default async function PublicEventPage({ params }: Props) {
                     <Button asChild size="lg" variant="secondary">
                         <Link href="/events">Voir tous les évènements</Link>
                     </Button>
+                    </div>
                 </div>
             </section>
         </div>

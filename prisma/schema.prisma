@@ -267,6 +267,11 @@ model Event {
   title       String
   description String   @db.Text
 
+  /// Habillage personnalisé de la page publique et des billets PDF (ex.
+  /// « adjatche »). Null = gabarit Benin Events par défaut. Les clés valides
+  /// sont déclarées dans src/themes/registry.ts.
+  theme       String?
+
   // Type d'évènement
   eventType   EventType @default(IN_PERSON)
 

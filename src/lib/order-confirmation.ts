@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma";
 import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { formatEventDateTime } from "@/lib/format";
-import { ticketTitleWithDays } from "@/lib/ticket-days";
+import { formatDayKey, ticketTitleWithDays } from "@/lib/ticket-days";
+import { asEventTheme } from "@/themes/registry";
 
 /**
  * Envoie l'email de confirmation de commande (+ emails cadeaux aux
@@ -23,6 +24,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                     eventType: true,
                     onlineUrl: true,
                     postPurchaseMessage: true,
+                    theme: true,
                 },
             },
             items: {
@@ -51,6 +53,20 @@ export async function sendOrderConfirmationEmails(orderId: string) {
 
     const eventDate = formatEventDateTime(order.event.startDate);
 
+    // Billet habillé : titre seul + validité sur une ligne à part.
+    const theme = asEventTheme(order.event.theme);
+    const pdfTheme = (ticket: { title: string; validDays: string[] }) =>
+        theme
+            ? {
+                  theme,
+                  shortTitle: ticket.title,
+                  validity:
+                      ticket.validDays.length > 0
+                          ? `Valable ${ticket.validDays.map(formatDayKey).join(", ")}`
+                          : "Une entrée",
+              }
+            : undefined;
+
     try {
         // L'email acheteur porte les billets : son échec est bloquant.
         await sendOrderConfirmationEmail({
@@ -68,6 +84,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                 quantity: item.quantity,
                 price: item.price,
                 emailTemplate: item.ticket.emailTemplate,
+                pdfTheme: pdfTheme(item.ticket),
             })),
             onlineUrl: order.event.onlineUrl,
             postPurchaseMessage: order.event.postPurchaseMessage,
@@ -92,6 +109,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                     ticketTitle: ticketTitleWithDays(item.ticket.title, item.ticket.validDays),
                     price: item.price,
                     emailTemplate: item.ticket.emailTemplate,
+                    pdfTheme: pdfTheme(item.ticket),
                     orderItemId: item.id,
                     orderReference: order.reference,
                     onlineUrl: order.event.onlineUrl,

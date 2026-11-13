@@ -112,6 +112,8 @@ type EventInput = {
     endDate: Date;
     isPublished: boolean;
     categorySlugs: string[];
+    /** Habillage de la page et des billets (cf. src/themes/registry.ts). */
+    theme?: string | null;
 };
 
 async function upsertEvent(organizerId: string, input: EventInput) {
@@ -127,6 +129,7 @@ async function upsertEvent(organizerId: string, input: EventInput) {
         endDate: input.endDate,
         ogTitle: input.title,
         isPublished: input.isPublished,
+        theme: input.theme ?? null,
     };
 
     const existing = await prisma.event.findUnique({
@@ -159,6 +162,8 @@ type TicketInput = {
     price: number;
     validDays?: string[];
     alsoValidForEventId?: string;
+    /** Stock limité (null = illimité). */
+    totalStock?: number | null;
 };
 
 async function upsertTicket(eventId: string, input: TicketInput) {
@@ -167,6 +172,7 @@ async function upsertTicket(eventId: string, input: TicketInput) {
         price: input.price,
         validDays: input.validDays ?? [],
         alsoValidForEventId: input.alsoValidForEventId ?? null,
+        totalStock: input.totalStock ?? null,
     };
 
     const existing = await prisma.ticket.findFirst({
@@ -229,6 +235,7 @@ async function main() {
         endDate: new Date(`${DAY_3}T23:59:00+01:00`),
         isPublished: true,
         categorySlugs: FESTIVAL_CATEGORY_SLUGS,
+        theme: "adjatche",
     });
 
     console.log("\n  Billets :");
@@ -255,6 +262,16 @@ async function main() {
         price: 20000,
         validDays: [DAY_1, DAY_2, DAY_3],
         alsoValidForEventId: conferences.id,
+    });
+
+    // Billet de test des paiements Mobile Money : au minimum FeexPay accepté
+    // par l'app (100 FCFA, cf. MIN_AMOUNT_FCFA) et en stock très limité, car
+    // il est visible sur la page publique. À supprimer avant la communication.
+    await upsertTicket(festival.id, {
+        title: "Billet test (ne pas acheter)",
+        description: "Billet technique pour tester les paiements. Ne donne pas accès au festival.",
+        price: 100,
+        totalStock: 5,
     });
 
     console.log("\n✨ Seed terminé !");

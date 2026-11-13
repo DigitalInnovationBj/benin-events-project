@@ -258,3 +258,63 @@
     width: 28px;
     border-radius: 4px;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Habillage d'évènement « Adjatchè Urban Festival » (Event.theme = adjatche)
+   Ne redéfinit que les tokens du thème sur la page de l'évènement : le
+   gabarit et les composants restent ceux de Benin Events.
+   ───────────────────────────────────────────────────────────────────────── */
+.theme-adjatche {
+    --background: #0d1d63;
+    --foreground: #ffffff;
+    --primary: #052dca;
+    --primary-foreground: #ffffff;
+    --secondary: #ef7d19;
+    --secondary-foreground: #ffffff;
+    --muted: #132a88;
+    --muted-foreground: rgb(255 255 255 / 0.8);
+    --accent: #132a88;
+    --accent-foreground: #ffffff;
+    --border: rgb(255 255 255 / 0.18);
+    --input: rgb(255 255 255 / 0.25);
+    --ring: #ef7d19;
+    --card: #ffffff;
+    --card-foreground: #132a88;
+    font-family: var(--font-adj-body), sans-serif;
+    color: var(--foreground);
+    background-image:
+        linear-gradient(rgb(13 29 99 / 0.9), rgb(13 29 99 / 0.9)),
+        url(/events/adjatche/bg.jpg);
+    background-size: auto, 540px;
+}
+.theme-adjatche .font-afo {
+    font-family: var(--font-adj-title), sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+}
+/* Cartes blanches : texte bleu */
+.theme-adjatche .bg-card {
+    --background: #ffffff;
+    --foreground: #132a88;
+    --muted: #eef0f8;
+    --muted-foreground: #4a5590;
+    --accent: #eef0f8;
+    --accent-foreground: #132a88;
+    --border: #dfe3f2;
+    --input: #c9cfe6;
+    color: #132a88;
+}
+.theme-adjatche header .bg-primary.text-secondary {
+    background: #ef7d19;
+    color: #ffffff;
+}
+.theme-adjatche .prose :where(strong, h2, h3) {
+    color: #ffffff;
+}
+.theme-adjatche .prose :where(h2, h3) {
+    font-family: var(--font-adj-title), sans-serif;
+    text-transform: uppercase;
+}
+.theme-adjatche .prose li::marker {
+    color: #ef7d19;
+}
