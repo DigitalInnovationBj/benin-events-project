@@ -33,6 +33,7 @@ import {
     SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarRail,
@@ -74,6 +75,8 @@ export interface DashboardSidebarUser {
 interface NavItem {
     title: string;
     url: string;
+    /** Nombre affiché à droite (éléments en attente). */
+    badge?: number;
     icon: React.ElementType;
     exact?: boolean;
 }
@@ -105,13 +108,24 @@ const HELP_NAV: NavItem[] = [
     { title: "Devenir partenaire", url: "/devenir-partenaire", icon: IconHeartHandshake },
 ];
 
-const ADMIN_NAV: NavItem[] = [
-    { title: "Demandes", url: "/admin/requests", icon: IconShieldCheck },
-    { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: IconHeartHandshake },
+// Administration, segmentée : la plateforme, ce qui attend une décision,
+// les réglages.
+const ADMIN_PLATFORM_NAV: NavItem[] = [
+    { title: "Évènements", url: "/dashboard/events", icon: IconCalendarEvent },
+    { title: "Commandes", url: "/dashboard/commandes", icon: IconShoppingBag },
     { title: "Organisateurs", url: "/admin/organizers", icon: IconUserCircle },
-    { title: "Reversements", url: "/admin/payouts", icon: IconCash },
+];
+
+const ADMIN_SETTINGS_NAV: NavItem[] = [
     { title: "Paramètres", url: "/admin/settings", icon: IconSettings },
 ];
+
+/** Compteurs de la file « À valider » (fournis par le layout). */
+export type AdminQueueCounts = {
+    organizerRequests: number;
+    partnerRequests: number;
+    payouts: number;
+};
 
 // ─────────────────────────────────────────────
 // Groupe de navigation
@@ -140,6 +154,11 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
                                     <span>{item.title}</span>
                                 </Link>
                             </SidebarMenuButton>
+                            {!!item.badge && (
+                                <SidebarMenuBadge className="bg-secondary text-secondary-foreground peer-hover/menu-button:text-secondary-foreground peer-data-[active=true]/menu-button:text-secondary-foreground">
+                                    {item.badge}
+                                </SidebarMenuBadge>
+                            )}
                         </SidebarMenuItem>
                     ))}
                 </SidebarMenu>
@@ -296,12 +315,21 @@ function NavUser({ user }: { user: DashboardSidebarUser }) {
 export function DashboardSidebar({
     user,
     canScan = false,
+    adminQueue,
 }: {
     user: DashboardSidebarUser;
     /** Affiche le groupe « Contrôle d'accès » — agents comme organisateurs. */
     canScan?: boolean;
+    adminQueue?: AdminQueueCounts;
 }) {
-    const isOrganizer = user.role === "ORGANIZER" || user.role === "ADMIN";
+    const isOrganizer = user.role === "ORGANIZER";
+    const isAdmin = user.role === "ADMIN";
+
+    const adminQueueNav: NavItem[] = [
+        { title: "Demandes organisateur", url: "/admin/requests", icon: IconShieldCheck, badge: adminQueue?.organizerRequests },
+        { title: "Candidatures partenaires", url: "/admin/partner-requests", icon: IconHeartHandshake, badge: adminQueue?.partnerRequests },
+        { title: "Reversements", url: "/admin/payouts", icon: IconCash, badge: adminQueue?.payouts },
+    ];
 
     const mainItems = [...PERSONAL_NAV];
     if (user.role === "USER") {
@@ -364,11 +392,13 @@ export function DashboardSidebar({
                 )}
                 {/* Visible dès qu'il y a un évènement à contrôler : un agent
                     a le rôle USER et n'avait donc aucun point d'entrée. */}
-                {canScan && <NavGroup label="Jour J" items={SCAN_NAV} />}
-                {isOrganizer && <NavGroup label="Aide" items={HELP_NAV} />}
-                {user.role === "ADMIN" && (
-                    <NavGroup label="Administration" items={ADMIN_NAV} />
+                {isAdmin && (
+                    <NavGroup label="Plateforme" items={ADMIN_PLATFORM_NAV} />
                 )}
+                {canScan && <NavGroup label="Jour J" items={SCAN_NAV} />}
+                {isAdmin && <NavGroup label="À valider" items={adminQueueNav} />}
+                {isAdmin && <NavGroup label="Réglages" items={ADMIN_SETTINGS_NAV} />}
+                {isOrganizer && <NavGroup label="Aide" items={HELP_NAV} />}
 
                 <SidebarGroup className="mt-auto">
                     <SidebarGroupContent>
