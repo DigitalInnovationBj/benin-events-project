@@ -27,6 +27,7 @@ import { IconLoader2, IconPencil, IconTrash, IconPhotoPlus } from "@tabler/icons
 import { toast } from "sonner";
 import { updateTicket, deleteTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
+import { TicketAccessFields, type EventOption } from "./ticket-access-fields";
 
 type Ticket = {
     id: string;
@@ -37,9 +38,19 @@ type Ticket = {
     totalStock: number | null;
     eventId: string;
     emailTemplate: "PRIMARY" | "SECONDARY";
+    validDays: string[];
+    alsoValidForEventId: string | null;
 };
 
-export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
+export function TicketEditDialog({
+    ticket,
+    eventDays,
+    eventOptions,
+}: {
+    ticket: Ticket;
+    eventDays: string[];
+    eventOptions: EventOption[];
+}) {
     const [isOpen, setIsOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -182,6 +193,14 @@ export function TicketEditDialog({ ticket }: { ticket: Ticket }) {
                                 className="min-h-20"
                             />
                         </div>
+
+                        <TicketAccessFields
+                            idPrefix={`edit-${ticket.id}`}
+                            eventDays={eventDays}
+                            defaultDays={ticket.validDays}
+                            eventOptions={eventOptions.filter((o) => o.id !== ticket.eventId)}
+                            defaultEventId={ticket.alsoValidForEventId ?? ""}
+                        />
 
                         {/* Template PDF */}
                         <div className="grid gap-2">

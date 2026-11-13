@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
+import { formatDayKey } from "@/lib/ticket-days";
 
 const Scanner = dynamic(
     () => import("@yudiel/react-qr-scanner").then((m) => m.Scanner),
@@ -35,6 +36,10 @@ interface ScanResult {
     attendeeName?: string;
     scannedCount?: number;
     quantity?: number;
+    /** Billets multi-jours : jours de validité, jour courant, jours déjà scannés. */
+    validDays?: string[];
+    currentDay?: string;
+    daysScanned?: number;
 }
 
 // Chaque cas d'erreur identifiable a sa propre icône et couleur
@@ -42,7 +47,7 @@ type ErrorVariant = "used" | "wrong-event" | "unconfirmed" | "not-found" | "inva
 
 function getErrorVariant(message: string): ErrorVariant {
     if (message === "Billet déjà utilisé") return "used";
-    if (message === "Mauvais évènement") return "wrong-event";
+    if (message === "Mauvais évènement" || message === "Billet non valable aujourd'hui") return "wrong-event";
     if (message === "Commande non confirmée") return "unconfirmed";
     if (message === "Billet introuvable") return "not-found";
     if (message === "QR code invalide" || message === "QR code non reconnu") return "invalid";
@@ -233,6 +238,17 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
                         <span>
                             Bénéficiaire :{" "}
                             <span className="font-semibold">{result.attendeeName}</span>
+                        </span>
+                    </div>
+                )}
+                {result.validDays && result.currentDay && (
+                    <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+                        <IconScan className="w-4 h-4 shrink-0" />
+                        <span>
+                            Pass multi-jours — aujourd&apos;hui :{" "}
+                            <span className="font-semibold">
+                                {formatDayKey(result.currentDay)} (jour {result.validDays.indexOf(result.currentDay) + 1}/{result.validDays.length})
+                            </span>
                         </span>
                     </div>
                 )}

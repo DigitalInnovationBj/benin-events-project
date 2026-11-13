@@ -4,7 +4,10 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { IconMail, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { resendOrderTickets } from "@/actions/payment.actions";
+import {
+    resendOrderTickets,
+    resendOrderTicketsAsOrganizer,
+} from "@/actions/payment.actions";
 
 /**
  * Renvoie les billets par email.
@@ -12,7 +15,16 @@ import { resendOrderTickets } from "@/actions/payment.actions";
  * Utile quand l'envoi initial a échoué (Resend indisponible, adresse en
  * quarantaine) ou quand l'acheteur a simplement supprimé le message.
  */
-export function ResendTicketsButton({ orderId }: { orderId: string }) {
+export function ResendTicketsButton({
+    orderId,
+    asOrganizer = false,
+    label = "Renvoyer par email",
+}: {
+    orderId: string;
+    /** Renvoi déclenché par l'organisateur de l'évènement. */
+    asOrganizer?: boolean;
+    label?: string;
+}) {
     const [isPending, startTransition] = useTransition();
 
     return (
@@ -23,7 +35,9 @@ export function ResendTicketsButton({ orderId }: { orderId: string }) {
             disabled={isPending}
             onClick={() =>
                 startTransition(async () => {
-                    const res = await resendOrderTickets(orderId);
+                    const res = asOrganizer
+                        ? await resendOrderTicketsAsOrganizer(orderId)
+                        : await resendOrderTickets(orderId);
                     if (res.error) toast.error(res.error);
                     else toast.success("Billets renvoyés par email.");
                 })
@@ -34,7 +48,7 @@ export function ResendTicketsButton({ orderId }: { orderId: string }) {
             ) : (
                 <IconMail className="w-4 h-4" aria-hidden="true" />
             )}
-            Renvoyer par email
+            {label}
         </Button>
     );
 }

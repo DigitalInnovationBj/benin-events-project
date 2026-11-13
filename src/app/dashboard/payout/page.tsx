@@ -1,3 +1,4 @@
+import { HelpCallout } from "@/components/dashboard/help-callout";
 import { getPayoutSummary, getPayoutMethod, getMyPayoutRequests } from "@/actions/payout.actions";
 import { PayoutMethodForm } from "./PayoutMethodForm";
 import { RequestPayoutButton } from "./RequestPayoutButton";
@@ -15,11 +16,17 @@ export default async function PayoutPage() {
     return (
         <div className="max-w-3xl mx-auto space-y-8">
             <div>
-                <h1 className="text-3xl font-afo mb-1">Reversements</h1>
+                <h1 className="text-3xl font-afo mb-1">Finances</h1>
                 <p className="text-muted-foreground text-sm">
-                    Gérez vos reversements et coordonnées de paiement.
+                    Solde, reversements et coordonnées de paiement.
                 </p>
             </div>
+
+            <HelpCallout guideAnchor="finances">
+                Le montant disponible correspond à vos ventes payées, commission
+                déduite. Renseignez d&apos;abord un moyen de reversement, puis
+                demandez le virement.
+            </HelpCallout>
 
             {/* ── Solde ─────────────────────────────────────────────── */}
             <div className="bg-card border rounded-xl p-6 space-y-4">

@@ -3,6 +3,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { dayKey, formatDayKey } from "@/lib/ticket-days";
 import {
     IconCircleCheck,
     IconCircleX,
@@ -82,7 +83,8 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                       scannedCount: true,
                       firstScannedAt: true,
                       attendeeName: true,
-                      ticket: { select: { title: true } },
+                      ticket: { select: { title: true, validDays: true, eventId: true } },
+                      scans: { select: { day: true, eventId: true } },
                       order: {
                           select: {
                               reference: true,
@@ -141,6 +143,41 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                 "Le statut de cette commande ne permet pas l'accès.",
             badge: "Non confirmé",
         };
+    } else if (found.ticket.validDays.length > 0) {
+        // Pass multi-jours : validité jour par jour (un scan par jour).
+        const today = dayKey();
+        const days = found.ticket.validDays;
+        const validityLabel = `Valable les : ${days.map(formatDayKey).join(", ")}.`;
+        if (!days.includes(today)) {
+            verdict = {
+                tone: "warning",
+                icon: IconAlertTriangle,
+                accent: "text-yellow-500",
+                title: "Non valable aujourd'hui",
+                detail: `Ce pass multi-jours n'est pas valable aujourd'hui. ${validityLabel}`,
+                badge: "Hors date",
+            };
+        } else if (found.scans.some(
+                (sc) => sc.day === today && sc.eventId === found.ticket.eventId,
+            )) {
+            verdict = {
+                tone: "warning",
+                icon: IconAlertTriangle,
+                accent: "text-yellow-500",
+                title: "Déjà scanné aujourd'hui",
+                detail: `Ce pass a déjà été validé aujourd'hui. ${validityLabel}`,
+                badge: "Déjà scanné",
+            };
+        } else {
+            verdict = {
+                tone: "success",
+                icon: IconCircleCheck,
+                accent: "text-emerald-500",
+                title: "Billet valide",
+                detail: `Pass multi-jours authentique, pas encore utilisé aujourd'hui. ${validityLabel}`,
+                badge: "Valide",
+            };
+        }
     } else if (found.scannedCount >= found.quantity) {
         verdict = {
             tone: "warning",
@@ -264,7 +301,7 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                                 </div>
                             )}
 
-                            {found.scannedCount > 0 && (
+                            {found.ticket.validDays.length === 0 && found.scannedCount > 0 && (
                                 <div className="flex items-start gap-2.5">
                                     <IconScan
                                         className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground"

@@ -326,6 +326,8 @@ model Event {
   organizer   User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
   tickets          Ticket[]
+  /// Billets d'autres (ou des mêmes) évènements qui donnent aussi accès ici.
+  accessTickets    Ticket[]         @relation("TicketExtraAccess")
   categories       EventCategory[]
   likes            Like[]
   favorites        Favorite[]
@@ -391,6 +393,18 @@ model Ticket {
 
   // Template du billet PDF joint à l'email de confirmation
   emailTemplate TicketTemplate @default(PRIMARY)
+
+  /// Jours de validité d'un pass multi-jours, au format « YYYY-MM-DD » (fuseau
+  /// Africa/Porto-Novo). Vide = billet classique à scan unique : comportement
+  /// historique inchangé. Renseigné = un scan autorisé par jour listé.
+  validDays String[] @default([])
+
+  /// Évènement où ce billet donne aussi accès, avec le même QR code (ex. un
+  /// pass VVIP valable aussi aux « Conférences J1 »). Les agents de cet
+  /// évènement peuvent scanner ce billet ; le scan y est compté à part.
+  /// Exige `validDays` non vide.
+  alsoValidForEventId String?
+  alsoValidForEvent   Event?  @relation("TicketExtraAccess", fields: [alsoValidForEventId], references: [id], onDelete: SetNull)
 
   // Relations
   eventId    String
@@ -490,9 +504,33 @@ model OrderItem {
   ticketId String
   ticket   Ticket @relation(fields: [ticketId], references: [id])
 
+  /// Scans par jour — utilisé uniquement pour les billets multi-jours
+  /// (`Ticket.validDays` non vide).
+  scans TicketScan[]
+
   createdAt DateTime @default(now())
 
   @@index([attendeeEmail])
+}
+
+/// Un scan validé d'un billet multi-jours. La contrainte d'unicité
+/// (billet, jour, évènement) empêche deux entrées le même jour au même endroit,
+/// même si deux agents scannent au même instant ; un billet valable pour deux
+/// évènements (`Ticket.alsoValidForEventId`) peut être scanné une fois dans
+/// chacun.
+model TicketScan {
+  id          String    @id @default(cuid())
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  /// Évènement dont l'agent a scanné le billet.
+  eventId String
+
+  /// Jour du scan, « YYYY-MM-DD » (fuseau Africa/Porto-Novo).
+  day       String
+  scannedAt DateTime @default(now())
+
+  @@unique([orderItemId, day, eventId])
 }
 
 // ─────────────────────────────────────────────

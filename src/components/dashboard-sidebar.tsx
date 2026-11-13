@@ -9,11 +9,13 @@ import {
     IconCalendarEvent,
     IconSelector,
     IconHeartHandshake,
-    IconLayoutDashboard,
+    IconHome,
+    IconHelpCircle,
+    IconPlus,
+    IconShoppingBag,
     IconLoader2,
     IconLogout,
     IconPencil,
-    IconCirclePlus,
     IconSettings,
     IconShieldCheck,
     IconTicket,
@@ -80,21 +82,27 @@ interface NavItem {
 // Nav items par rôle
 // ─────────────────────────────────────────────
 
-const MAIN_NAV: NavItem[] = [
-    { title: "Vue d'ensemble", url: "/dashboard", icon: IconLayoutDashboard, exact: true },
+// Navigation segmentée par usage : ce qui me concerne (Personnel), ce que
+// j'organise (Organiser), le jour de l'évènement (Jour J), l'aide.
+const PERSONAL_NAV: NavItem[] = [
+    { title: "Accueil", url: "/dashboard", icon: IconHome, exact: true },
     { title: "Mes billets", url: "/mes-billets", icon: IconTicket },
     { title: "Mon compte", url: "/mon-compte", icon: IconUserCircle },
 ];
 
 const ORGANIZER_NAV: NavItem[] = [
-    { title: "Mes évènements", url: "/dashboard/events", icon: IconCalendarEvent, exact: true },
-    { title: "Créer un évènement", url: "/dashboard/events/new", icon: IconCirclePlus, exact: true },
-    { title: "Reversements", url: "/dashboard/payout", icon: IconCash },
-    { title: "Devenir partenaire", url: "/devenir-partenaire", icon: IconHeartHandshake },
+    { title: "Mes évènements", url: "/dashboard/events", icon: IconCalendarEvent },
+    { title: "Commandes", url: "/dashboard/commandes", icon: IconShoppingBag },
+    { title: "Finances", url: "/dashboard/payout", icon: IconCash },
 ];
 
 const SCAN_NAV: NavItem[] = [
-    { title: "Scanner les billets", url: "/dashboard/scan", icon: IconScan, exact: true },
+    { title: "Contrôle d'accès", url: "/dashboard/scan", icon: IconScan },
+];
+
+const HELP_NAV: NavItem[] = [
+    { title: "Guide", url: "/dashboard/guide", icon: IconHelpCircle },
+    { title: "Devenir partenaire", url: "/devenir-partenaire", icon: IconHeartHandshake },
 ];
 
 const ADMIN_NAV: NavItem[] = [
@@ -295,7 +303,7 @@ export function DashboardSidebar({
 }) {
     const isOrganizer = user.role === "ORGANIZER" || user.role === "ADMIN";
 
-    const mainItems = [...MAIN_NAV];
+    const mainItems = [...PERSONAL_NAV];
     if (user.role === "USER") {
         mainItems.push({
             title: "Devenir organisateur",
@@ -330,15 +338,34 @@ export function DashboardSidebar({
             </SidebarHeader>
 
             <SidebarContent>
-                <NavGroup label="Menu principal" items={mainItems} />
                 {isOrganizer && (
-                    <NavGroup label="Organisateur" items={ORGANIZER_NAV} />
+                    <SidebarGroup>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        tooltip="Créer un évènement"
+                                        className="bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/90 hover:text-secondary-foreground active:bg-secondary/90 active:text-secondary-foreground"
+                                    >
+                                        <Link href="/dashboard/events/new">
+                                            <IconPlus />
+                                            <span>Créer un évènement</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                )}
+                <NavGroup label="Personnel" items={mainItems} />
+                {isOrganizer && (
+                    <NavGroup label="Organiser" items={ORGANIZER_NAV} />
                 )}
                 {/* Visible dès qu'il y a un évènement à contrôler : un agent
                     a le rôle USER et n'avait donc aucun point d'entrée. */}
-                {canScan && (
-                    <NavGroup label="Contrôle d'accès" items={SCAN_NAV} />
-                )}
+                {canScan && <NavGroup label="Jour J" items={SCAN_NAV} />}
+                {isOrganizer && <NavGroup label="Aide" items={HELP_NAV} />}
                 {user.role === "ADMIN" && (
                     <NavGroup label="Administration" items={ADMIN_NAV} />
                 )}

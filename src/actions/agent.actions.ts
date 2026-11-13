@@ -60,7 +60,7 @@ export async function inviteAgent(eventId: string, userEmail: string) {
         token,
     }).catch(console.error);
 
-    revalidatePath(`/dashboard/events/${eventId}/agents`);
+    revalidatePath(`/dashboard/events/${eventId}`);
     return { success: true };
 }
 
@@ -115,6 +115,6 @@ export async function revokeAgent(eventId: string, targetUserId: string) {
         data: { status: "REVOKED" },
     });
 
-    revalidatePath(`/dashboard/events/${eventId}/agents`);
+    revalidatePath(`/dashboard/events/${eventId}`);
     return { success: true };
 }

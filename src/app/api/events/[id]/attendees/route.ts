@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/permissions";
+import { eventDayKeys } from "@/lib/ticket-days";
 
 // Échappe une valeur CSV (séparateur ; — convention Excel français)
 function csvCell(value: string | number | null | undefined): string {
@@ -34,7 +35,14 @@ export async function GET(
 
     const event = await prisma.event.findUnique({
         where: { id: eventId },
-        select: { id: true, title: true, slug: true, organizerId: true },
+        select: {
+            id: true,
+            title: true,
+            slug: true,
+            organizerId: true,
+            startDate: true,
+            endDate: true,
+        },
     });
     if (!event) {
         return NextResponse.json({ error: "Évènement introuvable" }, { status: 404 });
@@ -46,10 +54,16 @@ export async function GET(
     // ── Participants : billets des commandes payées ───────────────────────
     const items = await prisma.orderItem.findMany({
         where: {
-            order: { eventId, status: "COMPLETED" },
+            // Billets de l'évènement + billets d'un autre évènement qui y
+            // donnent aussi accès (ex. pass VVIP valable aux conférences).
+            ticket: {
+                OR: [{ eventId }, { alsoValidForEventId: eventId }],
+            },
+            order: { status: "COMPLETED" },
         },
         include: {
-            ticket: { select: { title: true } },
+            ticket: { select: { title: true, validDays: true } },
+            scans: { select: { day: true, eventId: true } },
             order: {
                 select: {
                     reference: true,
@@ -62,6 +76,8 @@ export async function GET(
         },
         orderBy: { createdAt: "asc" },
     });
+
+    const eventDays = eventDayKeys(event.startDate, event.endDate);
 
     const header = [
         "Billet",
@@ -86,7 +102,13 @@ export async function GET(
             csvCell(buyerEmail),
             csvCell(item.order.reference),
             csvCell(fmtDate(item.order.createdAt)),
-            csvCell(`${item.scannedCount}/${item.quantity}`),
+            csvCell(
+                item.ticket.validDays.length > 0
+                    ? `${item.scans.filter((sc) => sc.eventId === eventId).length}/${
+                          item.ticket.validDays.filter((d) => eventDays.includes(d)).length
+                      } jours`
+                    : `${item.scannedCount}/${item.quantity}`,
+            ),
             csvCell(fmtDate(item.firstScannedAt)),
         ].join(";");
     });

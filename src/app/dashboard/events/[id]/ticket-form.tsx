@@ -9,8 +9,17 @@ import { IconLoader2, IconPlus, IconPhotoPlus } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { createTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
+import { TicketAccessFields, type EventOption } from "./ticket-access-fields";
 
-export function TicketForm({ eventId }: { eventId: string }) {
+export function TicketForm({
+    eventId,
+    eventDays,
+    eventOptions,
+}: {
+    eventId: string;
+    eventDays: string[];
+    eventOptions: EventOption[];
+}) {
     const [isLoading, setIsLoading] = useState(false);
     const [ticketImagePreview, setTicketImagePreview] = useState<string | null>(null);
     const [emailTemplate, setEmailTemplate] = useState<"PRIMARY" | "SECONDARY">("PRIMARY");
@@ -140,6 +149,12 @@ export function TicketForm({ eventId }: { eventId: string }) {
                     </Label>
                 </div>
             </div>
+
+            <TicketAccessFields
+                idPrefix="new"
+                eventDays={eventDays}
+                eventOptions={eventOptions}
+            />
 
             <div className="grid gap-2">
                 <Label>Template du billet PDF</Label>

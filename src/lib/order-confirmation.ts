@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { sendOrderConfirmationEmail, sendTicketGiftEmail } from "@/lib/email";
 import { formatEventDateTime } from "@/lib/format";
+import { ticketTitleWithDays } from "@/lib/ticket-days";
 
 /**
  * Envoie l'email de confirmation de commande (+ emails cadeaux aux
@@ -31,7 +32,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                     quantity: true,
                     attendeeName: true,
                     attendeeEmail: true,
-                    ticket: { select: { title: true, emailTemplate: true } },
+                    ticket: { select: { title: true, emailTemplate: true, validDays: true } },
                 },
             },
         },
@@ -63,7 +64,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
             totalAmount: order.totalAmount,
             items: order.items.map((item) => ({
                 id: item.id,
-                ticketTitle: item.ticket.title,
+                ticketTitle: ticketTitleWithDays(item.ticket.title, item.ticket.validDays),
                 quantity: item.quantity,
                 price: item.price,
                 emailTemplate: item.ticket.emailTemplate,
@@ -88,7 +89,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                     eventDate,
                     eventLocation: order.event.location,
                     eventType: order.event.eventType,
-                    ticketTitle: item.ticket.title,
+                    ticketTitle: ticketTitleWithDays(item.ticket.title, item.ticket.validDays),
                     price: item.price,
                     emailTemplate: item.ticket.emailTemplate,
                     orderItemId: item.id,

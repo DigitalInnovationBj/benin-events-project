@@ -487,3 +487,44 @@ export async function resendOrderTickets(orderId: string) {
     revalidatePath("/mes-billets");
     return { success: true };
 }
+
+// ─────────────────────────────────────────────
+// Renvoi des billets par l'organisateur
+// ─────────────────────────────────────────────
+// L'acheteur peut renvoyer ses billets depuis /mes-billets ; l'organisateur
+// doit pouvoir le faire pour lui (acheteur invité, email en échec signalé
+// sur le tableau de bord).
+
+export async function resendOrderTicketsAsOrganizer(orderId: string) {
+    const user = await getCurrentUser();
+    if (!user || (user.role !== "ORGANIZER" && user.role !== "ADMIN")) {
+        return { error: "Permission refusée." };
+    }
+
+    if (!rateLimit(`organizer-resend:${user.id}`, 20, 60 * 60 * 1000)) {
+        return { error: "Trop de renvois demandés. Réessayez dans une heure." };
+    }
+
+    const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { id: true, status: true, event: { select: { organizerId: true } } },
+    });
+
+    if (!order) return { error: "Commande introuvable." };
+    if (user.role !== "ADMIN" && order.event.organizerId !== user.id) {
+        return { error: "Commande introuvable." };
+    }
+    if (order.status !== "COMPLETED") {
+        return { error: "Cette commande n'est pas confirmée." };
+    }
+
+    try {
+        await sendOrderConfirmationEmails(order.id);
+    } catch {
+        return { error: "L'envoi a échoué. Réessayez dans quelques minutes." };
+    }
+
+    revalidatePath("/dashboard/commandes");
+    revalidatePath("/dashboard");
+    return { success: true };
+}

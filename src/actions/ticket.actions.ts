@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { parseDayKeys } from "@/lib/ticket-days";
 
 // ─────────────────────────────────────────────
 // Schémas partagés
@@ -34,6 +35,47 @@ const createTicketSchema = ticketBaseSchema.extend({
 const updateTicketSchema = ticketBaseSchema.extend({
     ticketId: z.string().min(1, "L'ID du billet est requis"),
 });
+
+/**
+ * Lit les champs « accès » (jours de validité + évènement supplémentaire) d'un
+ * formulaire et les valide. L'évènement supplémentaire doit appartenir au même
+ * organisateur, différer de l'évènement du billet, et exige des jours de
+ * validité (sans eux, le billet ne pourrait être scanné qu'une seule fois).
+ */
+async function parseAccessFields(
+    formData: FormData,
+    organizerId: string,
+    ownEventId: string,
+): Promise<
+    | { validDays: string[]; alsoValidForEventId: string | null }
+    | { error: string }
+> {
+    const validDays = parseDayKeys(
+        formData.getAll("validDays").map((v) => String(v)),
+    );
+    if (!validDays) return { error: "Jour de validité invalide." };
+
+    const rawEvent = String(formData.get("alsoValidForEventId") ?? "");
+    if (!rawEvent) return { validDays, alsoValidForEventId: null };
+
+    if (rawEvent === ownEventId) {
+        return { error: "Choisissez un autre évènement que celui du billet." };
+    }
+    if (validDays.length === 0) {
+        return {
+            error: "Cochez au moins un jour de validité pour donner accès à un autre évènement.",
+        };
+    }
+
+    const other = await prisma.event.findUnique({
+        where: { id: rawEvent },
+        select: { organizerId: true },
+    });
+    if (!other || other.organizerId !== organizerId) {
+        return { error: "Évènement supplémentaire introuvable." };
+    }
+    return { validDays, alsoValidForEventId: rawEvent };
+}
 
 export async function createTicket(formData: FormData) {
     try {
@@ -78,6 +120,13 @@ export async function createTicket(formData: FormData) {
 
         const data = parsedData.data;
 
+        const access = await parseAccessFields(
+            formData,
+            event.organizerId,
+            event.id,
+        );
+        if ("error" in access) return { error: access.error };
+
         // Gérer l'upload de l'image du ticket
         const imageFile = formData.get("image") as File | null;
         if (imageFile && imageFile.size > 1024 * 1024) {
@@ -105,6 +154,8 @@ export async function createTicket(formData: FormData) {
                 totalStock: data.totalStock ? parseInt(data.totalStock) : null,
                 imageUrl,
                 emailTemplate: data.emailTemplate,
+                validDays: access.validDays,
+                alsoValidForEventId: access.alsoValidForEventId,
                 eventId: event.id,
             },
         });
@@ -164,6 +215,13 @@ export async function updateTicket(formData: FormData) {
 
         const data = parsedData.data;
 
+        const access = await parseAccessFields(
+            formData,
+            ticket.event.organizerId,
+            ticket.event.id,
+        );
+        if ("error" in access) return { error: access.error };
+
         // Image optionnelle — on garde l'existante si aucun nouveau fichier
         const imageFile = formData.get("image") as File | null;
         if (imageFile && imageFile.size > 1024 * 1024) {
@@ -189,6 +247,8 @@ export async function updateTicket(formData: FormData) {
                 totalStock: data.totalStock ? parseInt(data.totalStock) : null,
                 imageUrl,
                 emailTemplate: data.emailTemplate,
+                validDays: access.validDays,
+                alsoValidForEventId: access.alsoValidForEventId,
             },
         });
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/permissions";
 import { getScannableEvents } from "@/lib/scan-access";
 import { Button } from "@/components/ui/button";
+import { HelpCallout } from "@/components/dashboard/help-callout";
 import { formatEventDateLong, formatEventTime } from "@/lib/format";
 import {
     IconScan,
@@ -38,6 +39,13 @@ export default async function ScanIndexPage() {
                 <p className="text-sm text-muted-foreground">
                     Scannez les billets à l&apos;entrée de vos évènements.
                 </p>
+            </div>
+
+            <div className="mb-6">
+            <HelpCallout guideAnchor="jour-j">
+                Choisissez l&apos;évènement, autorisez la caméra puis visez le QR
+                code. Un pass multi-jours passe une fois par jour.
+            </HelpCallout>
             </div>
 
             {events.length === 0 ? (

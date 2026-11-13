@@ -19,6 +19,7 @@ import {
 import { StatusBadge, orderStatusBadge } from "@/components/ui/status-badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { OrganizerHome } from "./organizer-home";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,12 @@ export default async function DashboardPage() {
     const displayName = dbUser.name || dbUser.email.split("@")[0];
 
     const role = dbUser.role;
+
+    // L'organisateur a son propre accueil, centré sur ses évènements. Les
+    // vues utilisateur et administrateur restent celles ci-dessous.
+    if (role === "ORGANIZER") {
+        return <OrganizerHome user={{ id: dbUser.id, name: displayName }} />;
+    }
 
     // ── Données communes ─────────────────────────────────────────────────────
     const [recentOrders, favoritesCount, agentEvents] = await Promise.all([

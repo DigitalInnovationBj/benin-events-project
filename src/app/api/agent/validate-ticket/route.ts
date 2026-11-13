@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/permissions";
 import { canScanEvent } from "@/lib/scan-access";
 import prisma from "@/lib/prisma";
+import { dayKey, eventDayKeys, formatDayKey } from "@/lib/ticket-days";
 
 const STATUS_DETAIL: Record<string, string> = {
     PENDING:   "Le paiement de cette commande n'a pas encore été confirmé.",
@@ -62,7 +63,15 @@ export async function POST(req: NextRequest) {
     const rawItem = await prisma.orderItem.findUnique({
         where: { id: itemId },
         include: {
-            ticket: { select: { title: true } },
+            ticket: {
+                select: {
+                    title: true,
+                    eventId: true,
+                    validDays: true,
+                    alsoValidForEventId: true,
+                    event: { select: { title: true } },
+                },
+            },
             order: {
                 include: {
                     event: { select: { id: true, title: true } },
@@ -90,11 +99,19 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 7. Billet d'un autre évènement ────────────────────────────────────
-    if (rawItem.order.eventId !== eventId) {
+    // Un billet est accepté dans son évènement, et aussi dans celui déclaré par
+    // `alsoValidForEventId` (ex. pass VVIP valable aux conférences) — à
+    // condition d'être un billet multi-jours, seul à compter les scans par lieu.
+    const isOwnEvent = rawItem.ticket.eventId === eventId;
+    const isExtraEvent =
+        !isOwnEvent &&
+        rawItem.ticket.alsoValidForEventId === eventId &&
+        rawItem.ticket.validDays.length > 0;
+    if (!isOwnEvent && !isExtraEvent) {
         return NextResponse.json({
             valid: false,
             message: "Mauvais évènement",
-            detail: `Ce billet est valable pour « ${rawItem.order.event.title} », pas pour cet évènement.`,
+            detail: `Ce billet est valable pour « ${rawItem.ticket.event.title} », pas pour cet évènement.`,
             ticketTitle: rawItem.ticket.title,
         });
     }
@@ -106,6 +123,82 @@ export async function POST(req: NextRequest) {
             message: "Commande non confirmée",
             detail: STATUS_DETAIL[rawItem.order.status] ?? "Statut de commande inconnu.",
             ticketTitle: rawItem.ticket.title,
+        });
+    }
+
+    // ── 8bis. Billet multi-jours : un scan autorisé par jour de validité ───
+    // Les billets sans `validDays` ignorent ce bloc et suivent le parcours
+    // historique (étapes 9 et 10).
+    if (rawItem.ticket.validDays.length > 0) {
+        const validDays = rawItem.ticket.validDays;
+        const today = dayKey();
+
+        // Accès supplémentaire (ex. conférences) : le billet n'ouvre l'accès
+        // que les jours où CET évènement a lieu, en plus de ses propres jours.
+        let allowedDays = validDays;
+        if (isExtraEvent) {
+            const scannedEvent = await prisma.event.findUnique({
+                where: { id: eventId },
+                select: { startDate: true, endDate: true },
+            });
+            const scannedEventDays = scannedEvent
+                ? eventDayKeys(scannedEvent.startDate, scannedEvent.endDate)
+                : [];
+            allowedDays = validDays.filter((d) => scannedEventDays.includes(d));
+        }
+
+        if (!allowedDays.includes(today)) {
+            return NextResponse.json({
+                valid: false,
+                message: "Billet non valable aujourd'hui",
+                detail: `Ce billet est valable ici les : ${allowedDays.map(formatDayKey).join(", ") || "aucun jour"}.`,
+                ticketTitle: rawItem.ticket.title,
+                attendeeName: rawItem.attendeeName,
+            });
+        }
+
+        try {
+            await prisma.$transaction([
+                prisma.ticketScan.create({
+                    data: { orderItemId: rawItem.id, eventId, day: today },
+                }),
+                ...(rawItem.firstScannedAt
+                    ? []
+                    : [
+                          prisma.orderItem.update({
+                              where: { id: rawItem.id },
+                              data: { firstScannedAt: new Date() },
+                          }),
+                      ]),
+            ]);
+        } catch (err) {
+            // P2002 : (billet, jour) déjà enregistré — scan du même jour.
+            if ((err as { code?: string }).code === "P2002") {
+                return NextResponse.json({
+                    valid: false,
+                    message: "Billet déjà utilisé",
+                    detail: `Ce billet a déjà été scanné ici aujourd'hui (${formatDayKey(today)}).`,
+                    ticketTitle: rawItem.ticket.title,
+                    attendeeName: rawItem.attendeeName,
+                    validDays: allowedDays,
+                    currentDay: today,
+                });
+            }
+            throw err;
+        }
+
+        const daysScanned = await prisma.ticketScan.count({
+            where: { orderItemId: rawItem.id, eventId },
+        });
+
+        return NextResponse.json({
+            valid: true,
+            message: "Billet valide",
+            ticketTitle: rawItem.ticket.title,
+            attendeeName: rawItem.attendeeName,
+            validDays: allowedDays,
+            currentDay: today,
+            daysScanned,
         });
     }
 
