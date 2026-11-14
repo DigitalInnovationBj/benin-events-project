@@ -10,7 +10,7 @@ import {
     isValidLocalNumber,
     type FeexpayNetwork,
 } from "@/lib/feexpay";
-import { createCardPayment, geniusPayFeePercent } from "@/lib/geniuspay";
+import { createCardPayment, geniusPayFeeConfig } from "@/lib/geniuspay";
 import { CARD_MIN_AMOUNT, cardFeeFor } from "@/lib/card-fee";
 import { sendRefundConfirmationEmail } from "@/lib/email";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
@@ -197,7 +197,7 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
     // ── Carte bancaire (GeniusPay) : frais ajoutés au prix ─────────────────
     const payByCard = !isFree && input.paymentMethod === "card";
-    const paymentFee = payByCard ? cardFeeFor(totalAmount, geniusPayFeePercent()) : 0;
+    const paymentFee = payByCard ? cardFeeFor(totalAmount, geniusPayFeeConfig()) : 0;
     if (payByCard && totalAmount + paymentFee < CARD_MIN_AMOUNT) {
         return {
             error: `Le paiement par carte est possible à partir de ${CARD_MIN_AMOUNT} FCFA. Choisissez Mobile Money.`,

@@ -37,7 +37,7 @@ import {
 import { formatXOF, formatEventDateTime } from "@/lib/format";
 import { encodeCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
-import { CARD_MIN_AMOUNT, cardFeeFor } from "@/lib/card-fee";
+import { CARD_MIN_AMOUNT, cardFeeFor, type CardFeeConfig } from "@/lib/card-fee";
 
 // ─────────────────────────────────────────────
 // Types
@@ -82,8 +82,8 @@ interface Props {
     lines: CheckoutLine[];
     buyer: { name: string; email: string } | null;
     hasExistingTicket: boolean;
-    /** Frais du paiement par carte (GeniusPay), en %, ajoutés au prix. */
-    cardFeePercent: number;
+    /** Grille des frais de carte (GeniusPay), ajoutés au prix. */
+    cardFeeConfig: CardFeeConfig;
 }
 
 const STEPS = ["Récapitulatif", "Participants", "Paiement"] as const;
@@ -98,7 +98,7 @@ export function CheckoutFlow({
     lines,
     buyer,
     hasExistingTicket,
-    cardFeePercent,
+    cardFeeConfig,
 }: Props) {
     const router = useRouter();
     const isLoggedIn = buyer !== null;
@@ -175,7 +175,7 @@ export function CheckoutFlow({
         : 0;
     const total = Math.max(0, baseAmount - discount);
     // Carte : frais GeniusPay ajoutés au prix ; minimum imposé par GeniusPay.
-    const cardFee = cardFeeFor(total, cardFeePercent);
+    const cardFee = cardFeeFor(total, cardFeeConfig);
     const cardAvailable = total > 0 && total + cardFee >= CARD_MIN_AMOUNT;
     const payByCard = paymentMethod === "card" && cardAvailable;
     const amountDue = payByCard ? total + cardFee : total;

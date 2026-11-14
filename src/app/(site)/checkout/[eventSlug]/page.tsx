@@ -7,7 +7,7 @@ import { getRemainingStock } from "@/lib/stock";
 import { decodeCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { CheckoutFlow } from "@/components/checkout/checkout-flow";
-import { geniusPayFeePercent } from "@/lib/geniuspay";
+import { geniusPayFeeConfig } from "@/lib/geniuspay";
 import { IconShoppingBag } from "@tabler/icons-react";
 
 export const metadata: Metadata = {
@@ -176,7 +176,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             }}
             eventId={event.id}
             lines={lines}
-            cardFeePercent={geniusPayFeePercent()}
+            cardFeeConfig={geniusPayFeeConfig()}
             buyer={
                 user
                     ? { name: user.name ?? "", email: user.email }

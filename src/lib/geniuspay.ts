@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import type { CardFeeConfig } from "@/lib/card-fee";
 
 /**
  * Client GeniusPay — paiement par carte bancaire (Visa, Mastercard) des
@@ -7,7 +8,8 @@ import crypto from "crypto";
  * Variables d'environnement (déjà configurées lors de l'ancienne
  * intégration) : GENIUSPAY_API_KEY, GENIUSPAY_API_SECRET,
  * GENIUSPAY_WEBHOOK_SECRET ; optionnelles : GENIUSPAY_BASE_URL,
- * GENIUSPAY_FEE_PERCENT (frais carte ajoutés au prix, 3 % par défaut).
+ * GENIUSPAY_FEE_PERCENT (3 % par défaut) et GENIUSPAY_FEE_FIXED (100 FCFA par
+ * défaut) — la grille de frais GeniusPay répercutée sur l'acheteur.
  */
 
 // HTTPS obligatoire : les clés API circulent dans les en-têtes.
@@ -15,10 +17,14 @@ const BASE_URL =
     process.env.GENIUSPAY_BASE_URL?.replace(/\/$/, "") ??
     "https://geniuspay.ci/api/v1/merchant";
 
-/** Taux des frais de carte GeniusPay, en pourcentage. */
-export function geniusPayFeePercent(): number {
-    const raw = Number(process.env.GENIUSPAY_FEE_PERCENT);
-    return Number.isFinite(raw) && raw >= 0 && raw < 50 ? raw : 3;
+/** Grille des frais de carte GeniusPay (pourcentage + fixe par transaction). */
+export function geniusPayFeeConfig(): CardFeeConfig {
+    const percent = Number(process.env.GENIUSPAY_FEE_PERCENT);
+    const fixed = Number(process.env.GENIUSPAY_FEE_FIXED);
+    return {
+        percent: process.env.GENIUSPAY_FEE_PERCENT && Number.isFinite(percent) && percent >= 0 && percent < 50 ? percent : 3,
+        fixed: process.env.GENIUSPAY_FEE_FIXED && Number.isFinite(fixed) && fixed >= 0 ? fixed : 100,
+    };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
