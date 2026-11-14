@@ -34,7 +34,14 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                     quantity: true,
                     attendeeName: true,
                     attendeeEmail: true,
-                    ticket: { select: { title: true, emailTemplate: true, validDays: true } },
+                    ticket: {
+                        select: {
+                            title: true,
+                            emailTemplate: true,
+                            validDays: true,
+                            sessions: { select: { session: { select: { name: true } } } },
+                        },
+                    },
                 },
             },
         },
@@ -55,17 +62,23 @@ export async function sendOrderConfirmationEmails(orderId: string) {
 
     // Billet habillé : titre seul + validité sur une ligne à part.
     const theme = asEventTheme(order.event.theme);
-    const pdfTheme = (ticket: { title: string; validDays: string[] }) =>
-        theme
-            ? {
-                  theme,
-                  shortTitle: ticket.title,
-                  validity:
-                      ticket.validDays.length > 0
-                          ? `Valable ${ticket.validDays.map(formatDayKey).join(", ")}`
-                          : "Une entrée",
-              }
-            : undefined;
+    const pdfTheme = (ticket: {
+        title: string;
+        validDays: string[];
+        sessions: { session: { name: string } }[];
+    }) => {
+        if (!theme) return undefined;
+        const days =
+            ticket.validDays.length > 0
+                ? `Valable ${ticket.validDays.map(formatDayKey).join(", ")}`
+                : "Une entrée";
+        const sessions = ticket.sessions.map((s) => s.session.name);
+        return {
+            theme,
+            shortTitle: ticket.title,
+            validity: sessions.length > 0 ? `${days} + ${sessions.join(", ").toLowerCase()}` : days,
+        };
+    };
 
     try {
         // L'email acheteur porte les billets : son échec est bloquant.

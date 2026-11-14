@@ -83,8 +83,8 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                       scannedCount: true,
                       firstScannedAt: true,
                       attendeeName: true,
-                      ticket: { select: { title: true, validDays: true, eventId: true } },
-                      scans: { select: { day: true, eventId: true } },
+                      ticket: { select: { title: true, validDays: true } },
+                      scans: { where: { checkpoint: "main" }, select: { day: true } },
                       order: {
                           select: {
                               reference: true,
@@ -157,9 +157,7 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                 detail: `Ce pass multi-jours n'est pas valable aujourd'hui. ${validityLabel}`,
                 badge: "Hors date",
             };
-        } else if (found.scans.some(
-                (sc) => sc.day === today && sc.eventId === found.ticket.eventId,
-            )) {
+        } else if (found.scans.some((sc) => sc.day === today)) {
             verdict = {
                 tone: "warning",
                 icon: IconAlertTriangle,

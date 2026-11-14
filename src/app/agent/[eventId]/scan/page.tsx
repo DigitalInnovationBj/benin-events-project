@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { QrScanner } from "@/components/agent/qr-scanner";
 import { Button } from "@/components/ui/button";
 import { formatEventDateLong } from "@/lib/format";
+import { formatDayKey } from "@/lib/ticket-days";
 import {
     IconCalendar,
     IconMapPin,
@@ -15,10 +16,12 @@ import {
 
 export default async function AgentScanPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ eventId: string }>;
+    searchParams: Promise<{ point?: string }>;
 }) {
-    const { eventId } = await params;
+    const [{ eventId }, { point }] = await Promise.all([params, searchParams]);
     const dbUser = await getCurrentUser();
     if (!dbUser) redirect(`/sign-in?redirect_url=/agent/${eventId}/scan`);
 
@@ -54,10 +57,17 @@ export default async function AgentScanPage({
             startDate: true,
             location: true,
             eventType: true,
+            sessions: {
+                select: { id: true, name: true, day: true },
+                orderBy: [{ day: "asc" }, { createdAt: "asc" }],
+            },
         },
     });
 
     if (!event) redirect("/dashboard/scan");
+
+    // Point de contrôle choisi : entrée générale ou une session de l'évènement.
+    const activeSession = event.sessions.find((s) => s.id === point) ?? null;
 
     return (
         <div className="min-h-screen bg-muted/30 px-4 py-6 sm:py-10">
@@ -101,12 +111,52 @@ export default async function AgentScanPage({
                     </div>
                 </div>
 
+                {/* Point de contrôle */}
+                {event.sessions.length > 0 && (
+                    <nav
+                        aria-label="Point de contrôle"
+                        className="bg-card border rounded-2xl p-4 shadow-sm space-y-2"
+                    >
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Point de contrôle
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            <Link
+                                href={`/agent/${eventId}/scan`}
+                                aria-current={!activeSession ? "page" : undefined}
+                                className={!activeSession
+                                    ? "rounded-full bg-secondary px-4 py-1.5 text-sm font-medium text-secondary-foreground"
+                                    : "rounded-full border px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground"}
+                            >
+                                Entrée générale
+                            </Link>
+                            {event.sessions.map((s) => (
+                                <Link
+                                    key={s.id}
+                                    href={`/agent/${eventId}/scan?point=${s.id}`}
+                                    aria-current={activeSession?.id === s.id ? "page" : undefined}
+                                    className={activeSession?.id === s.id
+                                        ? "rounded-full bg-secondary px-4 py-1.5 text-sm font-medium text-secondary-foreground"
+                                        : "rounded-full border px-4 py-1.5 text-sm text-muted-foreground hover:text-foreground"}
+                                >
+                                    {s.name} · {formatDayKey(s.day)}
+                                </Link>
+                            ))}
+                        </div>
+                    </nav>
+                )}
+
                 {/* Scanner */}
                 <div className="bg-card border rounded-2xl p-6 shadow-sm">
                     <h2 className="font-bold text-lg mb-6 text-center">
-                        Scanner les billets
+                        {activeSession ? `Scanner · ${activeSession.name}` : "Scanner les billets"}
                     </h2>
-                    <QrScanner eventId={eventId} />
+                    {/* key : le scanner repart de zéro quand on change de point */}
+                    <QrScanner
+                        key={activeSession?.id ?? "main"}
+                        eventId={eventId}
+                        sessionId={activeSession?.id}
+                    />
                 </div>
             </div>
         </div>

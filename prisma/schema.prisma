@@ -331,8 +331,8 @@ model Event {
   organizer   User            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
   tickets          Ticket[]
-  /// Billets d'autres (ou des mêmes) évènements qui donnent aussi accès ici.
-  accessTickets    Ticket[]         @relation("TicketExtraAccess")
+  /// Sessions à accès restreint (conférences…), scannées à part.
+  sessions         EventSession[]
   categories       EventCategory[]
   likes            Like[]
   favorites        Favorite[]
@@ -404,12 +404,9 @@ model Ticket {
   /// historique inchangé. Renseigné = un scan autorisé par jour listé.
   validDays String[] @default([])
 
-  /// Évènement où ce billet donne aussi accès, avec le même QR code (ex. un
-  /// pass VVIP valable aussi aux « Conférences J1 »). Les agents de cet
-  /// évènement peuvent scanner ce billet ; le scan y est compté à part.
-  /// Exige `validDays` non vide.
-  alsoValidForEventId String?
-  alsoValidForEvent   Event?  @relation("TicketExtraAccess", fields: [alsoValidForEventId], references: [id], onDelete: SetNull)
+  /// Sessions de l'évènement auxquelles ce billet donne accès (ex. les
+  /// conférences du festival pour le pass VVIP).
+  sessions TicketSession[]
 
   // Relations
   eventId    String
@@ -518,11 +515,10 @@ model OrderItem {
   @@index([attendeeEmail])
 }
 
-/// Un scan validé d'un billet multi-jours. La contrainte d'unicité
-/// (billet, jour, évènement) empêche deux entrées le même jour au même endroit,
-/// même si deux agents scannent au même instant ; un billet valable pour deux
-/// évènements (`Ticket.alsoValidForEventId`) peut être scanné une fois dans
-/// chacun.
+/// Un scan validé, enregistré par jour et par point de contrôle : l'entrée
+/// générale (« main », billets multi-jours) ou une session (son id). La
+/// contrainte d'unicité empêche deux passages le même jour au même point,
+/// même si deux agents scannent au même instant.
 model TicketScan {
   id          String    @id @default(cuid())
   orderItemId String
@@ -531,11 +527,14 @@ model TicketScan {
   /// Évènement dont l'agent a scanné le billet.
   eventId String
 
+  /// Point de contrôle : « main » (entrée générale) ou l'id d'une EventSession.
+  checkpoint String @default("main")
+
   /// Jour du scan, « YYYY-MM-DD » (fuseau Africa/Porto-Novo).
   day       String
   scannedAt DateTime @default(now())
 
-  @@unique([orderItemId, day, eventId])
+  @@unique([orderItemId, day, checkpoint])
 }
 
 // ─────────────────────────────────────────────
@@ -684,4 +683,34 @@ model EventCampaign {
 model CampaignSuppression {
   email     String   @id
   createdAt DateTime @default(now())
+}
+
+/// Session à accès restreint d'un évènement (ex. « Conférences » le 18 déc.).
+/// Seuls les billets liés (TicketSession) y sont acceptés, une fois.
+model EventSession {
+  id       String @id @default(cuid())
+  eventId  String
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name     String
+  /// Jour de la session, « YYYY-MM-DD » (fuseau Africa/Porto-Novo).
+  day      String
+  /// Nombre maximal d'entrées (null = sans limite).
+  capacity Int?
+
+  tickets TicketSession[]
+
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+}
+
+/// Accès d'un billet à une session.
+model TicketSession {
+  ticketId  String
+  ticket    Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, sessionId])
+  @@index([sessionId])
 }

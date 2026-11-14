@@ -1,15 +1,15 @@
 /**
  * Seed de l'Adjatchè Urban Festival (18–20 déc. 2026, Porto-Novo).
  *
- * Crée deux évènements et leurs billets :
- *   1. « Adjatchè Urban Festival » — l'évènement public, avec 4 pass.
- *   2. « … — Conférences » (18 déc.) — évènement non publié : il sert de point
- *      de scan dédié aux conférences. Le pass VVIP y donne accès avec son
- *      propre QR code (`Ticket.alsoValidForEventId`).
+ * Crée l'évènement « Adjatchè Urban Festival », ses billets et la session
+ * « Conférences » (18 déc.), à laquelle seul le pass VVIP donne accès : les
+ * agents la scannent à un point de contrôle dédié, avec le même QR code.
+ *
+ * Supprime l'ancien évènement brouillon « … — Conférences » créé par les
+ * premières versions de ce script (ou le masque s'il a des commandes).
  *
  * Prérequis :
- *   - migration `multi_day_tickets` appliquée (`pnpm db:deploy`) puis
- *     `pnpm prisma generate` ;
+ *   - migrations appliquées (`pnpm db:deploy`) puis `pnpm prisma generate` ;
  *   - catégories créées (`pnpm db:seed`) — sinon l'évènement est créé sans ;
  *   - un compte ORGANIZER ou ADMIN existant : par défaut celui de
  *     l'organisation (email du dossier de présentation), ou celui désigné par
@@ -39,7 +39,8 @@ const LOCATION = "Albarika, Porto-Novo";
 const DEFAULT_ORGANIZER_EMAIL = "contact.adjatcheurbanfesti@gmail.com";
 
 const FESTIVAL_SLUG = "adjatche-urban-festival";
-const CONFERENCES_SLUG = "adjatche-urban-festival-conferences";
+/** Ancien évènement brouillon des conférences (remplacé par une session). */
+const LEGACY_CONFERENCES_SLUG = "adjatche-urban-festival-conferences";
 
 const DAY_1 = "2026-12-18";
 const DAY_2 = "2026-12-19";
@@ -72,14 +73,7 @@ const FESTIVAL_DESCRIPTION = `
 <p>Plus d'infos : +229 01 47 43 43 36</p>
 `.trim();
 
-const CONFERENCES_DESCRIPTION = `
-<p>Les deux conférences du vendredi 18 décembre, ouvertes à un nombre réduit de participants :</p>
-<ul>
-<li>10h00 — Conférence 1 : Culture et patrimoine</li>
-<li>11h30 — Conférence 2 : Jeunesse et entrepreneuriat créatif</li>
-</ul>
-<p>Accès avec le pass VVIP de l'Adjatchè Urban Festival.</p>
-`.trim();
+
 
 const POST_PURCHASE_MESSAGE =
     "<p>Présentez le QR code de votre billet (sur téléphone ou imprimé) à l'entrée. " +
@@ -88,7 +82,6 @@ const POST_PURCHASE_MESSAGE =
 
 /** Catégories existantes à rattacher au festival (créées par `pnpm db:seed`). */
 const FESTIVAL_CATEGORY_SLUGS = ["festival", "culture-arts", "musique-concert"];
-const CONFERENCES_CATEGORY_SLUGS = ["conference-seminaire"];
 
 async function categoryIds(slugs: string[]): Promise<string[]> {
     const found = await prisma.category.findMany({
@@ -161,7 +154,8 @@ type TicketInput = {
     description: string;
     price: number;
     validDays?: string[];
-    alsoValidForEventId?: string;
+    /** Sessions accessibles (absent = accès existants conservés). */
+    sessionIds?: string[];
     /** Stock limité (null = illimité). */
     totalStock?: number | null;
 };
@@ -171,9 +165,9 @@ async function upsertTicket(eventId: string, input: TicketInput) {
         description: input.description,
         price: input.price,
         validDays: input.validDays ?? [],
-        alsoValidForEventId: input.alsoValidForEventId ?? null,
         totalStock: input.totalStock ?? null,
     };
+    const sessionLinks = (input.sessionIds ?? []).map((sessionId) => ({ sessionId }));
 
     const existing = await prisma.ticket.findFirst({
         where: { eventId, title: input.title },
@@ -181,10 +175,18 @@ async function upsertTicket(eventId: string, input: TicketInput) {
     });
 
     if (existing) {
-        await prisma.ticket.update({ where: { id: existing.id }, data });
+        await prisma.ticket.update({
+            where: { id: existing.id },
+            data: {
+                ...data,
+                ...(input.sessionIds
+                    ? { sessions: { deleteMany: {}, create: sessionLinks } }
+                    : {}),
+            },
+        });
     } else {
         await prisma.ticket.create({
-            data: { ...data, title: input.title, eventId },
+            data: { ...data, title: input.title, eventId, sessions: { create: sessionLinks } },
         });
     }
     console.log(
@@ -217,16 +219,6 @@ async function main() {
     console.log("🌱 Seed Adjatchè Urban Festival\n");
 
     // Dates saisies à l'heure du Bénin (UTC+1, sans heure d'été).
-    const conferences = await upsertEvent(organizer.id, {
-        slug: CONFERENCES_SLUG,
-        title: "Adjatchè Urban Festival — Conférences",
-        description: CONFERENCES_DESCRIPTION,
-        startDate: new Date(`${DAY_1}T10:00:00+01:00`),
-        endDate: new Date(`${DAY_1}T13:00:00+01:00`),
-        isPublished: false, // point de scan uniquement, non vendu au public
-        categorySlugs: CONFERENCES_CATEGORY_SLUGS,
-    });
-
     const festival = await upsertEvent(organizer.id, {
         slug: FESTIVAL_SLUG,
         title: "Adjatchè Urban Festival",
@@ -237,6 +229,37 @@ async function main() {
         categorySlugs: FESTIVAL_CATEGORY_SLUGS,
         theme: "adjatche",
     });
+
+    // Session « Conférences » du vendredi (retrouvée par son nom).
+    const existingSession = await prisma.eventSession.findFirst({
+        where: { eventId: festival.id, name: "Conférences" },
+        select: { id: true },
+    });
+    const conferences = existingSession
+        ? await prisma.eventSession.update({
+              where: { id: existingSession.id },
+              data: { day: DAY_1 },
+          })
+        : await prisma.eventSession.create({
+              data: { eventId: festival.id, name: "Conférences", day: DAY_1 },
+          });
+    console.log(`  ${existingSession ? "♻️  Mise à jour" : "✅ Créée"} — session Conférences (${DAY_1})`);
+
+    // Ancien évènement brouillon des conférences : supprimé, ou masqué s'il
+    // porte déjà des commandes.
+    const legacy = await prisma.event.findUnique({
+        where: { slug: LEGACY_CONFERENCES_SLUG },
+        select: { id: true, _count: { select: { orders: true } } },
+    });
+    if (legacy) {
+        if (legacy._count.orders > 0) {
+            await prisma.event.update({ where: { id: legacy.id }, data: { isDeleted: true } });
+            console.log("  🗑️  Ancien évènement « Conférences » masqué (il a des commandes)");
+        } else {
+            await prisma.event.delete({ where: { id: legacy.id } });
+            console.log("  🗑️  Ancien évènement « Conférences » supprimé");
+        }
+    }
 
     console.log("\n  Billets :");
     await upsertTicket(festival.id, {
@@ -261,7 +284,7 @@ async function main() {
             "Accès aux 3 jours du festival, y compris les conférences du vendredi 18 décembre (places limitées).",
         price: 20000,
         validDays: [DAY_1, DAY_2, DAY_3],
-        alsoValidForEventId: conferences.id,
+        sessionIds: [conferences.id],
     });
 
     // Billet de test des paiements Mobile Money : au minimum FeexPay accepté

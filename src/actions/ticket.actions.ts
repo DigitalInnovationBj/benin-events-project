@@ -37,44 +37,29 @@ const updateTicketSchema = ticketBaseSchema.extend({
 });
 
 /**
- * Lit les champs « accès » (jours de validité + évènement supplémentaire) d'un
- * formulaire et les valide. L'évènement supplémentaire doit appartenir au même
- * organisateur, différer de l'évènement du billet, et exige des jours de
- * validité (sans eux, le billet ne pourrait être scanné qu'une seule fois).
+ * Lit les champs « accès » d'un formulaire : jours de validité et sessions
+ * (ex. conférences) auxquelles le billet donne accès. Les sessions doivent
+ * appartenir à l'évènement du billet.
  */
 async function parseAccessFields(
     formData: FormData,
-    organizerId: string,
-    ownEventId: string,
-): Promise<
-    | { validDays: string[]; alsoValidForEventId: string | null }
-    | { error: string }
-> {
+    eventId: string,
+): Promise<{ validDays: string[]; sessionIds: string[] } | { error: string }> {
     const validDays = parseDayKeys(
         formData.getAll("validDays").map((v) => String(v)),
     );
     if (!validDays) return { error: "Jour de validité invalide." };
 
-    const rawEvent = String(formData.get("alsoValidForEventId") ?? "");
-    if (!rawEvent) return { validDays, alsoValidForEventId: null };
-
-    if (rawEvent === ownEventId) {
-        return { error: "Choisissez un autre évènement que celui du billet." };
+    const sessionIds = [
+        ...new Set(formData.getAll("sessionIds").map((v) => String(v)).filter(Boolean)),
+    ];
+    if (sessionIds.length > 0) {
+        const found = await prisma.eventSession.count({
+            where: { id: { in: sessionIds }, eventId },
+        });
+        if (found !== sessionIds.length) return { error: "Session introuvable." };
     }
-    if (validDays.length === 0) {
-        return {
-            error: "Cochez au moins un jour de validité pour donner accès à un autre évènement.",
-        };
-    }
-
-    const other = await prisma.event.findUnique({
-        where: { id: rawEvent },
-        select: { organizerId: true },
-    });
-    if (!other || other.organizerId !== organizerId) {
-        return { error: "Évènement supplémentaire introuvable." };
-    }
-    return { validDays, alsoValidForEventId: rawEvent };
+    return { validDays, sessionIds };
 }
 
 export async function createTicket(formData: FormData) {
@@ -120,11 +105,7 @@ export async function createTicket(formData: FormData) {
 
         const data = parsedData.data;
 
-        const access = await parseAccessFields(
-            formData,
-            event.organizerId,
-            event.id,
-        );
+        const access = await parseAccessFields(formData, event.id);
         if ("error" in access) return { error: access.error };
 
         // Gérer l'upload de l'image du ticket
@@ -155,7 +136,9 @@ export async function createTicket(formData: FormData) {
                 imageUrl,
                 emailTemplate: data.emailTemplate,
                 validDays: access.validDays,
-                alsoValidForEventId: access.alsoValidForEventId,
+                sessions: {
+                    create: access.sessionIds.map((sessionId) => ({ sessionId })),
+                },
                 eventId: event.id,
             },
         });
@@ -215,11 +198,7 @@ export async function updateTicket(formData: FormData) {
 
         const data = parsedData.data;
 
-        const access = await parseAccessFields(
-            formData,
-            ticket.event.organizerId,
-            ticket.event.id,
-        );
+        const access = await parseAccessFields(formData, ticket.event.id);
         if ("error" in access) return { error: access.error };
 
         // Image optionnelle — on garde l'existante si aucun nouveau fichier
@@ -248,7 +227,11 @@ export async function updateTicket(formData: FormData) {
                 imageUrl,
                 emailTemplate: data.emailTemplate,
                 validDays: access.validDays,
-                alsoValidForEventId: access.alsoValidForEventId,
+                // Remplace l'ensemble des accès aux sessions.
+                sessions: {
+                    deleteMany: {},
+                    create: access.sessionIds.map((sessionId) => ({ sessionId })),
+                },
             },
         });
 

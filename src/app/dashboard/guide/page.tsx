@@ -93,7 +93,7 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Comment un pass VVIP donne-t-il aussi accès aux conférences ?",
-                    a: "Créez un évènement séparé pour les conférences (il peut rester non publié). Sur le billet VVIP, cochez ses jours puis choisissez cet évènement dans « Valable aussi pour un autre évènement ». Les agents des conférences scannent le même QR code.",
+                    a: "Onglet Billets, bloc « Sessions à accès restreint » : créez la session (nom, jour, nombre de places si besoin). Puis, dans le billet VVIP, cochez cette session. À l'entrée des conférences, l'agent choisit le point de contrôle « Conférences » : seul le VVIP passe, une fois.",
                 },
                 {
                     q: "Puis-je modifier un billet déjà vendu ?",
@@ -143,15 +143,15 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Comment scanner les billets ?",
-                    a: "Menu « Contrôle d'accès », choisissez l'évènement, autorisez la caméra et pointez vers le QR code. Le résultat s'affiche en vert (valide) ou en couleur avec la raison du refus.",
+                    a: "Menu « Contrôle d'accès », choisissez l'évènement puis le point de contrôle (entrée générale ou une session), autorisez la caméra et pointez vers le QR code. Le résultat s'affiche en vert (valide) ou en couleur avec la raison du refus.",
                 },
                 {
                     q: "Que veulent dire les refus ?",
-                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Commande non confirmée » : paiement non abouti.",
+                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Pas d'accès à cette session » : le billet ne comprend pas la session. « Session complète » : toutes les places sont prises. « Commande non confirmée » : paiement non abouti.",
                 },
                 {
                     q: "Comment suivre les entrées ?",
-                    a: "Onglet Entrées : nombre d'entrées par jour et, pour aujourd'hui, par billet. Les pass donnant accès à un autre évènement y apparaissent à part.",
+                    a: "Onglet Entrées : nombre d'entrées par jour et, pour aujourd'hui, par billet. Chaque session a son compteur, avec ses places ou le nombre de billets qui y donnent accès.",
                 },
             ],
         },

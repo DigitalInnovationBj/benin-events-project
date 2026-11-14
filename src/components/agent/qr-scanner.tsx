@@ -47,7 +47,13 @@ type ErrorVariant = "used" | "wrong-event" | "unconfirmed" | "not-found" | "inva
 
 function getErrorVariant(message: string): ErrorVariant {
     if (message === "Billet déjà utilisé") return "used";
-    if (message === "Mauvais évènement" || message === "Billet non valable aujourd'hui") return "wrong-event";
+    if (
+        message === "Mauvais évènement" ||
+        message === "Billet non valable aujourd'hui" ||
+        message === "Pas d'accès à cette session" ||
+        message === "Session pas aujourd'hui" ||
+        message === "Session complète"
+    ) return "wrong-event";
     if (message === "Commande non confirmée") return "unconfirmed";
     if (message === "Billet introuvable") return "not-found";
     if (message === "QR code invalide" || message === "QR code non reconnu") return "invalid";
@@ -77,7 +83,14 @@ function ErrorIcon({ variant, className }: { variant: ErrorVariant; className?: 
 // Composant principal
 // ─────────────────────────────────────────────
 
-export function QrScanner({ eventId }: { eventId: string }) {
+export function QrScanner({
+    eventId,
+    sessionId,
+}: {
+    eventId: string;
+    /** Point de contrôle d'une session (absent = entrée générale). */
+    sessionId?: string;
+}) {
     const [scanning, setScanning] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
     const [cameraError, setCameraError] = useState<string | null>(null);
@@ -100,7 +113,7 @@ export function QrScanner({ eventId }: { eventId: string }) {
             const res = await fetch("/api/agent/validate-ticket", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemId, orderReference: orderRef, eventId }),
+                body: JSON.stringify({ itemId, orderReference: orderRef, eventId, sessionId }),
             });
 
             setResult(await res.json());

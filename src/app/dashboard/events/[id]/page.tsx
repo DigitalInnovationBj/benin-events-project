@@ -38,6 +38,7 @@ import { EventPartnersPanel } from "./EventPartnersPanel";
 import AgentInviteForm from "./agents/AgentInviteForm";
 import RevokeButton from "./agents/RevokeButton";
 import { DangerZone, PromotionActions, ShareEventButton } from "./event-client-actions";
+import { SessionsPanel } from "./sessions-panel";
 
 // Laisse plus de marge à l'envoi de campagne en tâche de fond (next/server `after`).
 export const maxDuration = 60;
@@ -258,7 +259,11 @@ export default async function EventDetailsPage({
 // ─────────────────────────────────────────────
 
 const eventInclude = {
-    tickets: { orderBy: { price: "asc" } },
+    tickets: {
+        orderBy: { price: "asc" },
+        include: { sessions: { select: { sessionId: true, session: { select: { name: true } } } } },
+    },
+    sessions: { orderBy: [{ day: "asc" }, { createdAt: "asc" }] },
     categories: { include: { category: true } },
     organizer: { select: { name: true, email: true } },
 } satisfies Prisma.EventInclude;
@@ -343,13 +348,14 @@ function SectionCard({
     );
 }
 
-function ticketValidity(t: { validDays: string[]; alsoValidForEventId: string | null }) {
-    if (t.validDays.length === 0) return "1 entrée";
+function ticketValidity(t: { validDays: string[]; sessionNames: string[] }) {
     const days =
-        t.validDays.length > 3
-            ? `${t.validDays.length} jours`
-            : t.validDays.map(formatDayKey).join(", ");
-    return t.alsoValidForEventId ? `${days} + accès supplémentaire` : days;
+        t.validDays.length === 0
+            ? "1 entrée"
+            : t.validDays.length > 3
+              ? `${t.validDays.length} jours`
+              : t.validDays.map(formatDayKey).join(", ");
+    return t.sessionNames.length > 0 ? `${days} + ${t.sessionNames.join(", ")}` : days;
 }
 
 // ─────────────────────────────────────────────
@@ -448,14 +454,20 @@ async function OverviewTab({ event }: { event: EventData }) {
 // ─────────────────────────────────────────────
 
 async function TicketsTab({ event }: { event: EventData }) {
-    const otherEvents = await prisma.event.findMany({
-        where: { organizerId: event.organizerId, isDeleted: false, id: { not: event.id } },
-        select: { id: true, title: true },
-        orderBy: { startDate: "asc" },
-    });
-    const eventOptions = otherEvents.map((e) => ({ id: e.id, label: e.title }));
     const eventDays = eventDayKeys(event.startDate, event.endDate);
-    const eventTitleById = new Map(otherEvents.map((e) => [e.id, e.title]));
+    const sessionOptions = event.sessions.map((s) => ({
+        id: s.id,
+        label: `${s.name} · ${formatDayKey(s.day)}`,
+    }));
+    const sessionItems = event.sessions.map((s) => ({
+        id: s.id,
+        name: s.name,
+        day: s.day,
+        capacity: s.capacity,
+        ticketTitles: event.tickets
+            .filter((t) => t.sessions.some((ts) => ts.sessionId === s.id))
+            .map((t) => t.title),
+    }));
 
     return (
         <div className="grid gap-5 lg:grid-cols-[1fr_400px]">
@@ -463,7 +475,7 @@ async function TicketsTab({ event }: { event: EventData }) {
                 <HelpCallout guideAnchor="billets">
                     Un billet sans jour coché donne une seule entrée. Cochez
                     plusieurs jours pour un pass scanné une fois par jour, et
-                    choisissez un autre évènement pour qu&apos;il y donne aussi accès.
+                    les sessions (conférences…) auxquelles il donne accès.
                 </HelpCallout>
                 <SectionCard title={`Billets (${event.tickets.length})`}>
                     {event.tickets.length === 0 ? (
@@ -490,14 +502,13 @@ async function TicketsTab({ event }: { event: EventData }) {
                                                 {formatXOF(ticket.price)}
                                             </span>
                                             <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
-                                                {ticketValidity(ticket)}
+                                                {ticketValidity({ validDays: ticket.validDays, sessionNames: [] })}
                                             </span>
-                                            {ticket.alsoValidForEventId && (
-                                                <span className="rounded-md bg-primary/30 px-2 py-0.5 text-foreground">
-                                                    Aussi valable :{" "}
-                                                    {eventTitleById.get(ticket.alsoValidForEventId) ?? "autre évènement"}
+                                            {ticket.sessions.map((ts) => (
+                                                <span key={ts.sessionId} className="rounded-md bg-primary/30 px-2 py-0.5 text-foreground">
+                                                    Accès : {ts.session.name}
                                                 </span>
-                                            )}
+                                            ))}
                                             {ticket.totalStock != null && (
                                                 <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
                                                     Stock : {ticket.totalStock}
@@ -506,18 +517,19 @@ async function TicketsTab({ event }: { event: EventData }) {
                                         </div>
                                     </div>
                                     <TicketEditDialog
-                                        ticket={ticket}
+                                        ticket={{ ...ticket, sessionIds: ticket.sessions.map((ts) => ts.sessionId) }}
                                         eventDays={eventDays}
-                                        eventOptions={eventOptions}
+                                        sessionOptions={sessionOptions}
                                     />
                                 </li>
                             ))}
                         </ul>
                     )}
                 </SectionCard>
+                <SessionsPanel eventId={event.id} eventDays={eventDays} sessions={sessionItems} />
             </div>
             <SectionCard title="Ajouter un billet" className="h-fit">
-                <TicketForm eventId={event.id} eventDays={eventDays} eventOptions={eventOptions} />
+                <TicketForm eventId={event.id} eventDays={eventDays} sessionOptions={sessionOptions} />
             </SectionCard>
         </div>
     );
@@ -695,6 +707,31 @@ async function EntriesTab({ event }: { event: EventData }) {
                 })}
             </div>
 
+            {entries.sessions.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    {entries.sessions.map((s) => (
+                        <div key={s.id} className="rounded-2xl bg-primary p-4 text-primary-foreground">
+                            <p className="truncate text-xs text-secondary">
+                                {s.name} · {formatDayKey(s.day)}
+                            </p>
+                            <p className="mt-1 text-2xl font-semibold tabular-nums">
+                                {s.entered}
+                                <span className="ml-1 text-xs font-normal text-primary-foreground/70">
+                                    / {s.capacity ?? s.eligible} {s.capacity != null ? "places" : "ayants droit"}
+                                </span>
+                            </p>
+                            <Link
+                                href={`/agent/${event.id}/scan?point=${s.id}`}
+                                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-secondary"
+                            >
+                                <IconScan className="size-3.5" aria-hidden="true" />
+                                Scanner cette session
+                            </Link>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <SectionCard title="Par billet">
                 <table className="w-full table-fixed text-sm">
                     <thead>
@@ -714,25 +751,14 @@ async function EntriesTab({ event }: { event: EventData }) {
                                 <td className="py-2.5 text-right tabular-nums">{entries.todayByTicket[s.id] ?? 0}</td>
                             </tr>
                         ))}
-                        {entries.extraAccess.map((t) => (
-                            <tr key={t.id} className="border-t">
-                                <td className="truncate py-2.5">
-                                    {t.title}
-                                    <span className="block truncate text-xs text-muted-foreground">via {t.eventTitle}</span>
-                                </td>
-                                <td className="hidden py-2.5 text-muted-foreground sm:table-cell">Accès supplémentaire</td>
-                                <td className="py-2.5 text-right tabular-nums">{t.sold}</td>
-                                <td className="py-2.5 text-right tabular-nums">{entries.todayByTicket[t.id] ?? 0}</td>
-                            </tr>
-                        ))}
                     </tbody>
                 </table>
             </SectionCard>
 
             <HelpCallout guideAnchor="jour-j">
-                Un pass multi-jours se scanne une fois par jour. Un billet
-                « valable aussi » pour un autre évènement y passe avec le même QR
-                code, compté à part.
+                Un pass multi-jours se scanne une fois par jour à l&apos;entrée
+                générale. Les sessions (conférences…) ont leur propre point de
+                contrôle et leurs propres compteurs.
             </HelpCallout>
         </div>
     );

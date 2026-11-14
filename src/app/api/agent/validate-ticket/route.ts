@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/permissions";
 import { canScanEvent } from "@/lib/scan-access";
 import prisma from "@/lib/prisma";
-import { dayKey, eventDayKeys, formatDayKey } from "@/lib/ticket-days";
+import { dayKey, formatDayKey } from "@/lib/ticket-days";
 
 const STATUS_DETAIL: Record<string, string> = {
     PENDING:   "Le paiement de cette commande n'a pas encore été confirmé.",
@@ -43,10 +43,12 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
     }
 
-    const { itemId, orderReference, eventId } = body as {
+    const { itemId, orderReference, eventId, sessionId } = body as {
         itemId: string;
         orderReference: string;
         eventId: string;
+        /** Point de contrôle d'une session (absent = entrée générale). */
+        sessionId?: string;
     };
 
     // ── 3. Vérification des droits de scan ────────────────────────────────
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
                     title: true,
                     eventId: true,
                     validDays: true,
-                    alsoValidForEventId: true,
+                    sessions: { select: { sessionId: true } },
                     event: { select: { title: true } },
                 },
             },
@@ -99,15 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 7. Billet d'un autre évènement ────────────────────────────────────
-    // Un billet est accepté dans son évènement, et aussi dans celui déclaré par
-    // `alsoValidForEventId` (ex. pass VVIP valable aux conférences) — à
-    // condition d'être un billet multi-jours, seul à compter les scans par lieu.
-    const isOwnEvent = rawItem.ticket.eventId === eventId;
-    const isExtraEvent =
-        !isOwnEvent &&
-        rawItem.ticket.alsoValidForEventId === eventId &&
-        rawItem.ticket.validDays.length > 0;
-    if (!isOwnEvent && !isExtraEvent) {
+    if (rawItem.ticket.eventId !== eventId) {
         return NextResponse.json({
             valid: false,
             message: "Mauvais évènement",
@@ -126,32 +120,98 @@ export async function POST(req: NextRequest) {
         });
     }
 
+    const today = dayKey();
+
+    // ── 8a. Point de contrôle d'une session (ex. conférences) ────────────
+    // Seuls les billets liés à la session passent, une fois, le jour de la
+    // session. Indépendant de l'entrée générale : un pass VVIP scanné à
+    // l'entrée du festival passe aussi aux conférences le même jour.
+    if (sessionId) {
+        const session = await prisma.eventSession.findUnique({
+            where: { id: sessionId },
+            select: { id: true, eventId: true, name: true, day: true, capacity: true },
+        });
+        if (!session || session.eventId !== eventId) {
+            return NextResponse.json({
+                valid: false,
+                message: "Session introuvable",
+                detail: "Ce point de contrôle n'existe plus. Revenez à la liste des points de contrôle.",
+            }, { status: 400 });
+        }
+
+        if (!rawItem.ticket.sessions.some((s) => s.sessionId === session.id)) {
+            return NextResponse.json({
+                valid: false,
+                message: "Pas d'accès à cette session",
+                detail: `Le billet « ${rawItem.ticket.title} » ne donne pas accès à « ${session.name} ».`,
+                ticketTitle: rawItem.ticket.title,
+                attendeeName: rawItem.attendeeName,
+            });
+        }
+
+        if (session.day !== today) {
+            return NextResponse.json({
+                valid: false,
+                message: "Session pas aujourd'hui",
+                detail: `« ${session.name} » a lieu le ${formatDayKey(session.day)}.`,
+                ticketTitle: rawItem.ticket.title,
+                attendeeName: rawItem.attendeeName,
+            });
+        }
+
+        if (session.capacity != null) {
+            const entered = await prisma.ticketScan.count({
+                where: { checkpoint: session.id },
+            });
+            if (entered >= session.capacity) {
+                return NextResponse.json({
+                    valid: false,
+                    message: "Session complète",
+                    detail: `Les ${session.capacity} places de « ${session.name} » sont occupées.`,
+                    ticketTitle: rawItem.ticket.title,
+                    attendeeName: rawItem.attendeeName,
+                });
+            }
+        }
+
+        try {
+            await prisma.ticketScan.create({
+                data: { orderItemId: rawItem.id, eventId, day: today, checkpoint: session.id },
+            });
+        } catch (err) {
+            if ((err as { code?: string }).code === "P2002") {
+                return NextResponse.json({
+                    valid: false,
+                    message: "Billet déjà utilisé",
+                    detail: `Ce billet est déjà entré à « ${session.name} ».`,
+                    ticketTitle: rawItem.ticket.title,
+                    attendeeName: rawItem.attendeeName,
+                });
+            }
+            throw err;
+        }
+
+        return NextResponse.json({
+            valid: true,
+            message: "Billet valide",
+            detail: `Accès à « ${session.name} ».`,
+            ticketTitle: rawItem.ticket.title,
+            attendeeName: rawItem.attendeeName,
+            sessionName: session.name,
+        });
+    }
+
     // ── 8bis. Billet multi-jours : un scan autorisé par jour de validité ───
     // Les billets sans `validDays` ignorent ce bloc et suivent le parcours
     // historique (étapes 9 et 10).
     if (rawItem.ticket.validDays.length > 0) {
         const validDays = rawItem.ticket.validDays;
-        const today = dayKey();
 
-        // Accès supplémentaire (ex. conférences) : le billet n'ouvre l'accès
-        // que les jours où CET évènement a lieu, en plus de ses propres jours.
-        let allowedDays = validDays;
-        if (isExtraEvent) {
-            const scannedEvent = await prisma.event.findUnique({
-                where: { id: eventId },
-                select: { startDate: true, endDate: true },
-            });
-            const scannedEventDays = scannedEvent
-                ? eventDayKeys(scannedEvent.startDate, scannedEvent.endDate)
-                : [];
-            allowedDays = validDays.filter((d) => scannedEventDays.includes(d));
-        }
-
-        if (!allowedDays.includes(today)) {
+        if (!validDays.includes(today)) {
             return NextResponse.json({
                 valid: false,
                 message: "Billet non valable aujourd'hui",
-                detail: `Ce billet est valable ici les : ${allowedDays.map(formatDayKey).join(", ") || "aucun jour"}.`,
+                detail: `Ce billet est valable les : ${validDays.map(formatDayKey).join(", ")}.`,
                 ticketTitle: rawItem.ticket.title,
                 attendeeName: rawItem.attendeeName,
             });
@@ -160,7 +220,7 @@ export async function POST(req: NextRequest) {
         try {
             await prisma.$transaction([
                 prisma.ticketScan.create({
-                    data: { orderItemId: rawItem.id, eventId, day: today },
+                    data: { orderItemId: rawItem.id, eventId, day: today, checkpoint: "main" },
                 }),
                 ...(rawItem.firstScannedAt
                     ? []
@@ -172,15 +232,15 @@ export async function POST(req: NextRequest) {
                       ]),
             ]);
         } catch (err) {
-            // P2002 : (billet, jour) déjà enregistré — scan du même jour.
+            // P2002 : (billet, jour, entrée générale) déjà enregistré.
             if ((err as { code?: string }).code === "P2002") {
                 return NextResponse.json({
                     valid: false,
                     message: "Billet déjà utilisé",
-                    detail: `Ce billet a déjà été scanné ici aujourd'hui (${formatDayKey(today)}).`,
+                    detail: `Ce billet a déjà été scanné aujourd'hui (${formatDayKey(today)}).`,
                     ticketTitle: rawItem.ticket.title,
                     attendeeName: rawItem.attendeeName,
-                    validDays: allowedDays,
+                    validDays,
                     currentDay: today,
                 });
             }
@@ -188,7 +248,7 @@ export async function POST(req: NextRequest) {
         }
 
         const daysScanned = await prisma.ticketScan.count({
-            where: { orderItemId: rawItem.id, eventId },
+            where: { orderItemId: rawItem.id, checkpoint: "main" },
         });
 
         return NextResponse.json({
@@ -196,7 +256,7 @@ export async function POST(req: NextRequest) {
             message: "Billet valide",
             ticketTitle: rawItem.ticket.title,
             attendeeName: rawItem.attendeeName,
-            validDays: allowedDays,
+            validDays,
             currentDay: today,
             daysScanned,
         });

@@ -3,27 +3,27 @@
 import { Label } from "@/components/ui/label";
 import { formatDayKey } from "@/lib/ticket-days";
 
-export type EventOption = { id: string; label: string };
+export type SessionOption = { id: string; label: string };
 
 /**
- * Champs « accès » d'un billet : pass multi-jours et accès à un autre évènement.
+ * Champs « accès » d'un billet : pass multi-jours et sessions accessibles.
  *
- * Champs natifs (`validDays` en cases à cocher, `alsoValidForEventId` en liste) :
+ * Champs natifs (`validDays` et `sessionIds` en cases à cocher) :
  * ils sont lus tels quels par `FormData` dans les server actions.
  */
 export function TicketAccessFields({
     idPrefix,
     eventDays,
     defaultDays = [],
-    eventOptions,
-    defaultEventId = "",
+    sessionOptions,
+    defaultSessionIds = [],
 }: {
     idPrefix: string;
     /** Jours de l'évènement, « YYYY-MM-DD ». */
     eventDays: string[];
     defaultDays?: string[];
-    eventOptions: EventOption[];
-    defaultEventId?: string;
+    sessionOptions: SessionOption[];
+    defaultSessionIds?: string[];
 }) {
     // Un jour déjà enregistré mais hors des dates actuelles de l'évènement
     // reste affiché, sinon l'enregistrer le supprimerait silencieusement.
@@ -68,33 +68,40 @@ export function TicketAccessFields({
                 </fieldset>
             )}
 
-            {eventOptions.length > 0 && (
-                <div className="grid gap-2">
-                    <Label htmlFor={`${idPrefix}-also-event`}>
-                        Valable aussi pour un autre évènement{" "}
-                        <span className="text-muted-foreground font-normal">
-                            (Optionnel)
-                        </span>
+            {sessionOptions.length > 0 && (
+                <fieldset className="grid gap-2">
+                    <Label asChild>
+                        <legend>
+                            Donne accès aux sessions{" "}
+                            <span className="text-muted-foreground font-normal">
+                                (Optionnel)
+                            </span>
+                        </legend>
                     </Label>
-                    <select
-                        id={`${idPrefix}-also-event`}
-                        name="alsoValidForEventId"
-                        defaultValue={defaultEventId}
-                        className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
-                    >
-                        <option value="">Aucun</option>
-                        {eventOptions.map((o) => (
-                            <option key={o.id} value={o.id}>
-                                {o.label}
-                            </option>
-                        ))}
-                    </select>
                     <p className="text-xs text-muted-foreground">
-                        Le même QR code sera accepté par les agents de cet
-                        évènement (ex. un pass VVIP donnant accès aux
-                        conférences). Les jours cochés ci-dessus sont requis.
+                        Le même QR code sera accepté au point de contrôle de
+                        chaque session cochée (ex. conférences pour le VVIP).
                     </p>
-                </div>
+                    <div className="flex flex-col gap-2">
+                        {sessionOptions.map((o) => (
+                            <label
+                                key={o.id}
+                                htmlFor={`${idPrefix}-session-${o.id}`}
+                                className="flex items-center gap-2 text-sm cursor-pointer"
+                            >
+                                <input
+                                    id={`${idPrefix}-session-${o.id}`}
+                                    type="checkbox"
+                                    name="sessionIds"
+                                    value={o.id}
+                                    defaultChecked={defaultSessionIds.includes(o.id)}
+                                    className="size-4 accent-primary"
+                                />
+                                {o.label}
+                            </label>
+                        ))}
+                    </div>
+                </fieldset>
             )}
         </>
     );

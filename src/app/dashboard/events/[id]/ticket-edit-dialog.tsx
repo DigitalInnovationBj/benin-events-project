@@ -27,7 +27,7 @@ import { IconLoader2, IconPencil, IconTrash, IconPhotoPlus } from "@tabler/icons
 import { toast } from "sonner";
 import { updateTicket, deleteTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
-import { TicketAccessFields, type EventOption } from "./ticket-access-fields";
+import { TicketAccessFields, type SessionOption } from "./ticket-access-fields";
 
 type Ticket = {
     id: string;
@@ -39,17 +39,17 @@ type Ticket = {
     eventId: string;
     emailTemplate: "PRIMARY" | "SECONDARY";
     validDays: string[];
-    alsoValidForEventId: string | null;
+    sessionIds: string[];
 };
 
 export function TicketEditDialog({
     ticket,
     eventDays,
-    eventOptions,
+    sessionOptions,
 }: {
     ticket: Ticket;
     eventDays: string[];
-    eventOptions: EventOption[];
+    sessionOptions: SessionOption[];
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -198,8 +198,8 @@ export function TicketEditDialog({
                             idPrefix={`edit-${ticket.id}`}
                             eventDays={eventDays}
                             defaultDays={ticket.validDays}
-                            eventOptions={eventOptions.filter((o) => o.id !== ticket.eventId)}
-                            defaultEventId={ticket.alsoValidForEventId ?? ""}
+                            sessionOptions={sessionOptions}
+                            defaultSessionIds={ticket.sessionIds}
                         />
 
                         {/* Template PDF */}

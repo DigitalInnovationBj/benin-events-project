@@ -54,16 +54,12 @@ export async function GET(
     // ── Participants : billets des commandes payées ───────────────────────
     const items = await prisma.orderItem.findMany({
         where: {
-            // Billets de l'évènement + billets d'un autre évènement qui y
-            // donnent aussi accès (ex. pass VVIP valable aux conférences).
-            ticket: {
-                OR: [{ eventId }, { alsoValidForEventId: eventId }],
-            },
+            ticket: { eventId },
             order: { status: "COMPLETED" },
         },
         include: {
             ticket: { select: { title: true, validDays: true } },
-            scans: { select: { day: true, eventId: true } },
+            scans: { where: { checkpoint: "main" }, select: { day: true } },
             order: {
                 select: {
                     reference: true,
@@ -104,7 +100,7 @@ export async function GET(
             csvCell(fmtDate(item.order.createdAt)),
             csvCell(
                 item.ticket.validDays.length > 0
-                    ? `${item.scans.filter((sc) => sc.eventId === eventId).length}/${
+                    ? `${item.scans.length}/${
                           item.ticket.validDays.filter((d) => eventDays.includes(d)).length
                       } jours`
                     : `${item.scannedCount}/${item.quantity}`,

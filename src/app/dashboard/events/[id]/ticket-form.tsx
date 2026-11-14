@@ -9,16 +9,16 @@ import { IconLoader2, IconPlus, IconPhotoPlus } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { createTicket } from "@/actions/ticket.actions";
 import { TicketTemplateSelector } from "./ticket-template-selector";
-import { TicketAccessFields, type EventOption } from "./ticket-access-fields";
+import { TicketAccessFields, type SessionOption } from "./ticket-access-fields";
 
 export function TicketForm({
     eventId,
     eventDays,
-    eventOptions,
+    sessionOptions,
 }: {
     eventId: string;
     eventDays: string[];
-    eventOptions: EventOption[];
+    sessionOptions: SessionOption[];
 }) {
     const [isLoading, setIsLoading] = useState(false);
     const [ticketImagePreview, setTicketImagePreview] = useState<string | null>(null);
@@ -153,7 +153,7 @@ export function TicketForm({
             <TicketAccessFields
                 idPrefix="new"
                 eventDays={eventDays}
-                eventOptions={eventOptions}
+                sessionOptions={sessionOptions}
             />
 
             <div className="grid gap-2">

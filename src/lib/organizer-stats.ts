@@ -19,7 +19,8 @@ export type TicketSales = {
     price: number;
     totalStock: number | null;
     validDays: string[];
-    alsoValidForEventId: string | null;
+    /** Noms des sessions auxquelles le billet donne accès. */
+    sessionNames: string[];
     sold: number;
     revenue: number;
 };
@@ -34,7 +35,7 @@ export async function getTicketSales(eventId: string): Promise<TicketSales[]> {
             price: true,
             totalStock: true,
             validDays: true,
-            alsoValidForEventId: true,
+            sessions: { select: { session: { select: { name: true } } } },
         },
         orderBy: { price: "asc" },
     });
@@ -52,9 +53,14 @@ export async function getTicketSales(eventId: string): Promise<TicketSales[]> {
         grouped.map((g) => [g.ticketId, g._sum.quantity ?? 0]),
     );
 
-    return tickets.map((t) => {
+    return tickets.map(({ sessions, ...t }) => {
         const sold = soldById.get(t.id) ?? 0;
-        return { ...t, sold, revenue: sold * t.price };
+        return {
+            ...t,
+            sessionNames: sessions.map((s) => s.session.name),
+            sold,
+            revenue: sold * t.price,
+        };
     });
 }
 
@@ -69,8 +75,16 @@ export type EntriesByDay = {
     countByDay: Record<string, number>;
     /** Entrées validées aujourd'hui, par billet. */
     todayByTicket: Record<string, number>;
-    /** Billets d'un autre évènement donnant accès ici (ex. pass VVIP). */
-    extraAccess: { id: string; title: string; eventTitle: string; sold: number }[];
+    /** Sessions à accès restreint : entrées et billets donnant accès. */
+    sessions: {
+        id: string;
+        name: string;
+        day: string;
+        capacity: number | null;
+        entered: number;
+        /** Billets vendus donnant accès à la session. */
+        eligible: number;
+    }[];
     today: string;
 };
 
@@ -100,7 +114,7 @@ export async function getEntriesByDay(event: {
         }
     };
 
-    const [singleScans, multiScans, extraTickets] = await Promise.all([
+    const [singleScans, multiScans, sessionRows] = await Promise.all([
         prisma.orderItem.findMany({
             where: {
                 firstScannedAt: { not: null },
@@ -109,41 +123,51 @@ export async function getEntriesByDay(event: {
             },
             select: { ticketId: true, firstScannedAt: true },
         }),
+        // Entrée générale uniquement : les passages en session sont comptés à part.
         prisma.ticketScan.findMany({
-            where: { eventId: event.id },
+            where: { eventId: event.id, checkpoint: "main" },
             select: { day: true, orderItem: { select: { ticketId: true } } },
         }),
-        prisma.ticket.findMany({
-            where: { alsoValidForEventId: event.id },
-            select: { id: true, title: true, event: { select: { title: true } } },
+        prisma.eventSession.findMany({
+            where: { eventId: event.id },
+            select: {
+                id: true,
+                name: true,
+                day: true,
+                capacity: true,
+                tickets: { select: { ticketId: true } },
+            },
+            orderBy: [{ day: "asc" }, { createdAt: "asc" }],
         }),
     ]);
 
     for (const s of singleScans) bump(dayKey(s.firstScannedAt!), s.ticketId);
     for (const s of multiScans) bump(s.day, s.orderItem.ticketId);
 
-    let extraAccess: EntriesByDay["extraAccess"] = [];
-    if (extraTickets.length > 0) {
-        const grouped = await prisma.orderItem.groupBy({
-            by: ["ticketId"],
-            where: {
-                ticketId: { in: extraTickets.map((t) => t.id) },
-                order: { status: "COMPLETED" },
-            },
-            _sum: { quantity: true },
-        });
-        const soldById = new Map(
-            grouped.map((g) => [g.ticketId, g._sum.quantity ?? 0]),
-        );
-        extraAccess = extraTickets.map((t) => ({
-            id: t.id,
-            title: t.title,
-            eventTitle: t.event.title,
-            sold: soldById.get(t.id) ?? 0,
-        }));
-    }
+    const sessions: EntriesByDay["sessions"] = await Promise.all(
+        sessionRows.map(async (row) => {
+            const [entered, eligible] = await Promise.all([
+                prisma.ticketScan.count({ where: { checkpoint: row.id } }),
+                prisma.orderItem.aggregate({
+                    where: {
+                        ticketId: { in: row.tickets.map((t) => t.ticketId) },
+                        order: { status: "COMPLETED" },
+                    },
+                    _sum: { quantity: true },
+                }),
+            ]);
+            return {
+                id: row.id,
+                name: row.name,
+                day: row.day,
+                capacity: row.capacity,
+                entered,
+                eligible: eligible._sum.quantity ?? 0,
+            };
+        }),
+    );
 
-    return { days, countByDay, todayByTicket, extraAccess, today };
+    return { days, countByDay, todayByTicket, sessions, today };
 }
 
 // ─────────────────────────────────────────────
