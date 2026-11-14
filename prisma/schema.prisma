@@ -16,6 +16,11 @@ enum Role {
   ADMIN
 }
 
+enum PaymentProvider {
+  FEEXPAY
+  GENIUSPAY
+}
+
 enum RequestStatus {
   PENDING
   APPROVED
@@ -438,6 +443,13 @@ model Order {
   providerReference String? @unique
   payerPhone        String?
   payerNetwork      String?
+
+  /// Prestataire du paiement : FeexPay (Mobile Money) ou GeniusPay (carte).
+  paymentProvider PaymentProvider @default(FEEXPAY)
+  /// Frais de paiement ajoutés au prix payé par l'acheteur (carte). Le
+  /// montant débité est totalAmount + paymentFee ; totalAmount reste la
+  /// recette des billets (reversements, statistiques).
+  paymentFee      Float           @default(0)
 
   // Acheteur authentifié (null pour les commandes invité)
   userId  String?

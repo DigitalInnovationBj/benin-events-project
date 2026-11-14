@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getPaymentStatus } from "@/lib/feexpay";
+import { getCardPayment } from "@/lib/geniuspay";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import type { OrderStatus, PlatformPaymentStatus } from "@prisma/client";
 
@@ -13,18 +14,31 @@ import type { OrderStatus, PlatformPaymentStatus } from "@prisma/client";
 export async function reconcileOrderPayment(orderId: string): Promise<OrderStatus> {
     const order = await prisma.order.findUnique({
         where: { id: orderId },
-        select: { id: true, status: true, totalAmount: true, providerReference: true },
+        select: {
+            id: true,
+            status: true,
+            totalAmount: true,
+            paymentFee: true,
+            paymentProvider: true,
+            providerReference: true,
+        },
     });
     if (!order) throw new Error("Commande introuvable.");
     if (order.status !== "PENDING" || !order.providerReference) return order.status;
 
-    const check = await getPaymentStatus(order.providerReference);
+    // Carte (GeniusPay) ou Mobile Money (FeexPay) : même logique, statut
+    // normalisé. Le montant débité inclut les frais de carte éventuels.
+    const check =
+        order.paymentProvider === "GENIUSPAY"
+            ? await getCardPayment(order.providerReference)
+            : await getPaymentStatus(order.providerReference);
+    const expected = order.totalAmount + order.paymentFee;
 
     if (check.status === "SUCCESSFUL") {
-        if (check.amount !== order.totalAmount) {
+        if (check.amount !== expected) {
             console.error("Réconciliation paiement: montant incohérent", {
                 orderId,
-                expected: order.totalAmount,
+                expected,
                 received: check.amount,
             });
             return "PENDING";

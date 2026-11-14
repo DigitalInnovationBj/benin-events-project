@@ -13,6 +13,9 @@ import {
     IconUser,
     IconUsers,
     IconCircleCheck,
+    IconCreditCard,
+    IconDeviceMobile,
+    IconLock,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +37,7 @@ import {
 import { formatXOF, formatEventDateTime } from "@/lib/format";
 import { encodeCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
+import { CARD_MIN_AMOUNT, cardFeeFor } from "@/lib/card-fee";
 
 // ─────────────────────────────────────────────
 // Types
@@ -78,6 +82,8 @@ interface Props {
     lines: CheckoutLine[];
     buyer: { name: string; email: string } | null;
     hasExistingTicket: boolean;
+    /** Frais du paiement par carte (GeniusPay), en %, ajoutés au prix. */
+    cardFeePercent: number;
 }
 
 const STEPS = ["Récapitulatif", "Participants", "Paiement"] as const;
@@ -92,6 +98,7 @@ export function CheckoutFlow({
     lines,
     buyer,
     hasExistingTicket,
+    cardFeePercent,
 }: Props) {
     const router = useRouter();
     const isLoggedIn = buyer !== null;
@@ -113,6 +120,7 @@ export function CheckoutFlow({
     const [promoOpen, setPromoOpen] = useState(false);
 
     // Paiement
+    const [paymentMethod, setPaymentMethod] = useState<"mobile_money" | "card">("mobile_money");
     const [network, setNetwork] = useState<FeexpayNetwork | "">("");
     const [phone, setPhone] = useState("");
     const [waiting, setWaiting] = useState(false);
@@ -166,6 +174,11 @@ export function CheckoutFlow({
             : Math.min(baseAmount, appliedPromo.discountValue)
         : 0;
     const total = Math.max(0, baseAmount - discount);
+    // Carte : frais GeniusPay ajoutés au prix ; minimum imposé par GeniusPay.
+    const cardFee = cardFeeFor(total, cardFeePercent);
+    const cardAvailable = total > 0 && total + cardFee >= CARD_MIN_AMOUNT;
+    const payByCard = paymentMethod === "card" && cardAvailable;
+    const amountDue = payByCard ? total + cardFee : total;
     const isFree = total === 0;
     const totalQuantity = lines.reduce((n, l) => n + l.quantity, 0);
 
@@ -226,7 +239,7 @@ export function CheckoutFlow({
     }
 
     function submit() {
-        if (!isFree) {
+        if (!isFree && !payByCard) {
             if (!network) {
                 toast.error("Sélectionnez un opérateur mobile money.");
                 return;
@@ -265,8 +278,9 @@ export function CheckoutFlow({
                 guestEmail: isLoggedIn ? undefined : guestEmail,
                 guestName: isLoggedIn ? undefined : guestName,
                 promoCode: appliedPromo?.code,
-                phoneNumber: isFree ? undefined : phone,
-                network: isFree ? undefined : (network as FeexpayNetwork),
+                paymentMethod: payByCard ? "card" : "mobile_money",
+                phoneNumber: isFree || payByCard ? undefined : phone,
+                network: isFree || payByCard ? undefined : (network as FeexpayNetwork),
             });
 
             if (result.error) {
@@ -285,6 +299,13 @@ export function CheckoutFlow({
 
             if (result.isFree) {
                 router.push(`/checkout/success?orderId=${result.orderId}`);
+                return;
+            }
+
+            // Carte : page de paiement sécurisée GeniusPay, retour ensuite sur
+            // la page de confirmation, qui revérifie le paiement.
+            if ("redirectUrl" in result && result.redirectUrl) {
+                window.location.href = result.redirectUrl;
                 return;
             }
 
@@ -504,6 +525,7 @@ export function CheckoutFlow({
                         <Totals
                             baseAmount={baseAmount}
                             discount={discount}
+                            cardFee={0}
                             total={total}
                         />
 
@@ -678,10 +700,21 @@ export function CheckoutFlow({
                         <Totals
                             baseAmount={baseAmount}
                             discount={discount}
-                            total={total}
+                            cardFee={payByCard ? cardFee : 0}
+                            total={amountDue}
                         />
 
                         {!isFree && (
+                            <PaymentMethodPicker
+                                value={payByCard ? "card" : "mobile_money"}
+                                onChange={setPaymentMethod}
+                                cardAvailable={cardAvailable}
+                                cardFee={cardFee}
+                                disabled={isPending}
+                            />
+                        )}
+
+                        {!isFree && !payByCard && (
                             <MobileMoneyForm
                                 network={network}
                                 onNetworkChange={setNetwork}
@@ -689,6 +722,16 @@ export function CheckoutFlow({
                                 onPhoneNumberChange={setPhone}
                                 disabled={isPending}
                             />
+                        )}
+
+                        {payByCard && (
+                            <p className="flex items-start gap-2 rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
+                                <IconLock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                                Vous allez être redirigé vers la page de paiement
+                                sécurisée de GeniusPay pour saisir votre carte Visa ou
+                                Mastercard. Vos billets arrivent par email dès le
+                                paiement confirmé.
+                            </p>
                         )}
 
                         <div className="flex gap-3">
@@ -721,7 +764,7 @@ export function CheckoutFlow({
                                 ) : isFree ? (
                                     `Confirmer ${totalQuantity} billet${totalQuantity > 1 ? "s" : ""}`
                                 ) : (
-                                    `Payer ${formatXOF(total, { zeroLabel: null })}`
+                                    `Payer ${formatXOF(amountDue, { zeroLabel: null })}${payByCard ? " par carte" : ""}`
                                 )}
                             </Button>
                         </div>
@@ -739,10 +782,12 @@ export function CheckoutFlow({
 function Totals({
     baseAmount,
     discount,
+    cardFee,
     total,
 }: {
     baseAmount: number;
     discount: number;
+    cardFee: number;
     total: number;
 }) {
     return (
@@ -757,11 +802,89 @@ function Totals({
                     <span>−{formatXOF(discount, { zeroLabel: null })}</span>
                 </div>
             )}
+            {cardFee > 0 && (
+                <div className="flex justify-between">
+                    <span className="text-muted-foreground">Frais de paiement par carte</span>
+                    <span>+{formatXOF(cardFee, { zeroLabel: null })}</span>
+                </div>
+            )}
             <div className="flex justify-between border-t pt-2 font-bold text-base">
                 <span>Total</span>
                 <span className="text-secondary">{formatXOF(total)}</span>
             </div>
         </div>
+    );
+}
+
+function PaymentMethodPicker({
+    value,
+    onChange,
+    cardAvailable,
+    cardFee,
+    disabled,
+}: {
+    value: "mobile_money" | "card";
+    onChange: (v: "mobile_money" | "card") => void;
+    cardAvailable: boolean;
+    cardFee: number;
+    disabled?: boolean;
+}) {
+    const options = [
+        {
+            id: "mobile_money" as const,
+            icon: IconDeviceMobile,
+            title: "Mobile Money",
+            hint: "MTN, Moov, Celtiis",
+            enabled: true,
+        },
+        {
+            id: "card" as const,
+            icon: IconCreditCard,
+            title: "Carte bancaire",
+            hint: cardAvailable
+                ? `Visa, Mastercard · +${formatXOF(cardFee, { zeroLabel: null })} de frais`
+                : `À partir de ${CARD_MIN_AMOUNT} FCFA`,
+            enabled: cardAvailable,
+        },
+    ];
+
+    return (
+        <fieldset className="space-y-2">
+            <legend className="mb-2 text-sm font-medium">Moyen de paiement</legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+                {options.map((o) => {
+                    const selected = value === o.id;
+                    return (
+                        <label
+                            key={o.id}
+                            className={cn(
+                                "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                                selected && "border-secondary bg-secondary/10",
+                                (!o.enabled || disabled) && "cursor-not-allowed opacity-50",
+                            )}
+                        >
+                            <input
+                                type="radio"
+                                name="paymentMethod"
+                                value={o.id}
+                                checked={selected}
+                                disabled={!o.enabled || disabled}
+                                onChange={() => onChange(o.id)}
+                                className="sr-only"
+                            />
+                            <o.icon
+                                className={cn("size-5 shrink-0", selected ? "text-secondary" : "text-muted-foreground")}
+                                aria-hidden="true"
+                            />
+                            <span className="min-w-0">
+                                <span className="block text-sm font-medium">{o.title}</span>
+                                <span className="block text-xs text-muted-foreground">{o.hint}</span>
+                            </span>
+                        </label>
+                    );
+                })}
+            </div>
+        </fieldset>
     );
 }
 

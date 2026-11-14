@@ -10,11 +10,13 @@ import {
     isValidLocalNumber,
     type FeexpayNetwork,
 } from "@/lib/feexpay";
+import { createCardPayment, geniusPayFeePercent } from "@/lib/geniuspay";
+import { CARD_MIN_AMOUNT, cardFeeFor } from "@/lib/card-fee";
 import { sendRefundConfirmationEmail } from "@/lib/email";
 import { sendOrderConfirmationEmails } from "@/lib/order-confirmation";
 import { reconcileOrderPayment } from "@/lib/payment-reconciliation";
 import { stockConsumingOrderFilter } from "@/lib/stock";
-import { MAX_TICKETS_PER_ORDER } from "@/lib/cart";
+import { MAX_TICKETS_PER_ORDER, encodeCart } from "@/lib/cart";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { validatePromoCode } from "@/actions/eventPartner.actions";
@@ -46,6 +48,8 @@ export type PaymentInput = {
     guestName?: string;
     // Code promo partenaire (influenceur), optionnel
     promoCode?: string;
+    // Moyen de paiement d'une commande payante (Mobile Money par défaut)
+    paymentMethod?: "mobile_money" | "card";
     // Paiement Mobile Money (requis si le montant n'est pas 0)
     phoneNumber?: string;
     network?: FeexpayNetwork;
@@ -191,10 +195,19 @@ export async function initiateTicketPayment(input: PaymentInput) {
     const totalAmount = Math.max(0, baseAmount - discountAmount);
     const isFree = totalAmount === 0;
 
+    // ── Carte bancaire (GeniusPay) : frais ajoutés au prix ─────────────────
+    const payByCard = !isFree && input.paymentMethod === "card";
+    const paymentFee = payByCard ? cardFeeFor(totalAmount, geniusPayFeePercent()) : 0;
+    if (payByCard && totalAmount + paymentFee < CARD_MIN_AMOUNT) {
+        return {
+            error: `Le paiement par carte est possible à partir de ${CARD_MIN_AMOUNT} FCFA. Choisissez Mobile Money.`,
+        };
+    }
+
     // ── Validation Mobile Money (requise pour un billet payant) ───────────
     let network: FeexpayNetwork | undefined;
     let fullPhoneNumber: string | undefined;
-    if (!isFree) {
+    if (!isFree && !payByCard) {
         if (!input.network || !isValidNetwork(input.network)) {
             return { error: "Sélectionnez un opérateur mobile money." };
         }
@@ -256,6 +269,8 @@ export async function initiateTicketPayment(input: PaymentInput) {
                 discountAmount,
                 payerPhone: fullPhoneNumber,
                 payerNetwork: network,
+                paymentProvider: payByCard ? "GENIUSPAY" : "FEEXPAY",
+                paymentFee,
                 items: { create: orderItemsData },
             },
             include: {
@@ -295,6 +310,46 @@ export async function initiateTicketPayment(input: PaymentInput) {
 
         revalidatePath(`/events/${order.event.slug}`);
         return { success: true, isFree: true, orderId: order.id };
+    }
+
+    // ── Commande payante par carte (GeniusPay) ────────────────────────────
+    // L'acheteur est redirigé vers la page de paiement sécurisée ; il revient
+    // sur la page de confirmation, qui revérifie le paiement.
+    if (payByCard) {
+        try {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+            const description =
+                lines.length === 1
+                    ? `${ticketById.get(lines[0].ticketId)!.title} x${totalQuantity} - ${event.title}`
+                    : `${totalQuantity} billets - ${event.title}`;
+
+            const card = await createCardPayment({
+                amount: totalAmount + paymentFee,
+                description,
+                externalReference: order.reference,
+                customer: { name: buyerName, email: buyerEmail },
+                successUrl: `${appUrl}/checkout/success?orderId=${order.id}`,
+                // Page d'échec avec reprise du panier en un clic.
+                errorUrl: `${appUrl}/checkout/error?event=${order.event.slug}&panier=${encodeURIComponent(
+                    encodeCart(lines.map((l) => ({ ticketId: l.ticketId, quantity: l.assignments.length }))),
+                )}&raison=${encodeURIComponent("Le paiement par carte n'a pas abouti.")}`,
+                metadata: { orderId: order.id },
+            });
+
+            await prisma.order.update({
+                where: { id: order.id },
+                data: { providerReference: card.reference },
+            });
+
+            return { success: true, isFree: false, orderId: order.id, redirectUrl: card.redirectUrl };
+        } catch (err) {
+            console.error("GeniusPay error:", err);
+            await prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+            return {
+                error: "Le paiement par carte est indisponible pour le moment. Réessayez ou choisissez Mobile Money.",
+                paymentFailed: true as const,
+            };
+        }
     }
 
     // ── Commande payante (FeexPay — Mobile Money) ─────────────────────────
