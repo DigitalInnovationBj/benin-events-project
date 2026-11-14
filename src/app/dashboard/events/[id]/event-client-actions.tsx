@@ -8,7 +8,10 @@ import {
     IconStar,
     IconTrash,
 } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { setTicketOnSale } from "@/actions/ticket.actions";
 import ShareEventDialog from "@/components/events/share-event-dialog";
 import CancelEventButton from "./CancelEventButton";
 import DeleteEventButton from "./DeleteEventButton";
@@ -171,5 +174,32 @@ export function DangerZone({
                 onOpenChange={(open) => setDialog(open ? "delete" : null)}
             />
         </section>
+    );
+}
+
+/** Remet en vente un billet retiré (après une tentative de suppression). */
+export function TicketOnSaleButton({ ticketId }: { ticketId: string }) {
+    const router = useRouter();
+    const [pending, setPending] = useState(false);
+    return (
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={async () => {
+                setPending(true);
+                const res = await setTicketOnSale(ticketId, true);
+                setPending(false);
+                if (res.error) {
+                    toast.error(res.error);
+                    return;
+                }
+                toast.success("Billet remis en vente");
+                router.refresh();
+            }}
+        >
+            Remettre en vente
+        </Button>
     );
 }

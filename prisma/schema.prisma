@@ -404,6 +404,11 @@ model Ticket {
   /// historique inchangé. Renseigné = un scan autorisé par jour listé.
   validDays String[] @default([])
 
+  /// Retiré de la vente : masqué sur le site et non achetable, mais ses
+  /// commandes et QR codes restent valides. Posé à la place d'une suppression
+  /// quand le billet a déjà des commandes.
+  isArchived Boolean @default(false)
+
   /// Sessions de l'évènement auxquelles ce billet donne accès (ex. les
   /// conférences du festival pour le pass VVIP).
   sessions TicketSession[]

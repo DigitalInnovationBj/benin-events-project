@@ -37,7 +37,7 @@ import RefundPanel from "./RefundPanel";
 import { EventPartnersPanel } from "./EventPartnersPanel";
 import AgentInviteForm from "./agents/AgentInviteForm";
 import RevokeButton from "./agents/RevokeButton";
-import { DangerZone, PromotionActions, ShareEventButton } from "./event-client-actions";
+import { DangerZone, PromotionActions, ShareEventButton, TicketOnSaleButton } from "./event-client-actions";
 import { SessionsPanel } from "./sessions-panel";
 
 // Laisse plus de marge à l'envoi de campagne en tâche de fond (next/server `after`).
@@ -488,7 +488,10 @@ async function TicketsTab({ event }: { event: EventData }) {
                             {event.tickets.map((ticket) => (
                                 <li
                                     key={ticket.id}
-                                    className="flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors hover:border-secondary/50"
+                                    className={cn(
+                                        "flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors hover:border-secondary/50",
+                                        ticket.isArchived && "border-dashed opacity-70",
+                                    )}
                                 >
                                     <div className="min-w-0 flex-1">
                                         <h3 className="truncate font-semibold">{ticket.title}</h3>
@@ -514,7 +517,15 @@ async function TicketsTab({ event }: { event: EventData }) {
                                                     Stock : {ticket.totalStock}
                                                 </span>
                                             )}
+                                            {ticket.isArchived && (
+                                                <StatusBadge tone="warning" label="Retiré de la vente" />
+                                            )}
                                         </div>
+                                        {ticket.isArchived && (
+                                            <div className="mt-3">
+                                                <TicketOnSaleButton ticketId={ticket.id} />
+                                            </div>
+                                        )}
                                     </div>
                                     <TicketEditDialog
                                         ticket={{ ...ticket, sessionIds: ticket.sessions.map((ts) => ts.sessionId) }}

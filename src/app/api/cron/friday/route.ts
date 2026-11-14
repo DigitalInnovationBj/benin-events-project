@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
         },
         include: {
             categories: { include: { category: { select: { name: true } } } },
-            tickets: { select: { price: true } },
+            tickets: { where: { isArchived: false }, select: { price: true } },
         },
         orderBy: { startDate: "asc" },
         take: 8,

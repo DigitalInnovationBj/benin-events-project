@@ -128,6 +128,9 @@ export async function initiateTicketPayment(input: PaymentInput) {
     if (tickets.length !== ticketIds.length) {
         return { error: "Billet introuvable." };
     }
+    if (tickets.some((t) => t.isArchived)) {
+        return { error: "Un des billets choisis n'est plus en vente." };
+    }
 
     // Une commande porte un seul `eventId` : tous les billets doivent
     // appartenir au même évènement.

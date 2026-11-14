@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         where: { isDeleted: false, isPublished: true, startDate: { gte: now, lte: cutoff } },
         include: {
             categories: { include: { category: { select: { name: true } } } },
-            tickets: { select: { price: true } },
+            tickets: { where: { isArchived: false }, select: { price: true } },
         },
         orderBy: { startDate: "asc" },
         take: 100,

@@ -46,6 +46,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             isCancelled: true,
             endDate: true,
             tickets: {
+                where: { isArchived: false },
                 select: {
                     id: true,
                     title: true,

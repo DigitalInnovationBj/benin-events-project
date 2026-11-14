@@ -175,6 +175,7 @@ export default async function EventsPage({
                 // Tous les billets : le premier donne le prix « dès … », et
                 // l'ensemble sert à calculer les places restantes.
                 tickets: {
+                    where: { isArchived: false },
                     select: { id: true, price: true, totalStock: true },
                     orderBy: { price: "asc" },
                 },

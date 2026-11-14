@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         where: { isDeleted: false, isPublished: true, startDate: { gte: new Date() } },
         include: {
             categories: { include: { category: { select: { name: true } } } },
-            tickets: { select: { price: true } },
+            tickets: { where: { isArchived: false }, select: { price: true } },
         },
         orderBy: [{ isFeatured: "desc" }, { startDate: "asc" }],
         take: 60,

@@ -22,6 +22,7 @@ export default async function FeaturedEvents() {
                 select: { name: true },
             },
             tickets: {
+                where: { isArchived: false },
                 select: { price: true },
                 orderBy: { price: "asc" },
                 take: 1,

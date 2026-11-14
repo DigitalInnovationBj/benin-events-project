@@ -268,14 +268,50 @@ export async function deleteTicket(ticketId: string) {
             return { error: "Vous n'êtes pas le propriétaire de ce billet." };
         }
 
+        // Un billet déjà commandé ne peut pas être supprimé (commandes,
+        // paiements et QR codes y sont rattachés) : il est retiré de la vente.
+        const ordered = await prisma.orderItem.count({ where: { ticketId } });
+        if (ordered > 0) {
+            await prisma.ticket.update({
+                where: { id: ticketId },
+                data: { isArchived: true },
+            });
+            revalidatePath(`/dashboard/events/${ticket.event.id}`);
+            revalidatePath(`/events/${ticket.event.slug}`);
+            return { success: true, archived: true };
+        }
+
         await prisma.ticket.delete({ where: { id: ticketId } });
 
         revalidatePath(`/dashboard/events/${ticket.event.id}`);
         revalidatePath(`/events/${ticket.event.slug}`);
 
-        return { success: true };
+        return { success: true, archived: false };
     } catch (error) {
         console.error("Erreur deleteTicket:", error);
         return { error: "Erreur interne lors de la suppression du billet." };
     }
+}
+
+/** Remet en vente (ou retire de la vente) un billet. */
+export async function setTicketOnSale(ticketId: string, onSale: boolean) {
+    const dbUser = await getCurrentUser();
+    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) {
+        return { error: "Permission refusée." };
+    }
+    const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { event: { select: { id: true, slug: true, organizerId: true } } },
+    });
+    if (!ticket) return { error: "Billet introuvable." };
+    if (dbUser.role !== "ADMIN" && ticket.event.organizerId !== dbUser.id) {
+        return { error: "Vous n'êtes pas le propriétaire de ce billet." };
+    }
+    await prisma.ticket.update({
+        where: { id: ticketId },
+        data: { isArchived: !onSale },
+    });
+    revalidatePath(`/dashboard/events/${ticket.event.id}`);
+    revalidatePath(`/events/${ticket.event.slug}`);
+    return { success: true };
 }

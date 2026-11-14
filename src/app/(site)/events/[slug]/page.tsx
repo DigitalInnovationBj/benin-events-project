@@ -141,7 +141,7 @@ export default async function PublicEventPage({ params }: Props) {
                     },
                 },
             },
-            tickets: true,
+            tickets: { where: { isArchived: false } },
             categories: {
                 include: { category: true },
             },

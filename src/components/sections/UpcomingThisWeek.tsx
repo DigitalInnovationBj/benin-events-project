@@ -17,6 +17,7 @@ export default async function UpcomingThisWeek() {
         include: {
             organizer: { select: { name: true } },
             tickets: {
+                where: { isArchived: false },
                 select: { price: true },
                 orderBy: { price: "asc" },
                 take: 1,

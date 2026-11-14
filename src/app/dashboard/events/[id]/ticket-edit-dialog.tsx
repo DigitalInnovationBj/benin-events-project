@@ -99,7 +99,11 @@ export function TicketEditDialog({
                 toast.error(res.error);
                 return;
             }
-            toast.success("Billet supprimé.");
+            toast.success(
+                res.archived
+                    ? "Ce billet a déjà des commandes : il a été retiré de la vente. Les billets vendus restent valides."
+                    : "Billet supprimé.",
+            );
         } catch {
             toast.error("Erreur inattendue");
         } finally {
@@ -310,8 +314,9 @@ export function TicketEditDialog({
                             <span className="font-semibold text-foreground">
                                 &ldquo;{ticket.title}&rdquo;
                             </span>{" "}
-                            sera définitivement supprimé. Cette action est
-                            irréversible.
+                            sera définitivement supprimé. S&apos;il a déjà
+                            des commandes, il sera seulement retiré de la
+                            vente : les billets vendus restent valides.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
