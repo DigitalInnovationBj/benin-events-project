@@ -6,6 +6,7 @@ import { put } from "@vercel/blob";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { parseDayKeys } from "@/lib/ticket-days";
+import type { TicketSortMode } from "@/lib/ticket-order";
 
 // ─────────────────────────────────────────────
 // Schémas partagés
@@ -126,9 +127,16 @@ export async function createTicket(formData: FormData) {
             imageUrl = blob.url;
         }
 
+        // Nouveau billet en dernière position de l'ordre personnalisé.
+        const last = await prisma.ticket.aggregate({
+            where: { eventId: event.id },
+            _max: { position: true },
+        });
+
         // Créer le ticket
         await prisma.ticket.create({
             data: {
+                position: (last._max.position ?? -1) + 1,
                 title: data.title,
                 description: data.description || undefined,
                 price: parseFloat(data.price),
@@ -313,5 +321,59 @@ export async function setTicketOnSale(ticketId: string, onSale: boolean) {
     });
     revalidatePath(`/dashboard/events/${ticket.event.id}`);
     revalidatePath(`/events/${ticket.event.slug}`);
+    return { success: true };
+}
+
+// ─────────────────────────────────────────────
+// Ordre d'affichage des billets
+// ─────────────────────────────────────────────
+
+async function canManageEventTickets(eventId: string) {
+    const dbUser = await getCurrentUser();
+    if (!dbUser || (dbUser.role !== "ORGANIZER" && dbUser.role !== "ADMIN")) return null;
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, slug: true, organizerId: true },
+    });
+    if (!event || (dbUser.role !== "ADMIN" && event.organizerId !== dbUser.id)) return null;
+    return event;
+}
+
+/** Choisit l'ordre d'affichage des billets d'un évènement. */
+export async function setTicketSort(eventId: string, mode: TicketSortMode) {
+    if (!["PRICE_ASC", "PRICE_DESC", "CUSTOM"].includes(mode)) {
+        return { error: "Ordre inconnu." };
+    }
+    const event = await canManageEventTickets(eventId);
+    if (!event) return { error: "Permission refusée." };
+
+    await prisma.event.update({ where: { id: eventId }, data: { ticketSort: mode } });
+    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/events/${event.slug}`);
+    return { success: true };
+}
+
+/** Enregistre l'ordre personnalisé (ids dans l'ordre voulu). */
+export async function reorderTickets(eventId: string, orderedIds: string[]) {
+    const event = await canManageEventTickets(eventId);
+    if (!event) return { error: "Permission refusée." };
+
+    const tickets = await prisma.ticket.findMany({
+        where: { eventId },
+        select: { id: true },
+    });
+    const ids = new Set(tickets.map((t) => t.id));
+    if (orderedIds.length !== ids.size || !orderedIds.every((id) => ids.has(id))) {
+        return { error: "La liste des billets a changé. Rechargez la page." };
+    }
+
+    await prisma.$transaction([
+        ...orderedIds.map((id, position) =>
+            prisma.ticket.update({ where: { id }, data: { position } }),
+        ),
+        prisma.event.update({ where: { id: eventId }, data: { ticketSort: "CUSTOM" } }),
+    ]);
+    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/events/${event.slug}`);
     return { success: true };
 }

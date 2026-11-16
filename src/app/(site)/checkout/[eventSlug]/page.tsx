@@ -8,6 +8,7 @@ import { decodeCart } from "@/lib/cart";
 import { Button } from "@/components/ui/button";
 import { CheckoutFlow } from "@/components/checkout/checkout-flow";
 import { geniusPayFeeConfig } from "@/lib/geniuspay";
+import { sortTickets } from "@/lib/ticket-order";
 import { IconShoppingBag } from "@tabler/icons-react";
 
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
             isPublished: true,
             isCancelled: true,
             endDate: true,
+            ticketSort: true,
             tickets: {
                 where: { isArchived: false },
                 select: {
@@ -53,6 +55,8 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
                     title: true,
                     price: true,
                     totalStock: true,
+                    position: true,
+                    createdAt: true,
                 },
             },
         },
@@ -105,7 +109,15 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
         entries.map((e) => e.ticketId).filter((id) => ticketById.has(id)),
     );
 
-    const lines = entries.flatMap((entry) => {
+    // Lignes dans l'ordre d'affichage des billets de l'évènement.
+    const rank = new Map(
+        sortTickets(event.tickets, event.ticketSort).map((t, i) => [t.id, i]),
+    );
+    const sortedEntries = [...entries].sort(
+        (a, b) => (rank.get(a.ticketId) ?? 0) - (rank.get(b.ticketId) ?? 0),
+    );
+
+    const lines = sortedEntries.flatMap((entry) => {
         const ticket = ticketById.get(entry.ticketId);
         // Billet supprimé ou d'un autre évènement : la ligne est ignorée.
         if (!ticket) return [];

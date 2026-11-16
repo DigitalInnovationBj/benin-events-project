@@ -18,6 +18,7 @@ import { TicketSelector } from "@/components/events/ticket-selector";
 import { TicketsAnchorButton } from "@/components/events/tickets-anchor-button";
 import { EventJsonLd } from "@/components/events/event-json-ld";
 import { asEventTheme } from "@/themes/registry";
+import { sortTickets } from "@/lib/ticket-order";
 import {
     AdjatcheBanner,
     AdjatcheCtaDecor,
@@ -204,7 +205,8 @@ export default async function PublicEventPage({ params }: Props) {
     // Habillage personnalisé (même gabarit, autre charte graphique).
     const isAdjatche = asEventTheme(event.theme) === "adjatche";
 
-    const ticketsWithRemaining = event.tickets.map((ticket) => ({
+    // Ordre choisi par l'organisateur (prix croissant, décroissant, personnalisé).
+    const ticketsWithRemaining = sortTickets(event.tickets, event.ticketSort).map((ticket) => ({
         ...ticket,
         remainingStock: remainingByTicket.get(ticket.id) ?? null,
     }));

@@ -39,6 +39,8 @@ import AgentInviteForm from "./agents/AgentInviteForm";
 import RevokeButton from "./agents/RevokeButton";
 import { DangerZone, PromotionActions, ShareEventButton, TicketOnSaleButton } from "./event-client-actions";
 import { SessionsPanel } from "./sessions-panel";
+import { SortableTicketList, TicketSortSelect } from "./ticket-order-controls";
+import { sortTickets } from "@/lib/ticket-order";
 
 // Laisse plus de marge à l'envoi de campagne en tâche de fond (next/server `after`).
 export const maxDuration = 60;
@@ -477,64 +479,84 @@ async function TicketsTab({ event }: { event: EventData }) {
                     plusieurs jours pour un pass scanné une fois par jour, et
                     les sessions (conférences…) auxquelles il donne accès.
                 </HelpCallout>
-                <SectionCard title={`Billets (${event.tickets.length})`}>
+                <SectionCard
+                    title={`Billets (${event.tickets.length})`}
+                    action={
+                        event.tickets.length > 1 ? (
+                            <TicketSortSelect eventId={event.id} value={event.ticketSort} />
+                        ) : undefined
+                    }
+                >
                     {event.tickets.length === 0 ? (
                         <p className="rounded-xl border border-dashed bg-muted/30 py-8 text-center text-sm text-muted-foreground">
                             Aucun billet pour l&apos;instant. Créez le premier avec le
                             formulaire.
                         </p>
                     ) : (
-                        <ul className="space-y-3">
-                            {event.tickets.map((ticket) => (
-                                <li
-                                    key={ticket.id}
-                                    className={cn(
-                                        "flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors hover:border-secondary/50",
+                        <>
+                            {event.ticketSort === "CUSTOM" && event.tickets.length > 1 && (
+                                <p className="mb-3 text-xs text-muted-foreground">
+                                    Glissez les billets par la poignée (ou utilisez les
+                                    flèches) : la page publique suit cet ordre.
+                                </p>
+                            )}
+                            <SortableTicketList
+                                key={sortTickets(event.tickets, event.ticketSort).map((t) => t.id).join(",")}
+                                eventId={event.id}
+                                custom={event.ticketSort === "CUSTOM"}
+                                items={sortTickets(event.tickets, event.ticketSort).map((ticket) => ({
+                                    id: ticket.id,
+                                    title: ticket.title,
+                                    className: cn(
+                                        "flex items-start justify-between gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-secondary/50",
                                         ticket.isArchived && "border-dashed opacity-70",
-                                    )}
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <h3 className="truncate font-semibold">{ticket.title}</h3>
-                                        {ticket.description && (
-                                            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                                {ticket.description}
-                                            </p>
-                                        )}
-                                        <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                                            <span className="rounded-md bg-secondary/15 px-2 py-0.5 font-medium text-secondary">
-                                                {formatXOF(ticket.price)}
-                                            </span>
-                                            <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
-                                                {ticketValidity({ validDays: ticket.validDays, sessionNames: [] })}
-                                            </span>
-                                            {ticket.sessions.map((ts) => (
-                                                <span key={ts.sessionId} className="rounded-md bg-primary/30 px-2 py-0.5 text-foreground">
-                                                    Accès : {ts.session.name}
-                                                </span>
-                                            ))}
-                                            {ticket.totalStock != null && (
-                                                <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
-                                                    Stock : {ticket.totalStock}
-                                                </span>
-                                            )}
-                                            {ticket.isArchived && (
-                                                <StatusBadge tone="warning" label="Retiré de la vente" />
-                                            )}
-                                        </div>
-                                        {ticket.isArchived && (
-                                            <div className="mt-3">
-                                                <TicketOnSaleButton ticketId={ticket.id} />
+                                    ),
+                                    content: (
+                                        <>
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="truncate font-semibold">{ticket.title}</h3>
+                                                {ticket.description && (
+                                                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                                        {ticket.description}
+                                                    </p>
+                                                )}
+                                                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                                    <span className="rounded-md bg-secondary/15 px-2 py-0.5 font-medium text-secondary">
+                                                        {formatXOF(ticket.price)}
+                                                    </span>
+                                                    <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
+                                                        {ticketValidity({ validDays: ticket.validDays, sessionNames: [] })}
+                                                    </span>
+                                                    {ticket.sessions.map((ts) => (
+                                                        <span key={ts.sessionId} className="rounded-md bg-primary/30 px-2 py-0.5 text-foreground">
+                                                            Accès : {ts.session.name}
+                                                        </span>
+                                                    ))}
+                                                    {ticket.totalStock != null && (
+                                                        <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
+                                                            Stock : {ticket.totalStock}
+                                                        </span>
+                                                    )}
+                                                    {ticket.isArchived && (
+                                                        <StatusBadge tone="warning" label="Retiré de la vente" />
+                                                    )}
+                                                </div>
+                                                {ticket.isArchived && (
+                                                    <div className="mt-3">
+                                                        <TicketOnSaleButton ticketId={ticket.id} />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                    <TicketEditDialog
-                                        ticket={{ ...ticket, sessionIds: ticket.sessions.map((ts) => ts.sessionId) }}
-                                        eventDays={eventDays}
-                                        sessionOptions={sessionOptions}
-                                    />
-                                </li>
-                            ))}
-                        </ul>
+                                            <TicketEditDialog
+                                                ticket={{ ...ticket, sessionIds: ticket.sessions.map((ts) => ts.sessionId) }}
+                                                eventDays={eventDays}
+                                                sessionOptions={sessionOptions}
+                                            />
+                                        </>
+                                    ),
+                                }))}
+                            />
+                        </>
                     )}
                 </SectionCard>
                 <SessionsPanel eventId={event.id} eventDays={eventDays} sessions={sessionItems} />

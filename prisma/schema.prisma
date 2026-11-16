@@ -75,6 +75,13 @@ enum PayoutStatus {
   REJECTED
 }
 
+/// Ordre d'affichage des billets sur la page publique d'un évènement.
+enum TicketSort {
+  PRICE_ASC
+  PRICE_DESC
+  CUSTOM
+}
+
 enum TicketTemplate {
   PRIMARY
   SECONDARY
@@ -277,6 +284,10 @@ model Event {
   /// sont déclarées dans src/themes/registry.ts.
   theme       String?
 
+  /// Ordre d'affichage des billets (prix croissant par défaut ; CUSTOM suit
+  /// Ticket.position, réglé par glisser-déposer dans le dashboard).
+  ticketSort  TicketSort @default(PRICE_ASC)
+
   // Type d'évènement
   eventType   EventType @default(IN_PERSON)
 
@@ -413,6 +424,9 @@ model Ticket {
   /// commandes et QR codes restent valides. Posé à la place d'une suppression
   /// quand le billet a déjà des commandes.
   isArchived Boolean @default(false)
+
+  /// Rang du billet quand l'évènement est en ordre personnalisé (0 = premier).
+  position   Int     @default(0)
 
   /// Sessions de l'évènement auxquelles ce billet donne accès (ex. les
   /// conférences du festival pour le pass VVIP).
