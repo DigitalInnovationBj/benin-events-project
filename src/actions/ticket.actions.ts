@@ -45,7 +45,7 @@ const updateTicketSchema = ticketBaseSchema.extend({
 async function parseAccessFields(
     formData: FormData,
     eventId: string,
-): Promise<{ validDays: string[]; sessionIds: string[] } | { error: string }> {
+): Promise<{ validDays: string[]; sessionIds: string[]; sessionOnly: boolean } | { error: string }> {
     const validDays = parseDayKeys(
         formData.getAll("validDays").map((v) => String(v)),
     );
@@ -60,7 +60,11 @@ async function parseAccessFields(
         });
         if (found !== sessionIds.length) return { error: "Session introuvable." };
     }
-    return { validDays, sessionIds };
+    const sessionOnly = formData.get("sessionOnly") === "on";
+    if (sessionOnly && sessionIds.length === 0) {
+        return { error: "Un billet « sessions uniquement » doit donner accès à au moins une session." };
+    }
+    return { validDays, sessionIds, sessionOnly };
 }
 
 export async function createTicket(formData: FormData) {
@@ -144,6 +148,7 @@ export async function createTicket(formData: FormData) {
                 imageUrl,
                 emailTemplate: data.emailTemplate,
                 validDays: access.validDays,
+                sessionOnly: access.sessionOnly,
                 sessions: {
                     create: access.sessionIds.map((sessionId) => ({ sessionId })),
                 },
@@ -235,6 +240,7 @@ export async function updateTicket(formData: FormData) {
                 imageUrl,
                 emailTemplate: data.emailTemplate,
                 validDays: access.validDays,
+                sessionOnly: access.sessionOnly,
                 // Remplace l'ensemble des accès aux sessions.
                 sessions: {
                     deleteMany: {},

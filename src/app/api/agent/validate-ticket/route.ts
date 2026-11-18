@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
                     title: true,
                     eventId: true,
                     validDays: true,
-                    sessions: { select: { sessionId: true } },
+                    sessionOnly: true,
+                    sessions: { select: { sessionId: true, session: { select: { name: true } } } },
                     event: { select: { title: true } },
                 },
             },
@@ -208,6 +209,21 @@ export async function POST(req: NextRequest) {
             ticketTitle: rawItem.ticket.title,
             attendeeName: rawItem.attendeeName,
             sessionName: session.name,
+        });
+    }
+
+    // ── 8ter. Billet « sessions uniquement » (ex. Pass Ecotourisme) : refusé
+    // à l'entrée générale.
+    if (rawItem.ticket.sessionOnly) {
+        const names = rawItem.ticket.sessions.map((s) => s.session.name);
+        return NextResponse.json({
+            valid: false,
+            message: "Accès session uniquement",
+            detail: names.length > 0
+                ? `Ce billet donne accès uniquement à : ${names.join(", ")}. Scannez-le au point de contrôle de la session.`
+                : "Ce billet ne donne pas accès à l'entrée générale.",
+            ticketTitle: rawItem.ticket.title,
+            attendeeName: rawItem.attendeeName,
         });
     }
 

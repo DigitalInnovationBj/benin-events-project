@@ -1,9 +1,15 @@
 /**
  * Seed de l'Adjatchè Urban Festival (18–20 déc. 2026, Porto-Novo).
  *
- * Crée l'évènement « Adjatchè Urban Festival », ses billets et la session
- * « Conférences » (18 déc.), à laquelle seul le pass VVIP donne accès : les
- * agents la scannent à un point de contrôle dédié, avec le même QR code.
+ * Crée l'évènement « Adjatchè Urban Festival », ses billets et les sessions
+ * « Conférences » et « Écotourisme » (18 déc.). Les pass all access (VVIP,
+ * Soutien) donnent accès aux deux ; le Pass Ecotourisme donne accès à
+ * l'écotourisme uniquement. Les agents scannent chaque session à un point de
+ * contrôle dédié, avec le même QR code.
+ *
+ * Pour une base déjà en production, préférer la mise à jour ciblée
+ * scripts/adjatche-billets-physiques.ts (ce seed réécrit aussi stocks et
+ * descriptions).
  *
  * Supprime l'ancien évènement brouillon « … — Conférences » créé par les
  * premières versions de ce script (ou le masque s'il a des commandes).
@@ -158,6 +164,10 @@ type TicketInput = {
     sessionIds?: string[];
     /** Stock limité (null = illimité). */
     totalStock?: number | null;
+    /** Accès à ses sessions uniquement (refusé à l'entrée générale). */
+    sessionOnly?: boolean;
+    /** Code imprimé des billets physiques (posé seulement s'il n'y en a pas). */
+    printCode?: string;
 };
 
 async function upsertTicket(eventId: string, input: TicketInput) {
@@ -166,12 +176,13 @@ async function upsertTicket(eventId: string, input: TicketInput) {
         price: input.price,
         validDays: input.validDays ?? [],
         totalStock: input.totalStock ?? null,
+        sessionOnly: input.sessionOnly ?? false,
     };
     const sessionLinks = (input.sessionIds ?? []).map((sessionId) => ({ sessionId }));
 
     const existing = await prisma.ticket.findFirst({
         where: { eventId, title: input.title },
-        select: { id: true },
+        select: { id: true, printCode: true },
     });
 
     if (existing) {
@@ -179,6 +190,8 @@ async function upsertTicket(eventId: string, input: TicketInput) {
             where: { id: existing.id },
             data: {
                 ...data,
+                // Un code déjà posé (et peut-être déjà imprimé) n'est jamais changé.
+                ...(input.printCode && !existing.printCode ? { printCode: input.printCode } : {}),
                 ...(input.sessionIds
                     ? { sessions: { deleteMany: {}, create: sessionLinks } }
                     : {}),
@@ -186,7 +199,13 @@ async function upsertTicket(eventId: string, input: TicketInput) {
         });
     } else {
         await prisma.ticket.create({
-            data: { ...data, title: input.title, eventId, sessions: { create: sessionLinks } },
+            data: {
+                ...data,
+                title: input.title,
+                eventId,
+                printCode: input.printCode,
+                sessions: { create: sessionLinks },
+            },
         });
     }
     console.log(
@@ -245,6 +264,18 @@ async function main() {
           });
     console.log(`  ${existingSession ? "♻️  Mise à jour" : "✅ Créée"} — session Conférences (${DAY_1})`);
 
+    // Session « Écotourisme » du vendredi.
+    const existingEco = await prisma.eventSession.findFirst({
+        where: { eventId: festival.id, name: "Écotourisme" },
+        select: { id: true },
+    });
+    const ecotourisme = existingEco
+        ? await prisma.eventSession.update({ where: { id: existingEco.id }, data: { day: DAY_1 } })
+        : await prisma.eventSession.create({
+              data: { eventId: festival.id, name: "Écotourisme", day: DAY_1 },
+          });
+    console.log(`  ${existingEco ? "♻️  Mise à jour" : "✅ Créée"} — session Écotourisme (${DAY_1})`);
+
     // Ancien évènement brouillon des conférences : supprimé, ou masqué s'il
     // porte déjà des commandes.
     const legacy = await prisma.event.findUnique({
@@ -263,28 +294,50 @@ async function main() {
 
     console.log("\n  Billets :");
     await upsertTicket(festival.id, {
+        title: "Pass Ecotourisme",
+        description: "Eco découverte touristique pour les étudiants. Donne accès à l'écotourisme uniquement.",
+        price: 1500,
+        sessionIds: [ecotourisme.id],
+        sessionOnly: true,
+        printCode: "ECO",
+    });
+    await upsertTicket(festival.id, {
         title: "Pass Standard 1 jour",
         description: "Accès au festival pour une journée au choix, une seule entrée.",
         price: 2000,
+        printCode: "STD-1J",
     });
     await upsertTicket(festival.id, {
         title: "Pass Standard 2 jours",
         description: "Accès au festival les samedi 19 et dimanche 20 décembre.",
         price: 3500,
         validDays: [DAY_2, DAY_3],
+        printCode: "STD-2J",
     });
     await upsertTicket(festival.id, {
-        title: "Pass VIP 1 jour",
-        description: "Accès VIP au festival pour une journée au choix, une seule entrée.",
-        price: 5000,
+        title: "Pass VIP 2 jours",
+        description: "Accès VIP au festival les samedi 19 et dimanche 20 décembre.",
+        price: 10000,
+        validDays: [DAY_2, DAY_3],
+        printCode: "VIP-2J",
     });
     await upsertTicket(festival.id, {
         title: "Pass VVIP — All access",
         description:
-            "Accès aux 3 jours du festival, y compris les conférences du vendredi 18 décembre (places limitées).",
+            "Accès aux 3 jours du festival, y compris les conférences et l'écotourisme du vendredi 18 décembre (places limitées).",
         price: 20000,
         validDays: [DAY_1, DAY_2, DAY_3],
-        sessionIds: [conferences.id],
+        sessionIds: [conferences.id, ecotourisme.id],
+        printCode: "VVIP",
+    });
+    await upsertTicket(festival.id, {
+        title: "Pass Soutien — All access",
+        description:
+            "Soutenir le festival. Accès aux 3 jours du festival, y compris les conférences et l'écotourisme du vendredi 18 décembre (places limitées).",
+        price: 50000,
+        validDays: [DAY_1, DAY_2, DAY_3],
+        sessionIds: [conferences.id, ecotourisme.id],
+        printCode: "SOUTIEN",
     });
 
     // Billet de test des paiements Mobile Money : au minimum FeexPay accepté

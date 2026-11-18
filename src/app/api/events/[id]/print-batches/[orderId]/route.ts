@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/permissions";
 import { formatEventDateLong, formatXOF } from "@/lib/format";
 import { formatDayKey } from "@/lib/ticket-days";
 import { generatePrintSheetPdf, PrintArtError } from "@/lib/print-sheet-pdf";
-import { printedTicketCode } from "@/lib/printed-tickets";
+import { printedTicketCode, ticketPrintCode } from "@/lib/printed-tickets";
 
 // Un lot de 400 billets = 100 pages : le rendu peut prendre plusieurs secondes.
 export const maxDuration = 60;
@@ -47,7 +47,7 @@ export async function GET(
                             price: true,
                             validDays: true,
                             printFrontUrl: true,
-                            printBackUrl: true,
+                            printCode: true,
                             printNumberColor: true,
                         },
                     },
@@ -81,7 +81,7 @@ export async function GET(
             ? `Valable : ${ticket.validDays.map(formatDayKey).join(", ")}`
             : null,
         frontUrl: ticket.printFrontUrl,
-        backUrl: ticket.printBackUrl,
+        printCode: ticketPrintCode(ticket),
         numberColor: ticket.printNumberColor,
         appUrl: APP_URL,
         items: order.items.map((i) => ({ id: i.id, serial: i.serial, orderReference: order.reference })),
@@ -94,8 +94,9 @@ export async function GET(
         throw err;
     }
 
-    const first = printedTicketCode(ticket.title, order.items[0].serial);
-    const last = printedTicketCode(ticket.title, order.items[order.items.length - 1].serial);
+    const code = ticketPrintCode(ticket);
+    const first = printedTicketCode(code, order.items[0].serial);
+    const last = printedTicketCode(code, order.items[order.items.length - 1].serial);
 
     return new NextResponse(new Uint8Array(pdf), {
         headers: {

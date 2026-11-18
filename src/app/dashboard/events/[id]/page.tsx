@@ -354,7 +354,10 @@ function SectionCard({
     );
 }
 
-function ticketValidity(t: { validDays: string[]; sessionNames: string[] }) {
+function ticketValidity(t: { validDays: string[]; sessionNames: string[]; sessionOnly?: boolean }) {
+    if (t.sessionOnly) {
+        return t.sessionNames.length > 0 ? `Uniquement : ${t.sessionNames.join(", ")}` : "Sessions uniquement";
+    }
     const days =
         t.validDays.length === 0
             ? "1 entrée"
@@ -529,7 +532,7 @@ async function TicketsTab({ event }: { event: EventData }) {
                                                         {formatXOF(ticket.price)}
                                                     </span>
                                                     <span className="rounded-md bg-muted px-2 py-0.5 text-muted-foreground">
-                                                        {ticketValidity({ validDays: ticket.validDays, sessionNames: [] })}
+                                                        {ticketValidity({ validDays: ticket.validDays, sessionNames: [], sessionOnly: ticket.sessionOnly })}
                                                     </span>
                                                     {ticket.sessions.map((ts) => (
                                                         <span key={ts.sessionId} className="rounded-md bg-primary/30 px-2 py-0.5 text-foreground">

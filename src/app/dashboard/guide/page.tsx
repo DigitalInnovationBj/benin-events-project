@@ -94,7 +94,7 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Comment un pass VVIP donne-t-il aussi accès aux conférences ?",
-                    a: "Onglet Billets, bloc « Sessions à accès restreint » : créez la session (nom, jour, nombre de places si besoin). Puis, dans le billet VVIP, cochez cette session. À l'entrée des conférences, l'agent choisit le point de contrôle « Conférences » : seul le VVIP passe, une fois.",
+                    a: "Onglet Billets, bloc « Sessions à accès restreint » : créez la session (nom, jour, nombre de places si besoin). Puis, dans le billet VVIP, cochez cette session. À l'entrée des conférences, l'agent choisit le point de contrôle « Conférences » : seul le VVIP passe, une fois. Pour un billet qui ne donne accès qu'à une session (ex. Pass Ecotourisme), cochez aussi « Sessions uniquement » : il sera refusé à l'entrée générale.",
                 },
                 {
                     q: "Puis-je modifier un billet déjà vendu ?",
@@ -140,7 +140,7 @@ export default async function GuidePage() {
             steps: [
                 {
                     q: "Comment imprimer des billets ?",
-                    a: "Onglet Billets physiques : choisissez le billet et la quantité. Le PDF place 8 billets de 14,5 × 5 cm par feuille A4 paysage, recto puis verso, avec les traits de coupe. Imprimez recto-verso avec retournement gauche-droite (bord court). Le stock est réservé dès la création du lot.",
+                    a: "Onglet Billets physiques : enregistrez d'abord le code imprimé du billet (ex. STD-1J, il précède chaque numéro : STD-1J-0001), puis choisissez la quantité. Le PDF place 8 billets de 14,5 × 5 cm par feuille A4 paysage, recto seul, avec les traits de coupe. Le stock est réservé dès la création du lot.",
                 },
                 {
                     q: "Pourquoi un billet imprimé doit-il être activé ?",
@@ -162,8 +162,8 @@ export default async function GuidePage() {
                             <a href="/docs/billet-physique-guide-graphiste.pdf" className="text-secondary underline underline-offset-2">
                                 guide graphiste
                             </a>{" "}
-                            (formats, zones du QR et du numéro), puis importez ses visuels recto
-                            et verso dans l&apos;onglet Billets physiques.
+                            (formats, zones du QR et du numéro), puis importez ses visuels (recto
+                            seul) dans l&apos;onglet Billets physiques.
                         </>
                     ),
                 },
@@ -185,7 +185,7 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Que veulent dire les refus ?",
-                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Pas d'accès à cette session » : le billet ne comprend pas la session. « Session complète » : toutes les places sont prises. « Commande non confirmée » : paiement non abouti. « Billet non vendu » : billet imprimé jamais activé par un point de vente.",
+                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Pas d'accès à cette session » : le billet ne comprend pas la session. « Session complète » : toutes les places sont prises. « Commande non confirmée » : paiement non abouti. « Billet non vendu » : billet imprimé jamais activé par un point de vente. « Accès session uniquement » : billet réservé à une session (ex. écotourisme), à scanner à son point de contrôle.",
                 },
                 {
                     q: "Comment suivre les entrées ?",

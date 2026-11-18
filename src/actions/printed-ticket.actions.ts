@@ -6,7 +6,7 @@ import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/permissions";
 import { stockConsumingOrderFilter } from "@/lib/stock";
-import { MAX_PRINT_BATCH } from "@/lib/printed-tickets";
+import { MAX_PRINT_BATCH, normalizePrintCode, PRINT_CODE_MAX } from "@/lib/printed-tickets";
 
 /** null si l'utilisateur gère l'évènement, sinon le message d'erreur. */
 async function manageError(eventId: string): Promise<string | null> {
@@ -47,10 +47,13 @@ export async function createPrintBatch(
 
     const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
-        select: { id: true, eventId: true, price: true, totalStock: true, isArchived: true },
+        select: { id: true, eventId: true, price: true, totalStock: true, isArchived: true, printCode: true },
     });
     if (!ticket || ticket.eventId !== eventId) return { error: "Billet introuvable" };
     if (ticket.isArchived) return { error: "Ce billet est retiré de la vente." };
+    if (!ticket.printCode) {
+        return { error: "Choisissez d'abord le code imprimé de ce billet (Codes et visuels)." };
+    }
 
     const reference = `PHY-${randomBytes(5).toString("hex").toUpperCase()}`;
 
@@ -160,13 +163,11 @@ export async function releaseUnsoldTickets(
 const ART_MAX_BYTES = 4 * 1024 * 1024;
 const ART_TYPES = ["image/png", "image/jpeg"];
 
-/** Enregistre le visuel recto ou verso d'un billet imprimé (PNG/JPG 300 dpi). */
+/** Enregistre le visuel d'un billet imprimé (recto seul, PNG/JPG 300 dpi). */
 export async function uploadPrintArt(formData: FormData) {
     const ticketId = String(formData.get("ticketId") ?? "");
-    const side = String(formData.get("side") ?? "");
     const file = formData.get("file") as File | null;
 
-    if (side !== "front" && side !== "back") return { error: "Face invalide" };
     if (!file || file.size === 0) return { error: "Aucun fichier" };
     if (!ART_TYPES.includes(file.type)) return { error: "Format accepté : PNG ou JPG." };
     if (file.size > ART_MAX_BYTES) return { error: "Le visuel dépasse 4 Mo (exportez en JPG qualité 90 %)." };
@@ -181,22 +182,22 @@ export async function uploadPrintArt(formData: FormData) {
     if (denied) return { error: denied };
 
     const ext = file.type === "image/png" ? "png" : "jpg";
-    const blob = await put(`tickets/print/${ticket.id}-${side}.${ext}`, file, {
+    const blob = await put(`tickets/print/${ticket.id}.${ext}`, file, {
         access: "public",
         addRandomSuffix: true,
     });
 
     await prisma.ticket.update({
         where: { id: ticket.id },
-        data: side === "front" ? { printFrontUrl: blob.url } : { printBackUrl: blob.url },
+        data: { printFrontUrl: blob.url },
     });
 
     revalidateEvent(ticket.eventId);
     return { success: true };
 }
 
-/** Revient au design par défaut pour une face. */
-export async function removePrintArt(ticketId: string, side: "front" | "back") {
+/** Revient au design par défaut. */
+export async function removePrintArt(ticketId: string) {
     const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
         select: { id: true, eventId: true },
@@ -208,11 +209,52 @@ export async function removePrintArt(ticketId: string, side: "front" | "back") {
 
     await prisma.ticket.update({
         where: { id: ticket.id },
-        data: side === "front" ? { printFrontUrl: null } : { printBackUrl: null },
+        data: { printFrontUrl: null },
     });
 
     revalidateEvent(ticket.eventId);
     return { success: true };
+}
+
+/**
+ * Code imprimé devant le numéro (ex. STD-1J → STD-1J-0001). Unique dans
+ * l'évènement, et figé dès qu'un lot a été imprimé pour ce billet : les
+ * numéros papier ne doivent pas changer.
+ */
+export async function setPrintCode(ticketId: string, input: string) {
+    const code = normalizePrintCode(input);
+    if (!code) {
+        return { error: `Code invalide : 1 à ${PRINT_CODE_MAX} caractères, lettres, chiffres et tirets.` };
+    }
+
+    const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, eventId: true, printCode: true, printSerialSeq: true },
+    });
+    if (!ticket) return { error: "Billet introuvable" };
+
+    const denied = await manageError(ticket.eventId);
+    if (denied) return { error: denied };
+
+    if (ticket.printCode === code) return { success: true, code };
+
+    const printed =
+        ticket.printSerialSeq > 0 ||
+        (await prisma.orderItem.count({ where: { ticketId, serial: { not: null } } })) > 0;
+    if (printed) {
+        return { error: "Des billets ont déjà été imprimés avec ce code : il ne peut plus changer." };
+    }
+
+    const taken = await prisma.ticket.findFirst({
+        where: { eventId: ticket.eventId, printCode: code, id: { not: ticket.id } },
+        select: { title: true },
+    });
+    if (taken) return { error: `Le code ${code} est déjà utilisé par « ${taken.title} ».` };
+
+    await prisma.ticket.update({ where: { id: ticket.id }, data: { printCode: code } });
+
+    revalidateEvent(ticket.eventId);
+    return { success: true, code };
 }
 
 /** Couleur du numéro imprimé, selon le fond du visuel (noir ou blanc). */

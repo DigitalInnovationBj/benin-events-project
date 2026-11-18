@@ -2,7 +2,8 @@
  * Billets physiques : billets imprimés en lot, vendus en point de vente.
  *
  * Un lot est une commande `PRINTED` dont chaque ligne est un billet unique
- * (quantité 1) portant un numéro de série. Le même QR sert à l'activation
+ * (quantité 1) portant un numéro de série, précédé du code du billet
+ * (Ticket.printCode). Le même QR sert à l'activation
  * (point de vente, au moment de la vente) et au contrôle d'entrée : un billet
  * imprimé non activé est refusé à l'entrée.
  */
@@ -16,26 +17,55 @@ export const MAX_PRINT_BATCH = 400;
 /** Billets par feuille A4 paysage (2 colonnes × 4 rangées). */
 export const TICKETS_PER_SHEET = 8;
 
-const GENERIC_WORDS = new Set(["PASS", "BILLET", "TICKET", "ENTREE", "ACCES"]);
+/** Code imprimé : 1 à 8 caractères, lettres, chiffres et tirets internes. */
+export const PRINT_CODE_MAX = 8;
+const PRINT_CODE_RE = /^[A-Z0-9](?:[A-Z0-9-]{0,6}[A-Z0-9])?$/;
 
-/**
- * Préfixe du numéro imprimé, tiré du titre du billet : « Pass VVIP » → VVIP,
- * « Standard 1 jour » → STANDA. Les mots génériques sont ignorés.
- */
-export function ticketCodePrefix(title: string): string {
-    const words = title
+/** Normalise une saisie (majuscules, sans accents ni espaces) ; null si invalide. */
+export function normalizePrintCode(input: string): string | null {
+    const code = input
         .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
+        .replace(/[\u0300-\u036f]/g, "")
         .toUpperCase()
-        .split(/[^A-Z0-9]+/)
-        .filter(Boolean);
-    const word = words.find((w) => !GENERIC_WORDS.has(w)) ?? words[0] ?? "BILLET";
-    return word.slice(0, 6);
+        .trim()
+        .replace(/\s+/g, "-");
+    return PRINT_CODE_RE.test(code) ? code : null;
 }
 
-/** Numéro imprimé sur le billet, ex. VVIP-0001. */
-export function printedTicketCode(title: string, serial: number | null): string {
-    return `${ticketCodePrefix(title)}-${String(serial ?? 0).padStart(4, "0")}`;
+const GENERIC_WORDS = new Set(["PASS", "BILLET", "TICKET", "ENTREE", "ACCES", "ALL", "ACCESS"]);
+const ABBREVIATIONS: Record<string, string> = {
+    STANDARD: "STD",
+    ECOTOURISME: "ECO",
+    PREMIUM: "PREM",
+    ETUDIANT: "ETU",
+    GRATUIT: "FREE",
+};
+
+/**
+ * Suggestion de code à partir du titre, à valider par l'organisateur :
+ * « Pass Standard 1 jour » → STD-1J, « Pass VVIP — All access » → VVIP.
+ */
+export function suggestPrintCode(title: string): string {
+    const plain = title
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+    const words = plain.split(/[^A-Z0-9]+/).filter(Boolean);
+    const word = words.find((w) => !GENERIC_WORDS.has(w) && !/^\d+$/.test(w)) ?? "BILLET";
+    const days = plain.match(/(\d+)\s*JOURS?/)?.[1];
+    const suffix = days ? `-${days}J` : "";
+    const base = (ABBREVIATIONS[word] ?? word).slice(0, PRINT_CODE_MAX - suffix.length);
+    return base + suffix;
+}
+
+/** Code d'un billet : celui choisi, sinon la suggestion tirée du titre. */
+export function ticketPrintCode(ticket: { printCode: string | null; title: string }): string {
+    return ticket.printCode ?? suggestPrintCode(ticket.title);
+}
+
+/** Numéro imprimé sur le billet, ex. STD-1J-0001. */
+export function printedTicketCode(code: string, serial: number | null): string {
+    return `${code}-${String(serial ?? 0).padStart(4, "0")}`;
 }
 
 /** Commission due sur un montant de ventes physiques, arrondie au franc. */

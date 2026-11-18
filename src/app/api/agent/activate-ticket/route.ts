@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/permissions";
 import { canSellEvent } from "@/lib/scan-access";
 import prisma from "@/lib/prisma";
-import { printedTicketCode } from "@/lib/printed-tickets";
+import { printedTicketCode, ticketPrintCode } from "@/lib/printed-tickets";
 
 function fmtDate(d: Date) {
     return d.toLocaleDateString("fr-FR", {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
             serial: true,
             activatedAt: true,
             activatedBy: { select: { name: true, email: true } },
-            ticket: { select: { title: true, eventId: true, event: { select: { title: true } } } },
+            ticket: { select: { title: true, printCode: true, eventId: true, event: { select: { title: true } } } },
             order: { select: { reference: true, status: true } },
         },
     });
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    const code = printedTicketCode(item.ticket.title, item.serial);
+    const code = printedTicketCode(ticketPrintCode(item.ticket), item.serial);
 
     if (item.activatedAt) {
         const seller = item.activatedBy?.name || item.activatedBy?.email || "un point de vente";

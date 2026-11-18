@@ -17,6 +17,7 @@ export function TicketAccessFields({
     defaultDays = [],
     sessionOptions,
     defaultSessionIds = [],
+    defaultSessionOnly = false,
 }: {
     idPrefix: string;
     /** Jours de l'évènement, « YYYY-MM-DD ». */
@@ -24,6 +25,7 @@ export function TicketAccessFields({
     defaultDays?: string[];
     sessionOptions: SessionOption[];
     defaultSessionIds?: string[];
+    defaultSessionOnly?: boolean;
 }) {
     // Un jour déjà enregistré mais hors des dates actuelles de l'évènement
     // reste affiché, sinon l'enregistrer le supprimerait silencieusement.
@@ -101,6 +103,26 @@ export function TicketAccessFields({
                             </label>
                         ))}
                     </div>
+                    <label
+                        htmlFor={`${idPrefix}-session-only`}
+                        className="mt-1 flex items-start gap-2 rounded-lg border border-dashed p-3 text-sm cursor-pointer"
+                    >
+                        <input
+                            id={`${idPrefix}-session-only`}
+                            type="checkbox"
+                            name="sessionOnly"
+                            defaultChecked={defaultSessionOnly}
+                            className="mt-0.5 size-4 accent-primary"
+                        />
+                        <span>
+                            Sessions uniquement
+                            <span className="block text-xs text-muted-foreground">
+                                Refusé à l&apos;entrée générale du festival : accepté
+                                seulement au point de contrôle des sessions cochées
+                                (ex. Pass Ecotourisme).
+                            </span>
+                        </span>
+                    </label>
                 </fieldset>
             )}
         </>

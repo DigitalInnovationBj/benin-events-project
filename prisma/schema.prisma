@@ -439,10 +439,17 @@ model Ticket {
   /// conférences du festival pour le pass VVIP).
   sessions TicketSession[]
 
-  /// Visuels du graphiste pour les billets imprimés (151 × 56 mm, fond perdu
-  /// compris). Null = design Benin Events par défaut.
+  /// Accès aux sessions uniquement (ex. Pass Ecotourisme) : refusé à
+  /// l'entrée générale, accepté seulement aux points de contrôle de ses
+  /// sessions.
+  sessionOnly Boolean @default(false)
+
+  /// Visuel du graphiste pour les billets imprimés (recto seul, 151 × 56 mm
+  /// fond perdu compris). Null = design Benin Events par défaut.
   printFrontUrl String?
-  printBackUrl  String?
+  /// Code imprimé devant le numéro (ex. STD-1J → STD-1J-0001), choisi par
+  /// l'organisateur, unique dans l'évènement. Verrouillé dès le 1er lot.
+  printCode     String?
   /// Couleur du numéro imprimé (« dark » ou « light »), choisie selon le fond
   /// du visuel du graphiste.
   printNumberColor String @default("dark")
@@ -458,6 +465,8 @@ model Ticket {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([eventId, printCode])
 }
 
 // ─────────────────────────────────────────────

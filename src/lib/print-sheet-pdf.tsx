@@ -20,14 +20,12 @@ import { printedTicketCode, TICKETS_PER_SHEET } from "@/lib/printed-tickets";
  *
  * A4 paysage, 8 billets de 145 × 50 mm (2 colonnes × 4 rangées) jointifs,
  * coupe commune, marges 3,5 mm (côtés) et 5 mm (haut/bas), traits de coupe
- * dans les marges. Chaque feuille recto est suivie de sa feuille verso,
- * retournée gauche-droite (bord court) : le billet de la colonne gauche au
- * recto est dans la colonne droite au verso.
+ * dans les marges. Recto seul : pas de verso, pour réduire le coût
+ * d'impression.
  *
  * Gabarit du graphiste : visuel de 151 × 56 mm (3 mm de fond perdu), talon de
- * 40 mm à droite au recto, carré blanc 34 mm en (108, 3), QR 28 mm en
- * (111, 6), numéro en (110, 40) sur 30 × 6 mm. Au verso, le numéro est en
- * (5, 40), pile derrière celui du recto.
+ * 40 mm à droite, carré blanc 34 mm en (108, 3), QR 28 mm en (111, 6),
+ * numéro en (110, 40) sur 30 × 6 mm.
  */
 
 const fontDir = path.join(process.cwd(), "src/app/fonts");
@@ -53,7 +51,6 @@ type Palette = {
     mainText: string;
     accent: string;
     talon: string;
-    soft: string;
     ink: string;
     titleFont: string;
 };
@@ -64,7 +61,6 @@ const PALETTES: Record<string, Palette> = {
         mainText: "#FFFFFF",
         accent: "#FAAD29",
         talon: "#FFF8E7",
-        soft: "#F5EEFF",
         ink: "#111111",
         titleFont: "PrintAfo",
     },
@@ -73,7 +69,6 @@ const PALETTES: Record<string, Palette> = {
         mainText: "#FFFFFF",
         accent: "#EF7D19",
         talon: "#FDF0E3",
-        soft: "#EEF1FB",
         ink: "#0B1B5E",
         titleFont: "PrintImpact",
     },
@@ -89,7 +84,8 @@ export interface PrintSheetData {
     priceLabel: string;
     validity: string | null;
     frontUrl: string | null;
-    backUrl: string | null;
+    /** Code imprimé du billet (ex. STD-1J). */
+    printCode: string;
     /** Couleur du numéro imprimé : « dark » (noir) ou « light » (blanc). */
     numberColor?: string;
     appUrl: string;
@@ -187,43 +183,6 @@ function TicketFront({ d, t, p }: { d: PrintSheetData; t: Prepared; p: Palette }
     );
 }
 
-function TicketBack({ d, t, p }: { d: PrintSheetData; t: Prepared; p: Palette }) {
-    return (
-        <>
-            {d.backUrl ? (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <Image
-                    src={d.backUrl}
-                    style={{ position: "absolute", left: mm(-3), top: mm(-3), width: mm(151), height: mm(56) }}
-                />
-            ) : (
-                <>
-                    <View style={{ position: "absolute", left: 0, top: 0, width: mm(145), height: mm(50), backgroundColor: p.soft }} />
-                    <View style={{ position: "absolute", left: 0, top: 0, width: mm(40), height: mm(50), backgroundColor: p.talon }} />
-                    <View style={{ position: "absolute", left: mm(46), top: mm(6), width: mm(93), height: mm(38), justifyContent: "space-between" }}>
-                        <View>
-                            <Text style={{ fontFamily: p.titleFont, fontSize: 12, color: p.main }}>
-                                {d.eventTitle}
-                            </Text>
-                            <Text style={{ fontFamily: "PrintSG", fontSize: 7, color: p.ink, marginTop: mm(2), lineHeight: 1.35 }}>
-                                Ce billet n&apos;est valable qu&apos;après activation par un point de vente
-                                officiel, au moment de l&apos;achat. Il donne droit à une entrée et
-                                n&apos;est ni repris ni échangé.
-                            </Text>
-                        </View>
-                        <Text style={{ fontFamily: "PrintSG", fontSize: 6.5, color: p.main }}>
-                            Vérifier un billet : scannez le QR au recto · {d.appUrl.replace(/^https?:\/\//, "")}
-                        </Text>
-                    </View>
-                </>
-            )}
-            <Text style={{ position: "absolute", left: mm(5), top: mm(40.6), width: mm(30), textAlign: "center", fontFamily: "PrintSG", fontWeight: 700, fontSize: 8.5, color: numberColor(d, p) }}>
-                {t.code}
-            </Text>
-        </>
-    );
-}
-
 /** Traits de coupe dans les marges, dans l'axe de chaque coupe. */
 function CropMarks() {
     const xs = [MARGIN.x, MARGIN.x + TICKET.w, MARGIN.x + 2 * TICKET.w];
@@ -243,13 +202,12 @@ function CropMarks() {
     );
 }
 
-function Sheet({ d, tickets, side, p }: { d: PrintSheetData; tickets: Prepared[]; side: "front" | "back"; p: Palette }) {
+function Sheet({ d, tickets, p }: { d: PrintSheetData; tickets: Prepared[]; p: Palette }) {
     return (
         <Page size={[mm(SHEET.w), mm(SHEET.h)]} style={{ position: "relative", backgroundColor: "#FFFFFF" }}>
             {tickets.map((t, i) => {
                 const row = Math.floor(i / 2);
-                const col = i % 2;
-                const c = side === "front" ? col : 1 - col;
+                const c = i % 2;
                 return (
                     <View
                         key={t.code}
@@ -262,7 +220,7 @@ function Sheet({ d, tickets, side, p }: { d: PrintSheetData; tickets: Prepared[]
                             overflow: "hidden",
                         }}
                     >
-                        {side === "front" ? <TicketFront d={d} t={t} p={p} /> : <TicketBack d={d} t={t} p={p} />}
+                        <TicketFront d={d} t={t} p={p} />
                     </View>
                 );
             })}
@@ -274,15 +232,12 @@ function Sheet({ d, tickets, side, p }: { d: PrintSheetData; tickets: Prepared[]
 export async function generatePrintSheetPdf(input: PrintSheetData): Promise<Buffer> {
     const p = PALETTES[input.theme ?? ""] ?? PALETTES.default;
 
-    const [frontUrl, backUrl] = await Promise.all([
-        input.frontUrl ? loadArt(input.frontUrl, "recto") : null,
-        input.backUrl ? loadArt(input.backUrl, "verso") : null,
-    ]);
-    const d: PrintSheetData = { ...input, frontUrl, backUrl };
+    const frontUrl = input.frontUrl ? await loadArt(input.frontUrl, "du billet") : null;
+    const d: PrintSheetData = { ...input, frontUrl };
 
     const prepared: Prepared[] = await Promise.all(
         d.items.map(async (item) => ({
-            code: printedTicketCode(d.ticketTitle, item.serial),
+            code: printedTicketCode(d.printCode, item.serial),
             qr: await QRCode.toDataURL(`${d.appUrl}/verify?item=${item.id}&order=${item.orderReference}`, {
                 errorCorrectionLevel: "M",
                 margin: 0,
@@ -298,10 +253,9 @@ export async function generatePrintSheetPdf(input: PrintSheetData): Promise<Buff
 
     const doc = (
         <Document title={`Billets ${d.ticketTitle} — ${d.eventTitle}`} author="Benin Events">
-            {sheets.flatMap((tickets, i) => [
-                <Sheet key={`f${i}`} d={d} tickets={tickets} side="front" p={p} />,
-                <Sheet key={`b${i}`} d={d} tickets={tickets} side="back" p={p} />,
-            ])}
+            {sheets.map((tickets, i) => (
+                <Sheet key={i} d={d} tickets={tickets} p={p} />
+            ))}
         </Document>
     );
 

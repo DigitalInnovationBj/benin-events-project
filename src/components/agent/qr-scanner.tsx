@@ -59,7 +59,8 @@ function getErrorVariant(message: string): ErrorVariant {
         message === "Billet non valable aujourd'hui" ||
         message === "Pas d'accès à cette session" ||
         message === "Session pas aujourd'hui" ||
-        message === "Session complète"
+        message === "Session complète" ||
+        message === "Accès session uniquement"
     ) return "wrong-event";
     if (message === "Commande non confirmée") return "unconfirmed";
     if (message === "Billet introuvable") return "not-found";

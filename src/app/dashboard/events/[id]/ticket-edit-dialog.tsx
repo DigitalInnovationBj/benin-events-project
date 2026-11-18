@@ -40,6 +40,7 @@ type Ticket = {
     emailTemplate: "PRIMARY" | "SECONDARY";
     validDays: string[];
     sessionIds: string[];
+    sessionOnly: boolean;
 };
 
 export function TicketEditDialog({
@@ -204,6 +205,7 @@ export function TicketEditDialog({
                             defaultDays={ticket.validDays}
                             sessionOptions={sessionOptions}
                             defaultSessionIds={ticket.sessionIds}
+                            defaultSessionOnly={ticket.sessionOnly}
                         />
 
                         {/* Template PDF */}

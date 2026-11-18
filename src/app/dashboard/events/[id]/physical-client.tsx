@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { IconDownload, IconPrinter, IconTrash, IconUpload, IconPhoto } from "@tabler/icons-react";
+import { IconCheck, IconDownload, IconLock, IconPrinter, IconTrash, IconUpload, IconPhoto } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +22,11 @@ import {
     createPrintBatch,
     releaseUnsoldTickets,
     removePrintArt,
+    setPrintCode,
     setPrintNumberColor,
     uploadPrintArt,
 } from "@/actions/printed-ticket.actions";
-import { MAX_PRINT_BATCH, TICKETS_PER_SHEET } from "@/lib/printed-tickets";
+import { MAX_PRINT_BATCH, PRINT_CODE_MAX, TICKETS_PER_SHEET, printedTicketCode } from "@/lib/printed-tickets";
 import { formatXOF } from "@/lib/format";
 
 /**
@@ -69,7 +70,13 @@ export function DownloadPdfButton({ eventId, orderId }: { eventId: string; order
     );
 }
 
-type TicketOption = { id: string; title: string; price: number; remaining: number | null };
+type TicketOption = {
+    id: string;
+    title: string;
+    price: number;
+    remaining: number | null;
+    printCode: string | null;
+};
 
 /** Choix du billet et de la quantité, puis génération du PDF d'impression. */
 export function PrintBatchForm({ eventId, tickets }: { eventId: string; tickets: TicketOption[] }) {
@@ -115,8 +122,10 @@ export function PrintBatchForm({ eventId, tickets }: { eventId: string; tickets:
                 >
                     {tickets.map((t) => (
                         <option key={t.id} value={t.id}>
+                            {t.printCode ? `${t.printCode} · ` : ""}
                             {t.title} · {formatXOF(t.price)}
                             {t.remaining !== null ? ` · ${t.remaining} restants` : ""}
+                            {t.printCode ? "" : " · code à définir"}
                         </option>
                     ))}
                 </select>
@@ -135,12 +144,18 @@ export function PrintBatchForm({ eventId, tickets }: { eventId: string; tickets:
                 />
                 <p className="text-xs text-muted-foreground">
                     {qty > 0
-                        ? `${sheets} feuille${sheets > 1 ? "s" : ""} A4 recto-verso (8 billets par feuille)${qty % TICKETS_PER_SHEET ? ", dernière feuille incomplète" : ""}.`
+                        ? `${sheets} feuille${sheets > 1 ? "s" : ""} A4 (8 billets par feuille)${qty % TICKETS_PER_SHEET ? ", dernière feuille incomplète" : ""}.`
                         : "8 billets par feuille A4."}{" "}
-                    Le stock est réservé dès la création.
+                    Recto seul. Le stock est réservé dès la création.
                 </p>
             </div>
-            <Button type="submit" disabled={pending || qty < 1 || qty > max} className="w-full gap-2">
+            {ticket && !ticket.printCode && (
+                <p className="rounded-lg border border-secondary/40 bg-secondary/10 p-3 text-xs">
+                    Définissez d&apos;abord le code imprimé de ce billet dans « Codes et
+                    visuels » (ex. STD-1J) : il apparaît devant chaque numéro.
+                </p>
+            )}
+            <Button type="submit" disabled={pending || qty < 1 || qty > max || !ticket?.printCode} className="w-full gap-2">
                 <IconPrinter className="size-4" aria-hidden="true" />
                 {pending ? "Génération…" : "Créer le lot et télécharger le PDF"}
             </Button>
@@ -194,26 +209,16 @@ export function ReleaseUnsoldButton({ orderId, unsold }: { orderId: string; unso
     );
 }
 
-/** Envoi ou retrait du visuel recto/verso d'un billet. */
-export function PrintArtUploader({
-    ticketId,
-    side,
-    url,
-}: {
-    ticketId: string;
-    side: "front" | "back";
-    url: string | null;
-}) {
+/** Envoi ou retrait du visuel d'un billet (recto seul). */
+export function PrintArtUploader({ ticketId, url }: { ticketId: string; url: string | null }) {
     const router = useRouter();
     const inputRef = useRef<HTMLInputElement>(null);
     const [pending, startTransition] = useTransition();
-    const label = side === "front" ? "Recto" : "Verso";
 
     function onFile(file: File | undefined) {
         if (!file) return;
         const fd = new FormData();
         fd.set("ticketId", ticketId);
-        fd.set("side", side);
         fd.set("file", file);
         startTransition(async () => {
             const res = await uploadPrintArt(fd);
@@ -222,7 +227,7 @@ export function PrintArtUploader({
                 toast.error(res.error);
                 return;
             }
-            toast.success(`${label} enregistré.`);
+            toast.success("Visuel enregistré.");
             router.refresh();
         });
     }
@@ -230,13 +235,13 @@ export function PrintArtUploader({
     return (
         <div className="rounded-lg border bg-muted/30 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-xs font-medium">{label}</span>
+                <span className="text-xs font-medium">Visuel</span>
                 <span className="text-[11px] text-muted-foreground">{url ? "Visuel du graphiste" : "Design par défaut"}</span>
             </div>
             {url ? (
                 // Aperçu : le visuel inclut 3 mm de fond perdu de chaque côté.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={url} alt={`${label} du billet`} className="mb-2 aspect-151/56 w-full rounded object-cover" />
+                <img src={url} alt="Visuel du billet imprimé" className="mb-2 aspect-151/56 w-full rounded object-cover" />
             ) : (
                 <div className="mb-2 flex aspect-151/56 w-full items-center justify-center rounded border border-dashed text-muted-foreground">
                     <IconPhoto className="size-5" aria-hidden="true" />
@@ -248,7 +253,7 @@ export function PrintArtUploader({
                 accept="image/png,image/jpeg"
                 className="sr-only"
                 onChange={(e) => onFile(e.target.files?.[0])}
-                aria-label={`Envoyer le visuel ${label.toLowerCase()}`}
+                aria-label="Envoyer le visuel du billet"
             />
             <div className="flex gap-2">
                 <Button type="button" size="sm" variant="outline" disabled={pending} className="flex-1 gap-1.5" onClick={() => inputRef.current?.click()}>
@@ -261,10 +266,10 @@ export function PrintArtUploader({
                         size="sm"
                         variant="ghost"
                         disabled={pending}
-                        aria-label={`Retirer le visuel ${label.toLowerCase()}`}
+                        aria-label="Retirer le visuel"
                         onClick={() =>
                             startTransition(async () => {
-                                const res = await removePrintArt(ticketId, side);
+                                const res = await removePrintArt(ticketId);
                                 if (res.error) toast.error(res.error);
                                 else router.refresh();
                             })
@@ -278,7 +283,79 @@ export function PrintArtUploader({
     );
 }
 
-/** Couleur du numéro imprimé (recto et verso), selon le fond du visuel. */
+/**
+ * Code imprimé devant le numéro. Proposé à partir du titre, à valider ;
+ * figé dès qu'un lot a été imprimé.
+ */
+export function PrintCodeField({
+    ticketId,
+    value,
+    suggestion,
+    locked,
+}: {
+    ticketId: string;
+    value: string | null;
+    suggestion: string;
+    locked: boolean;
+}) {
+    const router = useRouter();
+    const [code, setCode] = useState(value ?? suggestion);
+    const [pending, startTransition] = useTransition();
+    const saved = value !== null && code === value;
+
+    if (locked && value) {
+        return (
+            <div className="flex items-center gap-2 text-xs">
+                <span className="text-muted-foreground">Code :</span>
+                <span className="rounded-md bg-muted px-2 py-1 font-mono font-semibold">{value}</span>
+                <span className="flex items-center gap-1 text-muted-foreground">
+                    <IconLock className="size-3.5" aria-hidden="true" />
+                    figé (billets imprimés)
+                </span>
+            </div>
+        );
+    }
+
+    function save(e: React.FormEvent) {
+        e.preventDefault();
+        startTransition(async () => {
+            const res = await setPrintCode(ticketId, code);
+            if (res.error) {
+                toast.error(res.error);
+                return;
+            }
+            if (res.code) setCode(res.code);
+            toast.success(`Code ${res.code} enregistré.`);
+            router.refresh();
+        });
+    }
+
+    return (
+        <form onSubmit={save} className="flex flex-wrap items-center gap-2 text-xs">
+            <Label htmlFor={`code-${ticketId}`} className="text-xs font-normal text-muted-foreground">
+                Code imprimé :
+            </Label>
+            <Input
+                id={`code-${ticketId}`}
+                value={code}
+                maxLength={PRINT_CODE_MAX}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                className="h-8 w-28 font-mono uppercase"
+                aria-describedby={`code-${ticketId}-hint`}
+            />
+            <Button type="submit" size="sm" variant={saved ? "ghost" : "secondary"} disabled={pending || saved || !code.trim()} className="h-8 gap-1">
+                {saved ? <IconCheck className="size-4" aria-hidden="true" /> : null}
+                {saved ? "Enregistré" : pending ? "…" : "Enregistrer"}
+            </Button>
+            <span id={`code-${ticketId}-hint`} className="w-full text-[11px] text-muted-foreground">
+                Numéros : {printedTicketCode(code.trim() || "CODE", 1)}, {printedTicketCode(code.trim() || "CODE", 2)}…
+                {value === null && " (suggestion, à enregistrer)"}
+            </span>
+        </form>
+    );
+}
+
+/** Couleur du numéro imprimé, selon le fond du talon du visuel. */
 export function NumberColorPicker({ ticketId, value }: { ticketId: string; value: string }) {
     const router = useRouter();
     const [color, setColor] = useState(value === "light" ? "light" : "dark");

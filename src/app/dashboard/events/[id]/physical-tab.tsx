@@ -10,6 +10,8 @@ import {
     PHYSICAL_COMMISSION_RATE,
     physicalCommission,
     printedTicketCode,
+    suggestPrintCode,
+    ticketPrintCode,
 } from "@/lib/printed-tickets";
 import { cn } from "@/lib/utils";
 import {
@@ -17,6 +19,7 @@ import {
     NumberColorPicker,
     PrintBatchForm,
     PrintArtUploader,
+    PrintCodeField,
     ReleaseUnsoldButton,
 } from "./physical-client";
 
@@ -56,8 +59,9 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                 price: true,
                 totalStock: true,
                 printFrontUrl: true,
-                printBackUrl: true,
                 printNumberColor: true,
+                printCode: true,
+                printSerialSeq: true,
             },
             orderBy: [{ position: "asc" }, { price: "asc" }],
         }),
@@ -72,7 +76,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                         price: true,
                         activatedAt: true,
                         firstScannedAt: true,
-                        ticket: { select: { title: true } },
+                        ticket: { select: { title: true, printCode: true } },
                     },
                     orderBy: { serial: "asc" },
                 },
@@ -143,8 +147,9 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                                 {batches.map((b) => {
                                     if (b.items.length === 0) return null;
                                     const title = b.items[0].ticket.title;
-                                    const first = printedTicketCode(title, b.items[0].serial);
-                                    const last = printedTicketCode(title, b.items[b.items.length - 1].serial);
+                                    const code = ticketPrintCode(b.items[0].ticket);
+                                    const first = printedTicketCode(code, b.items[0].serial);
+                                    const last = printedTicketCode(code, b.items[b.items.length - 1].serial);
                                     const activated = b.items.filter((i) => i.activatedAt).length;
                                     const entered = b.items.filter((i) => i.firstScannedAt).length;
                                     const unsold = b.items.filter((i) => !i.activatedAt && !i.firstScannedAt).length;
@@ -222,7 +227,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                     </Card>
 
                     <Card
-                        title="Visuels du graphiste"
+                        title="Codes et visuels"
                         action={
                             <Button asChild size="sm" variant="ghost">
                                 <a href="/docs/billet-physique-guide-graphiste.pdf" target="_blank" rel="noopener">
@@ -233,25 +238,30 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                         }
                     >
                         <p className="mb-4 text-xs text-muted-foreground">
-                            PNG ou JPG de 151 × 56 mm à 300 dpi (1783 × 661 px), fond perdu
-                            compris. Sans visuel, le billet utilise le design par défaut.
-                            Le QR et le numéro sont ajoutés automatiquement : choisissez la
-                            couleur du numéro selon le fond du talon.
+                            Chaque billet a un code lisible imprimé devant son numéro (ex.
+                            STD-1J-0001), figé dès le premier lot. Visuel : recto seul, PNG ou
+                            JPG de 151 × 56 mm à 300 dpi (1783 × 661 px), fond perdu compris ;
+                            sans visuel, le design par défaut est utilisé. Le QR et le numéro
+                            sont ajoutés automatiquement : choisissez la couleur du numéro
+                            selon le fond du talon.
                         </p>
                         {tickets.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Créez d&apos;abord un billet.</p>
                         ) : (
                             <ul className="space-y-3">
                                 {tickets.map((t) => (
-                                    <li key={t.id} className="rounded-xl border p-4">
-                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                    <li key={t.id} className="grid gap-4 rounded-xl border p-4 sm:grid-cols-[1fr_240px]">
+                                        <div className="space-y-3">
                                             <p className="font-medium">{t.title}</p>
+                                            <PrintCodeField
+                                                ticketId={t.id}
+                                                value={t.printCode}
+                                                suggestion={suggestPrintCode(t.title)}
+                                                locked={t.printSerialSeq > 0}
+                                            />
                                             <NumberColorPicker ticketId={t.id} value={t.printNumberColor} />
                                         </div>
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                            <PrintArtUploader ticketId={t.id} side="front" url={t.printFrontUrl} />
-                                            <PrintArtUploader ticketId={t.id} side="back" url={t.printBackUrl} />
-                                        </div>
+                                        <PrintArtUploader ticketId={t.id} url={t.printFrontUrl} />
                                     </li>
                                 ))}
                             </ul>
@@ -268,6 +278,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                                 title: t.title,
                                 price: t.price,
                                 remaining: remaining.get(t.id) ?? null,
+                                printCode: t.printCode,
                             }))}
                         />
                     </Card>
