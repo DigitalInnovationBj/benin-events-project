@@ -29,6 +29,8 @@ export function stockConsumingOrderFilter(
     return {
         OR: [
             { status: "COMPLETED" },
+            // Billets imprimés : réservés dès l'export, vendus ou non.
+            { status: "PRINTED" },
             { status: "PENDING", createdAt: { gte: pendingCutoff } },
         ],
     };

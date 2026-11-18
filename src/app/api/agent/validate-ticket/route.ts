@@ -110,8 +110,18 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // ── 8. Commande non COMPLETED ─────────────────────────────────────────
-    if (rawItem.order.status !== "COMPLETED") {
+    // ── 8. Billet imprimé : valable seulement s'il a été vendu (activé) ────
+    if (rawItem.order.status === "PRINTED" && !rawItem.activatedAt) {
+        return NextResponse.json({
+            valid: false,
+            message: "Billet non vendu",
+            detail: "Ce billet imprimé n'a pas été activé par un point de vente. Il a peut-être été perdu ou volé avant la vente.",
+            ticketTitle: rawItem.ticket.title,
+        });
+    }
+
+    // ── 8b. Commande non COMPLETED ────────────────────────────────────────
+    if (rawItem.order.status !== "COMPLETED" && rawItem.order.status !== "PRINTED") {
         return NextResponse.json({
             valid: false,
             message: "Commande non confirmée",

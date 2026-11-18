@@ -282,7 +282,7 @@ export async function getOrganizerChecklist(
             prisma.orderItem.count({
                 where: {
                     ticket: { event: { organizerId } },
-                    order: stockConsumingOrderFilter(),
+                    order: { ...stockConsumingOrderFilter(), status: { not: "PRINTED" } },
                 },
             }),
         ]);

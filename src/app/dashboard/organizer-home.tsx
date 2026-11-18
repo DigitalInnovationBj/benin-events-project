@@ -75,7 +75,7 @@ export async function OrganizerHome({
             getActionItems(user.id),
             getOrganizerChecklist(user.id),
             prisma.order.findMany({
-                where: { event: { organizerId: user.id } },
+                where: { event: { organizerId: user.id }, status: { not: "PRINTED" } },
                 select: {
                     id: true,
                     reference: true,

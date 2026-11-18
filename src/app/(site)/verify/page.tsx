@@ -82,6 +82,7 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
                       quantity: true,
                       scannedCount: true,
                       firstScannedAt: true,
+                      activatedAt: true,
                       attendeeName: true,
                       ticket: { select: { title: true, validDays: true } },
                       scans: { where: { checkpoint: "main" }, select: { day: true } },
@@ -132,7 +133,16 @@ export default async function VerifyTicketPage({ searchParams }: Props) {
             detail: "Cet évènement a été annulé. Ce billet ne donne plus accès à l'entrée.",
             badge: "Annulé",
         };
-    } else if (found.order.status !== "COMPLETED") {
+    } else if (found.order.status === "PRINTED" && !found.activatedAt) {
+        verdict = {
+            tone: "warning",
+            icon: IconAlertTriangle,
+            accent: "text-yellow-500",
+            title: "Billet non vendu",
+            detail: "Ce billet imprimé n'a pas encore été activé par un point de vente : il ne donne pas accès à l'entrée. Achetez vos billets auprès d'un point de vente officiel.",
+            badge: "Non activé",
+        };
+    } else if (found.order.status !== "COMPLETED" && found.order.status !== "PRINTED") {
         verdict = {
             tone: "warning",
             icon: IconAlertTriangle,

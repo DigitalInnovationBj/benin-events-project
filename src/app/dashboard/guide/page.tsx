@@ -6,6 +6,7 @@ import {
     IconCash,
     IconChartBar,
     IconMessageQuestion,
+    IconPrinter,
     IconRocket,
     IconScan,
     IconSpeakerphone,
@@ -132,6 +133,43 @@ export default async function GuidePage() {
             ],
         },
         {
+            id: "billets-physiques",
+            title: "Billets physiques",
+            summary: "Impression, points de vente, activation",
+            icon: IconPrinter,
+            steps: [
+                {
+                    q: "Comment imprimer des billets ?",
+                    a: "Onglet Billets physiques : choisissez le billet et la quantité. Le PDF place 8 billets de 14,5 × 5 cm par feuille A4 paysage, recto puis verso, avec les traits de coupe. Imprimez recto-verso avec retournement gauche-droite (bord court). Le stock est réservé dès la création du lot.",
+                },
+                {
+                    q: "Pourquoi un billet imprimé doit-il être activé ?",
+                    a: "Un billet imprimé ne vaut rien tant qu'il n'est pas vendu : un lot perdu ou volé est donc inutilisable. Au moment de la vente, le point de vente scanne le QR du billet en mode Vente ; le billet devient valable à l'entrée et la vente lui est attribuée.",
+                },
+                {
+                    q: "Comment ajouter un point de vente ?",
+                    a: "Onglet Équipe : invitez la personne (compte Benin Events requis) avec le rôle « Point de vente ». Un membre peut aussi avoir les deux rôles ; il choisit alors Vente ou Entrée sur le scanner.",
+                },
+                {
+                    q: "Comment faire le bilan avec un point de vente ?",
+                    a: "Le tableau « Ventes par point de vente » donne le nombre de billets activés et le montant à encaisser. Récupérez les invendus puis cliquez sur « Annuler les invendus » : leurs QR deviennent invalides et le stock repart en vente. La commission Benin Events sur les billets vendus est de 3 %.",
+                },
+                {
+                    q: "Le graphiste peut-il créer le visuel ?",
+                    a: (
+                        <>
+                            Oui : envoyez-lui le{" "}
+                            <a href="/docs/billet-physique-guide-graphiste.pdf" className="text-secondary underline underline-offset-2">
+                                guide graphiste
+                            </a>{" "}
+                            (formats, zones du QR et du numéro), puis importez ses visuels recto
+                            et verso dans l&apos;onglet Billets physiques.
+                        </>
+                    ),
+                },
+            ],
+        },
+        {
             id: "jour-j",
             title: "Jour J",
             summary: "Agents, scanner, messages d'erreur",
@@ -147,7 +185,7 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Que veulent dire les refus ?",
-                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Pas d'accès à cette session » : le billet ne comprend pas la session. « Session complète » : toutes les places sont prises. « Commande non confirmée » : paiement non abouti.",
+                    a: "« Déjà utilisé » : billet déjà scanné (aujourd'hui, pour un pass). « Non valable aujourd'hui » : pass présenté un jour non couvert. « Mauvais évènement » : billet d'un autre évènement. « Pas d'accès à cette session » : le billet ne comprend pas la session. « Session complète » : toutes les places sont prises. « Commande non confirmée » : paiement non abouti. « Billet non vendu » : billet imprimé jamais activé par un point de vente.",
                 },
                 {
                     q: "Comment suivre les entrées ?",

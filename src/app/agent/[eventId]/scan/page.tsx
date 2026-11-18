@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/permissions";
-import { canScanEvent } from "@/lib/scan-access";
+import { getEventRoles } from "@/lib/scan-access";
 import prisma from "@/lib/prisma";
-import { QrScanner } from "@/components/agent/qr-scanner";
+import { QrScanner, type ScanMode } from "@/components/agent/qr-scanner";
+import { ScanModeSwitch } from "@/components/agent/scan-mode-switch";
 import { Button } from "@/components/ui/button";
 import { formatEventDateLong } from "@/lib/format";
 import { formatDayKey } from "@/lib/ticket-days";
@@ -19,15 +21,18 @@ export default async function AgentScanPage({
     searchParams,
 }: {
     params: Promise<{ eventId: string }>;
-    searchParams: Promise<{ point?: string }>;
+    searchParams: Promise<{ point?: string; mode?: string }>;
 }) {
-    const [{ eventId }, { point }] = await Promise.all([params, searchParams]);
+    const [{ eventId }, { point, mode: modeParam }] = await Promise.all([params, searchParams]);
     const dbUser = await getCurrentUser();
     if (!dbUser) redirect(`/sign-in?redirect_url=/agent/${eventId}/scan`);
 
-    // Même règle que POST /api/agent/validate-ticket : agent confirmé,
-    // organisateur de l'évènement, ou admin.
-    const allowed = await canScanEvent(dbUser, eventId);
+    // Mêmes règles que les API : contrôle d'entrée (validate-ticket) et
+    // vente en point de vente (activate-ticket).
+    const roles = await getEventRoles(dbUser, eventId);
+    const allowed = roles.canScan || roles.canSell;
+    const mode: ScanMode =
+        !roles.canScan || (modeParam === "vente" && roles.canSell) ? "vente" : "entree";
 
     if (!allowed) {
         return (
@@ -67,7 +72,8 @@ export default async function AgentScanPage({
     if (!event) redirect("/dashboard/scan");
 
     // Point de contrôle choisi : entrée générale ou une session de l'évènement.
-    const activeSession = event.sessions.find((s) => s.id === point) ?? null;
+    const activeSession =
+        mode === "entree" ? (event.sessions.find((s) => s.id === point) ?? null) : null;
 
     return (
         <div className="min-h-screen bg-muted/30 px-4 py-6 sm:py-10">
@@ -111,8 +117,27 @@ export default async function AgentScanPage({
                     </div>
                 </div>
 
+                <Suspense fallback={null}>
+                    <ScanModeSwitch
+                        eventId={eventId}
+                        mode={mode}
+                        showSwitch={roles.canScan && roles.canSell}
+                    />
+                </Suspense>
+
+                {mode === "vente" && (
+                    <div className="rounded-2xl border border-secondary/40 bg-secondary/10 p-4 text-sm">
+                        <p className="font-semibold">Mode vente</p>
+                        <p className="mt-1 text-muted-foreground">
+                            Scannez le QR du billet au moment où vous le remettez à
+                            l&apos;acheteur : il devient valable à l&apos;entrée et la
+                            vente vous est attribuée.
+                        </p>
+                    </div>
+                )}
+
                 {/* Point de contrôle */}
-                {event.sessions.length > 0 && (
+                {mode === "entree" && event.sessions.length > 0 && (
                     <nav
                         aria-label="Point de contrôle"
                         className="bg-card border rounded-2xl p-4 shadow-sm space-y-2"
@@ -149,13 +174,18 @@ export default async function AgentScanPage({
                 {/* Scanner */}
                 <div className="bg-card border rounded-2xl p-6 shadow-sm">
                     <h2 className="font-bold text-lg mb-6 text-center">
-                        {activeSession ? `Scanner · ${activeSession.name}` : "Scanner les billets"}
+                        {mode === "vente"
+                            ? "Activer un billet vendu"
+                            : activeSession
+                              ? `Scanner · ${activeSession.name}`
+                              : "Scanner les billets"}
                     </h2>
-                    {/* key : le scanner repart de zéro quand on change de point */}
+                    {/* key : le scanner repart de zéro quand on change de point ou de mode */}
                     <QrScanner
-                        key={activeSession?.id ?? "main"}
+                        key={`${mode}-${activeSession?.id ?? "main"}`}
                         eventId={eventId}
                         sessionId={activeSession?.id}
+                        mode={mode}
                     />
                 </div>
             </div>

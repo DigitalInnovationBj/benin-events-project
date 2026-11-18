@@ -91,7 +91,11 @@ export default async function ScanIndexPage() {
                                         >
                                             {event.via === "organizer"
                                                 ? "Organisateur"
-                                                : "Agent"}
+                                                : event.canScan && event.canSell
+                                                  ? "Agent · Point de vente"
+                                                  : event.canSell
+                                                    ? "Point de vente"
+                                                    : "Agent"}
                                         </span>
                                     </div>
 
@@ -147,7 +151,11 @@ export default async function ScanIndexPage() {
                                     )}
                                     <Button asChild size="sm">
                                         <Link
-                                            href={`/agent/${event.id}/scan`}
+                                            href={
+                                                event.canScan
+                                                    ? `/agent/${event.id}/scan`
+                                                    : `/agent/${event.id}/scan?mode=vente`
+                                            }
                                         >
                                             <IconScan
                                                 className="h-4 w-4"

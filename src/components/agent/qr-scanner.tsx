@@ -40,13 +40,20 @@ interface ScanResult {
     validDays?: string[];
     currentDay?: string;
     daysScanned?: number;
+    /** Mode vente : numéro imprimé, prix, billets vendus par ce point de vente. */
+    code?: string;
+    price?: number;
+    soldBySeller?: number;
 }
+
+export type ScanMode = "entree" | "vente";
 
 // Chaque cas d'erreur identifiable a sa propre icône et couleur
 type ErrorVariant = "used" | "wrong-event" | "unconfirmed" | "not-found" | "invalid" | "access";
 
 function getErrorVariant(message: string): ErrorVariant {
-    if (message === "Billet déjà utilisé") return "used";
+    if (message === "Billet déjà utilisé" || message === "Billet déjà vendu") return "used";
+    if (message === "Billet en ligne") return "wrong-event";
     if (
         message === "Mauvais évènement" ||
         message === "Billet non valable aujourd'hui" ||
@@ -86,10 +93,13 @@ function ErrorIcon({ variant, className }: { variant: ErrorVariant; className?: 
 export function QrScanner({
     eventId,
     sessionId,
+    mode = "entree",
 }: {
     eventId: string;
     /** Point de contrôle d'une session (absent = entrée générale). */
     sessionId?: string;
+    /** « vente » : le scan active un billet imprimé (point de vente). */
+    mode?: ScanMode;
 }) {
     const [scanning, setScanning] = useState(false);
     const [result, setResult] = useState<ScanResult | null>(null);
@@ -110,11 +120,14 @@ export function QrScanner({
                 return;
             }
 
-            const res = await fetch("/api/agent/validate-ticket", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ itemId, orderReference: orderRef, eventId, sessionId }),
-            });
+            const res = await fetch(
+                mode === "vente" ? "/api/agent/activate-ticket" : "/api/agent/validate-ticket",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ itemId, orderReference: orderRef, eventId, sessionId }),
+                },
+            );
 
             setResult(await res.json());
         } catch {
@@ -239,10 +252,26 @@ function ValidResult({ result, onNext }: { result: ScanResult; onNext: () => voi
             </div>
 
             <div className="space-y-2 border-t border-emerald-200 dark:border-emerald-700 pt-4">
+                {result.detail && (
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300">{result.detail}</p>
+                )}
                 {result.ticketTitle && (
                     <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
                         <IconTicket className="w-4 h-4 shrink-0" />
-                        <span className="font-medium">{result.ticketTitle}</span>
+                        <span className="font-medium">
+                            {result.ticketTitle}
+                            {result.code ? ` · ${result.code}` : ""}
+                            {result.price !== undefined ? ` · ${result.price.toLocaleString("fr-FR")} F CFA` : ""}
+                        </span>
+                    </div>
+                )}
+                {result.soldBySeller !== undefined && (
+                    <div className="flex items-center gap-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+                        <IconScan className="w-4 h-4 shrink-0" />
+                        <span>
+                            Vos ventes pour cet évènement :{" "}
+                            <span className="font-semibold">{result.soldBySeller}</span>
+                        </span>
                     </div>
                 )}
                 {result.attendeeName && (
@@ -311,7 +340,10 @@ function InvalidResult({ result, onNext }: { result: ScanResult; onNext: () => v
                     {result.ticketTitle && (
                         <div className={`flex items-center gap-2.5 text-sm ${style.textColor}`}>
                             <IconTicket className="w-4 h-4 shrink-0 opacity-70" />
-                            <span className="font-medium">{result.ticketTitle}</span>
+                            <span className="font-medium">
+                                {result.ticketTitle}
+                                {result.code ? ` · ${result.code}` : ""}
+                            </span>
                         </div>
                     )}
                     {result.attendeeName && (

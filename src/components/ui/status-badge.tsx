@@ -58,6 +58,7 @@ export function orderStatusBadge(status: string) {
         EXPIRED: { tone: "neutral", label: "Expirée", icon: IconBan },
         CANCELLED: { tone: "neutral", label: "Annulée", icon: IconBan },
         REFUNDED: { tone: "info", label: "Remboursée", icon: IconArrowBackUp },
+        PRINTED: { tone: "info", label: "Billets imprimés", icon: IconClock },
     };
     return map[status] ?? { tone: "neutral" as StatusTone, label: status, icon: IconClock };
 }

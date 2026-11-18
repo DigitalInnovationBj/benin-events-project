@@ -12,9 +12,19 @@ import { fr } from "date-fns/locale";
 // inviteAgent
 // ─────────────────────────────────────────────
 
-export async function inviteAgent(eventId: string, userEmail: string) {
+export type AgentRoles = { canScan: boolean; canSell: boolean };
+
+export async function inviteAgent(
+    eventId: string,
+    userEmail: string,
+    roles: AgentRoles = { canScan: true, canSell: false },
+) {
     const caller = await getCurrentUser();
     if (!caller) return { error: "Non authentifié" };
+
+    if (!roles.canScan && !roles.canSell) {
+        return { error: "Choisissez au moins un rôle." };
+    }
 
     if (caller.role !== "ORGANIZER" && caller.role !== "ADMIN") {
         return { error: "Accès refusé" };
@@ -42,7 +52,7 @@ export async function inviteAgent(eventId: string, userEmail: string) {
     const token = randomBytes(32).toString("hex");
 
     await prisma.eventAgent.create({
-        data: { eventId, userId: target.id, token },
+        data: { eventId, userId: target.id, token, canScan: roles.canScan, canSell: roles.canSell },
     });
 
     const eventDate = format(new Date(event.startDate), "d MMMM yyyy", {
@@ -113,6 +123,37 @@ export async function revokeAgent(eventId: string, targetUserId: string) {
     await prisma.eventAgent.update({
         where: { eventId_userId: { eventId, userId: targetUserId } },
         data: { status: "REVOKED" },
+    });
+
+    revalidatePath(`/dashboard/events/${eventId}`);
+    return { success: true };
+}
+
+// ─────────────────────────────────────────────
+// setAgentRoles
+// ─────────────────────────────────────────────
+
+/** Rôles d'un membre de l'équipe : contrôle d'entrée et/ou point de vente. */
+export async function setAgentRoles(eventId: string, targetUserId: string, roles: AgentRoles) {
+    const caller = await getCurrentUser();
+    if (!caller) return { error: "Non authentifié" };
+
+    if (!roles.canScan && !roles.canSell) {
+        return { error: "Gardez au moins un rôle, ou révoquez l'agent." };
+    }
+
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { organizerId: true },
+    });
+    if (!event) return { error: "Évènement introuvable" };
+    if (caller.role !== "ADMIN" && event.organizerId !== caller.id) {
+        return { error: "Accès refusé" };
+    }
+
+    await prisma.eventAgent.update({
+        where: { eventId_userId: { eventId, userId: targetUserId } },
+        data: { canScan: roles.canScan, canSell: roles.canSell },
     });
 
     revalidatePath(`/dashboard/events/${eventId}`);

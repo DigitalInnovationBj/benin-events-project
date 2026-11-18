@@ -53,6 +53,7 @@ export async function AdminHome({ name }: { name: string }) {
                 take: 5,
             }),
             prisma.order.findMany({
+                where: { status: { not: "PRINTED" } },
                 select: {
                     id: true,
                     status: true,

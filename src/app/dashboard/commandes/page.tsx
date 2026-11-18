@@ -71,7 +71,8 @@ export default async function OrganizerOrdersPage({
     const where: Prisma.OrderWhereInput = {
         event: eventScope,
         ...(eventId ? { eventId } : {}),
-        ...(status !== "ALL" ? { status } : {}),
+        // Les lots de billets imprimés ont leur propre onglet (Billets physiques).
+        ...(status !== "ALL" ? { status } : { status: { not: "PRINTED" } }),
         ...(deliveryFailed
             ? {
                   status: "COMPLETED",

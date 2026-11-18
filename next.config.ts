@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
     // `babel-plugin-react-compiler` était installé sans être activé.
     reactCompiler: true,
 
+    // Visuels des billets imprimés (PNG 300 dpi, jusqu'à 4 Mo) envoyés par
+    // Server Action. 4,5 Mo = plafond du corps de requête des fonctions Vercel.
+    experimental: {
+        serverActions: {
+            bodySizeLimit: "4.5mb",
+        },
+    },
+
     images: {
         // Auparavant `unoptimized: true`, ce qui annulait tout l'intérêt de
         // next/image sur un site entièrement visuel : ni redimensionnement,

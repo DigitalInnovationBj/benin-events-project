@@ -39,6 +39,11 @@ enum OrderStatus {
   EXPIRED
   CANCELLED
   REFUNDED
+  /// Lot de billets imprimés pour la vente en point de vente. Ses billets
+  /// réservent du stock mais ne comptent comme vendus qu'une fois activés
+  /// (OrderItem.activatedAt) ; la commande reste hors des recettes en ligne,
+  /// des reversements et des emails.
+  PRINTED
 }
 
 enum AgentStatus {
@@ -139,6 +144,8 @@ model User {
   payoutRequests    PayoutRequest[]    @relation("OrganizerPayouts")
   platformPayments  PlatformPayment[]
   campaigns         EventCampaign[]
+  /// Billets imprimés activés (vendus) par cet utilisateur en point de vente.
+  activatedTickets  OrderItem[]        @relation("TicketActivations")
 
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -432,6 +439,11 @@ model Ticket {
   /// conférences du festival pour le pass VVIP).
   sessions TicketSession[]
 
+  /// Visuels du graphiste pour les billets imprimés (151 × 56 mm, fond perdu
+  /// compris). Null = design Benin Events par défaut.
+  printFrontUrl String?
+  printBackUrl  String?
+
   // Relations
   eventId    String
   event      Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -541,9 +553,19 @@ model OrderItem {
   /// (`Ticket.validDays` non vide).
   scans TicketScan[]
 
+  /// Billet imprimé (commande PRINTED) : numéro dans la série du billet
+  /// (VVIP-0001…), puis activation par le point de vente qui l'a vendu. Un
+  /// billet imprimé non activé est refusé à l'entrée.
+  serial        Int?
+  activatedAt   DateTime?
+  activatedById String?
+  activatedBy   User?     @relation("TicketActivations", fields: [activatedById], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
 
+  @@unique([ticketId, serial])
   @@index([attendeeEmail])
+  @@index([activatedById])
 }
 
 /// Un scan validé, enregistré par jour et par point de contrôle : l'entrée
@@ -672,6 +694,11 @@ model EventAgent {
 
   userId  String
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Rôles : contrôle d'entrée (historique, par défaut) et/ou point de vente
+  /// (activation des billets imprimés).
+  canScan Boolean @default(true)
+  canSell Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

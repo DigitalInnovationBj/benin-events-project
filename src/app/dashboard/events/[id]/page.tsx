@@ -37,6 +37,8 @@ import RefundPanel from "./RefundPanel";
 import { EventPartnersPanel } from "./EventPartnersPanel";
 import AgentInviteForm from "./agents/AgentInviteForm";
 import RevokeButton from "./agents/RevokeButton";
+import AgentRolesEditor from "./agents/AgentRolesEditor";
+import { PhysicalTab } from "./physical-tab";
 import { DangerZone, PromotionActions, ShareEventButton, TicketOnSaleButton } from "./event-client-actions";
 import { SessionsPanel } from "./sessions-panel";
 import { SortableTicketList, TicketSortSelect } from "./ticket-order-controls";
@@ -50,6 +52,7 @@ const TABS = [
     { key: "apercu", label: "Aperçu" },
     { key: "billets", label: "Billets" },
     { key: "ventes", label: "Ventes" },
+    { key: "physiques", label: "Billets physiques" },
     { key: "entrees", label: "Entrées" },
     { key: "equipe", label: "Équipe" },
     { key: "promotion", label: "Promotion" },
@@ -236,6 +239,7 @@ export default async function EventDetailsPage({
             {tab === "apercu" && <OverviewTab event={event} />}
             {tab === "billets" && <TicketsTab event={event} />}
             {tab === "ventes" && <SalesTab event={event} />}
+            {tab === "physiques" && <PhysicalTab eventId={event.id} />}
             {tab === "entrees" && <EntriesTab event={event} />}
             {tab === "equipe" && <TeamTab eventId={event.id} />}
             {tab === "promotion" && (
@@ -576,7 +580,7 @@ async function SalesTab({ event }: { event: EventData }) {
     const [sales, recentOrders, pendingCount, refund] = await Promise.all([
         getTicketSales(event.id),
         prisma.order.findMany({
-            where: { eventId: event.id },
+            where: { eventId: event.id, status: { not: "PRINTED" } },
             select: {
                 id: true,
                 reference: true,
@@ -810,21 +814,32 @@ async function TeamTab({ eventId }: { eventId: string }) {
 
     return (
         <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
-            <SectionCard title={`Agents de contrôle (${agents.length})`}>
+            <SectionCard title={`Agents et points de vente (${agents.length})`}>
                 {agents.length === 0 ? (
                     <p className="rounded-xl border border-dashed bg-muted/30 py-8 text-center text-sm text-muted-foreground">
-                        Aucun agent pour l&apos;instant. Invitez les personnes qui
-                        scanneront les billets à l&apos;entrée.
+                        Aucun membre pour l&apos;instant. Invitez les personnes qui
+                        scanneront les billets à l&apos;entrée ou vendront les
+                        billets imprimés.
                     </p>
                 ) : (
                     <ul className="space-y-3">
                         {agents.map((agent) => {
                             const badge = agentStatusBadge(agent.status);
                             return (
-                                <li key={agent.id} className="flex items-center justify-between gap-4 rounded-xl border p-4">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate font-medium">{agent.user.name ?? agent.user.email}</p>
-                                        <p className="truncate text-xs text-muted-foreground">{agent.user.email}</p>
+                                <li key={agent.id} className="flex items-start justify-between gap-4 rounded-xl border p-4">
+                                    <div className="min-w-0 flex-1 space-y-2">
+                                        <div>
+                                            <p className="truncate font-medium">{agent.user.name ?? agent.user.email}</p>
+                                            <p className="truncate text-xs text-muted-foreground">{agent.user.email}</p>
+                                        </div>
+                                        {agent.status !== "REVOKED" && (
+                                            <AgentRolesEditor
+                                                eventId={eventId}
+                                                userId={agent.userId}
+                                                canScan={agent.canScan}
+                                                canSell={agent.canSell}
+                                            />
+                                        )}
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
                                         <StatusBadge tone={badge.tone} label={badge.label} icon={badge.icon} />
@@ -839,13 +854,14 @@ async function TeamTab({ eventId }: { eventId: string }) {
                 )}
             </SectionCard>
             <div className="space-y-4">
-                <SectionCard title="Inviter un agent">
+                <SectionCard title="Inviter un membre">
                     <AgentInviteForm eventId={eventId} />
                 </SectionCard>
                 <HelpCallout guideAnchor="jour-j">
-                    L&apos;agent doit avoir un compte Benin Events. Il reçoit un
+                    Le membre doit avoir un compte Benin Events. Il reçoit un
                     email de confirmation, puis accède au scanner depuis son
-                    propre tableau de bord.
+                    propre tableau de bord. S&apos;il a les deux rôles, il choisit
+                    le mode Vente ou Entrée sur le scanner.
                 </HelpCallout>
             </div>
         </div>

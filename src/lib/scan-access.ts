@@ -23,14 +23,53 @@ export async function canScanEvent(
         }),
         prisma.eventAgent.findUnique({
             where: { eventId_userId: { eventId, userId: user.id } },
-            select: { status: true },
+            select: { status: true, canScan: true },
         }),
     ]);
 
     if (!event) return false;
     if (event.organizerId === user.id) return true;
 
-    return agent?.status === "CONFIRMED";
+    return agent?.status === "CONFIRMED" && agent.canScan;
+}
+
+/**
+ * Qui peut activer (vendre) les billets imprimés d'un évènement : point de
+ * vente confirmé, organisateur de l'évènement ou admin.
+ */
+export async function canSellEvent(
+    user: { id: string; role: Role },
+    eventId: string,
+): Promise<boolean> {
+    if (user.role === "ADMIN") return true;
+
+    const [event, agent] = await Promise.all([
+        prisma.event.findUnique({
+            where: { id: eventId },
+            select: { organizerId: true },
+        }),
+        prisma.eventAgent.findUnique({
+            where: { eventId_userId: { eventId, userId: user.id } },
+            select: { status: true, canSell: true },
+        }),
+    ]);
+
+    if (!event) return false;
+    if (event.organizerId === user.id) return true;
+
+    return agent?.status === "CONFIRMED" && agent.canSell;
+}
+
+/** Rôles de l'utilisateur sur un évènement : contrôle d'entrée, vente. */
+export async function getEventRoles(
+    user: { id: string; role: Role },
+    eventId: string,
+): Promise<{ canScan: boolean; canSell: boolean }> {
+    const [canScan, canSell] = await Promise.all([
+        canScanEvent(user, eventId),
+        canSellEvent(user, eventId),
+    ]);
+    return { canScan, canSell };
 }
 
 /**
@@ -74,6 +113,9 @@ export type ScannableEvent = {
     eventType: string;
     /** Comment l'utilisateur a obtenu l'accès — affiché comme badge. */
     via: "organizer" | "agent";
+    /** Rôles : contrôle d'entrée et/ou point de vente. */
+    canScan: boolean;
+    canSell: boolean;
 };
 
 /**
@@ -114,6 +156,8 @@ export async function getScannableEvents(user: {
         prisma.eventAgent.findMany({
             where: { userId: user.id, status: "CONFIRMED", event: baseFilter },
             select: {
+                canScan: true,
+                canSell: true,
                 event: {
                     select: {
                         id: true,
@@ -132,12 +176,13 @@ export async function getScannableEvents(user: {
     const byId = new Map<string, ScannableEvent>();
 
     for (const event of organized) {
-        byId.set(event.id, { ...event, via: "organizer" });
+        byId.set(event.id, { ...event, via: "organizer", canScan: true, canSell: true });
     }
     // Un organisateur peut aussi être agent sur son propre évènement : la
     // qualité d'organisateur prime, on n'écrase pas l'entrée existante.
-    for (const { event } of assignments) {
-        if (!byId.has(event.id)) byId.set(event.id, { ...event, via: "agent" });
+    for (const { event, canScan, canSell } of assignments) {
+        if (!canScan && !canSell) continue;
+        if (!byId.has(event.id)) byId.set(event.id, { ...event, via: "agent", canScan, canSell });
     }
 
     return [...byId.values()].sort(
