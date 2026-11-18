@@ -20,6 +20,7 @@ export default async function AdminSettingsPage() {
                     </p>
                     <SettingsForm
                         currentRate={settings.commissionRate}
+                        physicalRate={settings.physicalCommissionRate}
                         eventCreationFeeEnabled={settings.eventCreationFeeEnabled}
                         eventCreationFee={settings.eventCreationFee}
                         featuredEventFeeEnabled={settings.featuredEventFeeEnabled}

@@ -7,7 +7,6 @@ import { StatTile } from "@/components/dashboard/stat-tile";
 import { formatEventDateShort, formatXOF } from "@/lib/format";
 import { getRemainingStock } from "@/lib/stock";
 import {
-    PHYSICAL_COMMISSION_RATE,
     physicalCommission,
     printedTicketCode,
     suggestPrintCode,
@@ -106,6 +105,11 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
             select: { organizerId: true },
         }),
     ]);
+    const settings = await prisma.platformSettings.findUnique({
+        where: { id: "singleton" },
+        select: { physicalCommissionRate: true },
+    });
+    const rate = settings?.physicalCommissionRate ?? 3;
 
     const remaining = await getRemainingStock(tickets.map((t) => t.id));
 
@@ -128,8 +132,8 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                 <StatTile label="Billets vendus" value={sold} hint="activés par un point de vente" />
                 <StatTile label="Ventes physiques" value={formatXOF(amount, { zeroLabel: null })} highlight />
                 <StatTile
-                    label={`Commission Benin Events (${Math.round(PHYSICAL_COMMISSION_RATE * 100)} %)`}
-                    value={formatXOF(physicalCommission(amount), { zeroLabel: null })}
+                    label={`Commission Benin Events (${rate.toLocaleString("fr-FR")} %)`}
+                    value={formatXOF(physicalCommission(amount, rate), { zeroLabel: null })}
                     hint="sur les billets vendus"
                 />
             </div>

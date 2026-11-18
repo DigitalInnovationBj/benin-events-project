@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateCommissionRate, updatePlatformFees } from "@/actions/settings.actions";
+import {
+    updateCommissionRate,
+    updatePhysicalCommissionRate,
+    updatePlatformFees,
+} from "@/actions/settings.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +15,7 @@ import { IconLoader2, IconPercentage, IconCoins } from "@tabler/icons-react";
 
 interface Props {
     currentRate: number;
+    physicalRate: number;
     eventCreationFeeEnabled: boolean;
     eventCreationFee: number;
     featuredEventFeeEnabled: boolean;
@@ -19,6 +24,7 @@ interface Props {
 
 export function SettingsForm({
     currentRate,
+    physicalRate: currentPhysicalRate,
     eventCreationFeeEnabled,
     eventCreationFee,
     featuredEventFeeEnabled,
@@ -26,6 +32,8 @@ export function SettingsForm({
 }: Props) {
     const [rate, setRate] = useState(String(currentRate));
     const [isPendingRate, startTransitionRate] = useTransition();
+    const [physicalRate, setPhysicalRate] = useState(String(currentPhysicalRate));
+    const [isPendingPhysical, startTransitionPhysical] = useTransition();
 
     const [creationEnabled, setCreationEnabled] = useState(eventCreationFeeEnabled);
     const [creationFee, setCreationFee] = useState(String(eventCreationFee));
@@ -44,6 +52,23 @@ export function SettingsForm({
             try {
                 await updateCommissionRate(parsed);
                 toast.success("Taux de commission mis à jour");
+            } catch {
+                toast.error("Une erreur est survenue");
+            }
+        });
+    }
+
+    function handlePhysicalSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        const parsed = parseFloat(physicalRate);
+        if (isNaN(parsed) || parsed < 0 || parsed > 100) {
+            toast.error("Entrez un pourcentage entre 0 et 100");
+            return;
+        }
+        startTransitionPhysical(async () => {
+            try {
+                await updatePhysicalCommissionRate(parsed);
+                toast.success("Commission des billets physiques mise à jour");
             } catch {
                 toast.error("Une erreur est survenue");
             }
@@ -115,6 +140,39 @@ export function SettingsForm({
                             {currentRate}% appliqué
                         </span>
                     )}
+                </div>
+            </form>
+
+            {/* ── Commission billets physiques ──────────────────── */}
+            <form onSubmit={handlePhysicalSubmit} className="space-y-4 max-w-sm border-t pt-6">
+                <div className="space-y-2">
+                    <Label htmlFor="physical-rate">Taux de commission billets physiques</Label>
+                    <div className="relative">
+                        <Input
+                            id="physical-rate"
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={0.5}
+                            value={physicalRate}
+                            onChange={(e) => setPhysicalRate(e.target.value)}
+                            className="pr-10"
+                        />
+                        <IconPercentage className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        S&apos;applique au montant des billets imprimés vendus (activés en point de
+                        vente). Facturé à l&apos;organisateur, l&apos;argent étant encaissé hors plateforme.
+                    </p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Button type="submit" disabled={isPendingPhysical} className="gap-2">
+                        {isPendingPhysical && <IconLoader2 className="w-4 h-4 animate-spin" />}
+                        Enregistrer
+                    </Button>
+                    <span className="text-xs text-secondary bg-secondary/10 px-2 py-1 rounded-full font-semibold">
+                        {currentPhysicalRate}% appliqué
+                    </span>
                 </div>
             </form>
 

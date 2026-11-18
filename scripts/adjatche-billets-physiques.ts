@@ -14,6 +14,8 @@
  *     sinon il est modifié sur place.
  *   - Codes imprimés : ECO, STD-1J, STD-2J, VIP-2J, VVIP, SOUTIEN (seulement
  *     pour les billets qui n'ont pas encore de code).
+ *   - Visuels du graphiste (public/print/adjatche/*.jpg) posés sur les billets
+ *     qui n'ont pas encore de visuel.
  *
  * Contrairement à seed-adjatche.ts, ne touche à rien d'autre (stocks,
  * autres billets, billet de test…).
@@ -56,6 +58,16 @@ const CODES: Record<string, string> = {
     [T.soutien]: "SOUTIEN",
 };
 
+/** Visuels du graphiste, livrés avec le site dans public/print/adjatche/. */
+const ART: Record<string, string> = {
+    [T.eco]: "/print/adjatche/eco.jpg",
+    [T.std1]: "/print/adjatche/std-1j.jpg",
+    [T.std2]: "/print/adjatche/std-2j.jpg",
+    [T.vip2]: "/print/adjatche/vip-2j.jpg",
+    [T.vvip]: "/print/adjatche/vvip.jpg",
+    [T.soutien]: "/print/adjatche/soutien.jpg",
+};
+
 const VIP2_DESCRIPTION = "Accès VIP au festival les samedi 19 et dimanche 20 décembre.";
 
 function log(msg: string) {
@@ -76,6 +88,7 @@ async function main() {
                     description: true,
                     position: true,
                     printCode: true,
+                    printFrontUrl: true,
                     sessionOnly: true,
                     isArchived: true,
                     sessions: { select: { sessionId: true } },
@@ -196,9 +209,14 @@ async function main() {
     const fresh = APPLY
         ? await prisma.ticket.findMany({
               where: { eventId: event.id },
-              select: { id: true, title: true, printCode: true },
+              select: { id: true, title: true, printCode: true, printFrontUrl: true },
           })
-        : event.tickets.map((t) => ({ id: t.id, title: t.title === T.vip1 ? T.vip2 : t.title, printCode: t.printCode }));
+        : event.tickets.map((t) => ({
+              id: t.id,
+              title: t.title === T.vip1 ? T.vip2 : t.title,
+              printCode: t.printCode,
+              printFrontUrl: t.printFrontUrl,
+          }));
     for (const [title, code] of Object.entries(CODES)) {
         const t = fresh.find((x) => x.title === title);
         if (!t) {
@@ -212,6 +230,20 @@ async function main() {
         } else {
             log(`${title} : code imprimé ${code}`);
             if (APPLY) await prisma.ticket.update({ where: { id: t.id }, data: { printCode: code } });
+        }
+    }
+
+    // ── Visuels du graphiste ────────────────────────────────────────────
+    for (const [title, url] of Object.entries(ART)) {
+        const t = fresh.find((x) => x.title === title);
+        if (!t) continue;
+        if (t.printFrontUrl === url) {
+            console.log(`  · ${title} : visuel déjà en place`);
+        } else if (t.printFrontUrl) {
+            console.log(`  ⚠️  ${title} : visuel déjà importé conservé`);
+        } else {
+            log(`${title} : visuel ${url}`);
+            if (APPLY) await prisma.ticket.update({ where: { id: t.id }, data: { printFrontUrl: url } });
         }
     }
 

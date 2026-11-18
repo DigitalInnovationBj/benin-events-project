@@ -33,6 +33,21 @@ export async function updateCommissionRate(rate: number) {
     revalidatePath("/admin/settings");
 }
 
+/** Taux de commission (%) sur les billets physiques vendus. */
+export async function updatePhysicalCommissionRate(rate: number) {
+    await requireAdmin();
+
+    if (rate < 0 || rate > 100) throw new Error("Taux invalide (0–100)");
+
+    await prisma.platformSettings.upsert({
+        where: { id: "singleton" },
+        create: { id: "singleton", commissionRate: 0, physicalCommissionRate: rate },
+        update: { physicalCommissionRate: rate },
+    });
+
+    revalidatePath("/admin/settings");
+}
+
 export async function updatePlatformFees(data: {
     eventCreationFeeEnabled: boolean;
     eventCreationFee: number;

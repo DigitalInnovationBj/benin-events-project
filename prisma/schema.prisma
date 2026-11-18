@@ -661,6 +661,8 @@ model PayoutRequest {
 model PlatformSettings {
   id                      String   @id @default("singleton")
   commissionRate          Float    @default(0)
+  /// Commission (%) sur les billets physiques vendus (activés en point de vente).
+  physicalCommissionRate  Float    @default(3)
   eventCreationFeeEnabled Boolean  @default(false)
   eventCreationFee        Float    @default(5000)
   featuredEventFeeEnabled Boolean  @default(false)

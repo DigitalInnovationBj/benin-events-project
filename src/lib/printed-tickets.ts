@@ -8,9 +8,6 @@
  * imprimé non activé est refusé à l'entrée.
  */
 
-/** Commission Benin Events sur les billets imprimés activés (vendus). */
-export const PHYSICAL_COMMISSION_RATE = 0.03;
-
 /** Taille maximale d'un lot (50 feuilles A4 de 8 billets). */
 export const MAX_PRINT_BATCH = 400;
 
@@ -68,7 +65,11 @@ export function printedTicketCode(code: string, serial: number | null): string {
     return `${code}-${String(serial ?? 0).padStart(4, "0")}`;
 }
 
-/** Commission due sur un montant de ventes physiques, arrondie au franc. */
-export function physicalCommission(amount: number): number {
-    return Math.round(amount * PHYSICAL_COMMISSION_RATE);
+/**
+ * Commission due sur les ventes physiques. `ratePercent` vient des
+ * paramètres de la plateforme (PlatformSettings.physicalCommissionRate),
+ * arrondie au franc supérieur comme la commission des reversements.
+ */
+export function physicalCommission(amount: number, ratePercent: number): number {
+    return Math.ceil((amount * ratePercent) / 100);
 }

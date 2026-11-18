@@ -102,10 +102,18 @@ export class PrintArtError extends Error {}
  * ignore en silence une image introuvable : sans ce préchargement, le PDF
  * sortait sans fond, sans aucune alerte.
  */
-async function loadArt(src: string, label: string): Promise<string> {
+async function loadArt(src: string, label: string, appUrl: string): Promise<string> {
     let bytes: Buffer;
     try {
-        if (/^https?:\/\//.test(src)) {
+        if (src.startsWith("/")) {
+            // Visuel livré avec le site (public/…) : lu sur le disque s'il est
+            // présent dans la fonction, sinon récupéré sur le site.
+            bytes = await readFile(path.join(process.cwd(), "public", src)).catch(async () => {
+                const res = await fetch(`${appUrl}${src}`, { signal: AbortSignal.timeout(20_000) });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return Buffer.from(await res.arrayBuffer());
+            });
+        } else if (/^https?:\/\//.test(src)) {
             const res = await fetch(src, { signal: AbortSignal.timeout(20_000) });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             bytes = Buffer.from(await res.arrayBuffer());
@@ -232,7 +240,7 @@ function Sheet({ d, tickets, p }: { d: PrintSheetData; tickets: Prepared[]; p: P
 export async function generatePrintSheetPdf(input: PrintSheetData): Promise<Buffer> {
     const p = PALETTES[input.theme ?? ""] ?? PALETTES.default;
 
-    const frontUrl = input.frontUrl ? await loadArt(input.frontUrl, "du billet") : null;
+    const frontUrl = input.frontUrl ? await loadArt(input.frontUrl, "du billet", input.appUrl) : null;
     const d: PrintSheetData = { ...input, frontUrl };
 
     const prepared: Prepared[] = await Promise.all(

@@ -48,6 +48,7 @@ export default async function GuidePage() {
         getSettings(),
     ]);
     const commission = settings.commissionRate;
+    const physicalCommission = settings.physicalCommissionRate;
 
     const topics: Topic[] = [
         {
@@ -152,7 +153,7 @@ export default async function GuidePage() {
                 },
                 {
                     q: "Comment faire le bilan avec un point de vente ?",
-                    a: "Le tableau « Ventes par point de vente » donne le nombre de billets activés et le montant à encaisser. Récupérez les invendus puis cliquez sur « Annuler les invendus » : leurs QR deviennent invalides et le stock repart en vente. La commission Benin Events sur les billets vendus est de 3 %.",
+                    a: `Le tableau « Ventes par point de vente » donne le nombre de billets activés et le montant à encaisser. Récupérez les invendus puis cliquez sur « Annuler les invendus » : leurs QR deviennent invalides et le stock repart en vente. La commission Benin Events sur les billets vendus est de ${physicalCommission.toLocaleString("fr-FR")} %.`,
                 },
                 {
                     q: "Le graphiste peut-il créer le visuel ?",
