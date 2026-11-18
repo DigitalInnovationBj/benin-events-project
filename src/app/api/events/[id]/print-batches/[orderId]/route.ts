@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/permissions";
 import { formatEventDateLong, formatXOF } from "@/lib/format";
 import { formatDayKey } from "@/lib/ticket-days";
-import { generatePrintSheetPdf } from "@/lib/print-sheet-pdf";
+import { generatePrintSheetPdf, PrintArtError } from "@/lib/print-sheet-pdf";
 import { printedTicketCode } from "@/lib/printed-tickets";
 
 // Un lot de 400 billets = 100 pages : le rendu peut prendre plusieurs secondes.
@@ -48,6 +48,7 @@ export async function GET(
                             validDays: true,
                             printFrontUrl: true,
                             printBackUrl: true,
+                            printNumberColor: true,
                         },
                     },
                 },
@@ -67,7 +68,9 @@ export async function GET(
     }
 
     const ticket = order.items[0].ticket;
-    const pdf = await generatePrintSheetPdf({
+    let pdf: Buffer;
+    try {
+        pdf = await generatePrintSheetPdf({
         eventTitle: order.event.title,
         eventDate: formatEventDateLong(order.event.startDate),
         eventLocation: order.event.eventType === "IN_PERSON" ? order.event.location : "En ligne",
@@ -79,9 +82,17 @@ export async function GET(
             : null,
         frontUrl: ticket.printFrontUrl,
         backUrl: ticket.printBackUrl,
+        numberColor: ticket.printNumberColor,
         appUrl: APP_URL,
         items: order.items.map((i) => ({ id: i.id, serial: i.serial, orderReference: order.reference })),
-    });
+        });
+    } catch (err) {
+        // Visuel illisible : on refuse plutôt que d'imprimer des billets sans fond.
+        if (err instanceof PrintArtError) {
+            return NextResponse.json({ error: err.message }, { status: 502 });
+        }
+        throw err;
+    }
 
     const first = printedTicketCode(ticket.title, order.items[0].serial);
     const last = printedTicketCode(ticket.title, order.items[order.items.length - 1].serial);

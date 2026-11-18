@@ -1,5 +1,6 @@
 import React from "react";
 import path from "path";
+import { readFile } from "fs/promises";
 import QRCode from "qrcode";
 import {
     Document,
@@ -89,11 +90,48 @@ export interface PrintSheetData {
     validity: string | null;
     frontUrl: string | null;
     backUrl: string | null;
+    /** Couleur du numéro imprimé : « dark » (noir) ou « light » (blanc). */
+    numberColor?: string;
     appUrl: string;
     items: { id: string; serial: number | null; orderReference: string }[];
 }
 
 type Prepared = { code: string; qr: string };
+
+/** Visuel du graphiste illisible : le PDF n'est pas généré. */
+export class PrintArtError extends Error {}
+
+/**
+ * Charge un visuel (URL Vercel Blob ou chemin local) en data URI. React-PDF
+ * ignore en silence une image introuvable : sans ce préchargement, le PDF
+ * sortait sans fond, sans aucune alerte.
+ */
+async function loadArt(src: string, label: string): Promise<string> {
+    let bytes: Buffer;
+    try {
+        if (/^https?:\/\//.test(src)) {
+            const res = await fetch(src, { signal: AbortSignal.timeout(20_000) });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            bytes = Buffer.from(await res.arrayBuffer());
+        } else {
+            bytes = await readFile(src);
+        }
+    } catch (err) {
+        throw new PrintArtError(
+            `Le visuel ${label} est inaccessible (${(err as Error).message}). Réessayez, ou renvoyez le visuel.`,
+        );
+    }
+    const isPng = bytes.subarray(0, 4).toString("hex") === "89504e47";
+    const isJpg = bytes.subarray(0, 3).toString("hex") === "ffd8ff";
+    if (!isPng && !isJpg) {
+        throw new PrintArtError(`Le visuel ${label} n'est pas un PNG ou un JPG valide. Renvoyez-le.`);
+    }
+    return `data:image/${isPng ? "png" : "jpeg"};base64,${bytes.toString("base64")}`;
+}
+
+function numberColor(d: PrintSheetData, p: Palette) {
+    return d.numberColor === "light" ? "#FFFFFF" : p.ink;
+}
 
 function TicketFront({ d, t, p }: { d: PrintSheetData; t: Prepared; p: Palette }) {
     return (
@@ -142,7 +180,7 @@ function TicketFront({ d, t, p }: { d: PrintSheetData; t: Prepared; p: Palette }
             <View style={{ position: "absolute", left: mm(108), top: mm(3), width: mm(34), height: mm(34), backgroundColor: "#FFFFFF" }} />
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={t.qr} style={{ position: "absolute", left: mm(111), top: mm(6), width: mm(28), height: mm(28) }} />
-            <Text style={{ position: "absolute", left: mm(110), top: mm(40.6), width: mm(30), textAlign: "center", fontFamily: "PrintSG", fontWeight: 700, fontSize: 8.5, color: p.ink }}>
+            <Text style={{ position: "absolute", left: mm(110), top: mm(40.6), width: mm(30), textAlign: "center", fontFamily: "PrintSG", fontWeight: 700, fontSize: 8.5, color: numberColor(d, p) }}>
                 {t.code}
             </Text>
         </>
@@ -179,7 +217,7 @@ function TicketBack({ d, t, p }: { d: PrintSheetData; t: Prepared; p: Palette })
                     </View>
                 </>
             )}
-            <Text style={{ position: "absolute", left: mm(5), top: mm(40.6), width: mm(30), textAlign: "center", fontFamily: "PrintSG", fontWeight: 700, fontSize: 8.5, color: p.ink }}>
+            <Text style={{ position: "absolute", left: mm(5), top: mm(40.6), width: mm(30), textAlign: "center", fontFamily: "PrintSG", fontWeight: 700, fontSize: 8.5, color: numberColor(d, p) }}>
                 {t.code}
             </Text>
         </>
@@ -233,8 +271,14 @@ function Sheet({ d, tickets, side, p }: { d: PrintSheetData; tickets: Prepared[]
     );
 }
 
-export async function generatePrintSheetPdf(d: PrintSheetData): Promise<Buffer> {
-    const p = PALETTES[d.theme ?? ""] ?? PALETTES.default;
+export async function generatePrintSheetPdf(input: PrintSheetData): Promise<Buffer> {
+    const p = PALETTES[input.theme ?? ""] ?? PALETTES.default;
+
+    const [frontUrl, backUrl] = await Promise.all([
+        input.frontUrl ? loadArt(input.frontUrl, "recto") : null,
+        input.backUrl ? loadArt(input.backUrl, "verso") : null,
+    ]);
+    const d: PrintSheetData = { ...input, frontUrl, backUrl };
 
     const prepared: Prepared[] = await Promise.all(
         d.items.map(async (item) => ({

@@ -73,11 +73,21 @@ export async function createPrintBatch(
             }
         }
 
+        // Compteur jamais décrémenté : les numéros des invendus annulés ne
+        // sont pas réattribués (ils existent encore sur papier).
         const last = await tx.orderItem.aggregate({
             where: { ticketId },
             _max: { serial: true },
         });
-        const from = (last._max.serial ?? 0) + 1;
+        const current = await tx.ticket.findUniqueOrThrow({
+            where: { id: ticketId },
+            select: { printSerialSeq: true },
+        });
+        const from = Math.max(current.printSerialSeq, last._max.serial ?? 0) + 1;
+        await tx.ticket.update({
+            where: { id: ticketId },
+            data: { printSerialSeq: from + quantity - 1 },
+        });
 
         const order = await tx.order.create({
             data: {
@@ -199,6 +209,28 @@ export async function removePrintArt(ticketId: string, side: "front" | "back") {
     await prisma.ticket.update({
         where: { id: ticket.id },
         data: side === "front" ? { printFrontUrl: null } : { printBackUrl: null },
+    });
+
+    revalidateEvent(ticket.eventId);
+    return { success: true };
+}
+
+/** Couleur du numéro imprimé, selon le fond du visuel (noir ou blanc). */
+export async function setPrintNumberColor(ticketId: string, color: "dark" | "light") {
+    if (color !== "dark" && color !== "light") return { error: "Couleur invalide" };
+
+    const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { id: true, eventId: true },
+    });
+    if (!ticket) return { error: "Billet introuvable" };
+
+    const denied = await manageError(ticket.eventId);
+    if (denied) return { error: denied };
+
+    await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { printNumberColor: color },
     });
 
     revalidateEvent(ticket.eventId);

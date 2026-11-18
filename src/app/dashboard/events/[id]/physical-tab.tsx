@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IconDownload, IconFileTypePdf } from "@tabler/icons-react";
+import { IconFileTypePdf } from "@tabler/icons-react";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { HelpCallout } from "@/components/dashboard/help-callout";
@@ -12,7 +12,13 @@ import {
     printedTicketCode,
 } from "@/lib/printed-tickets";
 import { cn } from "@/lib/utils";
-import { PrintBatchForm, PrintArtUploader, ReleaseUnsoldButton } from "./physical-client";
+import {
+    DownloadPdfButton,
+    NumberColorPicker,
+    PrintBatchForm,
+    PrintArtUploader,
+    ReleaseUnsoldButton,
+} from "./physical-client";
 
 function Card({
     title,
@@ -51,6 +57,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                 totalStock: true,
                 printFrontUrl: true,
                 printBackUrl: true,
+                printNumberColor: true,
             },
             orderBy: [{ position: "asc" }, { price: "asc" }],
         }),
@@ -161,12 +168,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                                                 </div>
                                             </div>
                                             <div className="flex shrink-0 flex-wrap gap-2">
-                                                <Button asChild size="sm" variant="outline">
-                                                    <a href={`/api/events/${eventId}/print-batches/${b.id}`}>
-                                                        <IconDownload className="size-4" aria-hidden="true" />
-                                                        PDF
-                                                    </a>
-                                                </Button>
+                                                <DownloadPdfButton eventId={eventId} orderId={b.id} />
                                                 {unsold > 0 && <ReleaseUnsoldButton orderId={b.id} unsold={unsold} />}
                                             </div>
                                         </li>
@@ -233,7 +235,8 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                         <p className="mb-4 text-xs text-muted-foreground">
                             PNG ou JPG de 151 × 56 mm à 300 dpi (1783 × 661 px), fond perdu
                             compris. Sans visuel, le billet utilise le design par défaut.
-                            Le QR et le numéro sont ajoutés automatiquement.
+                            Le QR et le numéro sont ajoutés automatiquement : choisissez la
+                            couleur du numéro selon le fond du talon.
                         </p>
                         {tickets.length === 0 ? (
                             <p className="text-sm text-muted-foreground">Créez d&apos;abord un billet.</p>
@@ -241,7 +244,10 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                             <ul className="space-y-3">
                                 {tickets.map((t) => (
                                     <li key={t.id} className="rounded-xl border p-4">
-                                        <p className="mb-3 font-medium">{t.title}</p>
+                                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                            <p className="font-medium">{t.title}</p>
+                                            <NumberColorPicker ticketId={t.id} value={t.printNumberColor} />
+                                        </div>
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <PrintArtUploader ticketId={t.id} side="front" url={t.printFrontUrl} />
                                             <PrintArtUploader ticketId={t.id} side="back" url={t.printBackUrl} />

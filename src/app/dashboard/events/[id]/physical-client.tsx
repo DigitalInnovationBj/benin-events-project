@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { IconPrinter, IconTrash, IconUpload, IconPhoto } from "@tabler/icons-react";
+import { IconDownload, IconPrinter, IconTrash, IconUpload, IconPhoto } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +22,52 @@ import {
     createPrintBatch,
     releaseUnsoldTickets,
     removePrintArt,
+    setPrintNumberColor,
     uploadPrintArt,
 } from "@/actions/printed-ticket.actions";
 import { MAX_PRINT_BATCH, TICKETS_PER_SHEET } from "@/lib/printed-tickets";
 import { formatXOF } from "@/lib/format";
+
+/**
+ * Télécharge le PDF d'un lot. Passe par fetch plutôt qu'un simple lien pour
+ * afficher l'erreur du serveur (visuel inaccessible…) au lieu d'une page JSON.
+ */
+async function downloadBatchPdf(eventId: string, orderId: string): Promise<boolean> {
+    const res = await fetch(`/api/events/${eventId}/print-batches/${orderId}`);
+    if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        toast.error(body?.error ?? "Le PDF n'a pas pu être généré. Réessayez.");
+        return false;
+    }
+    const blob = await res.blob();
+    const name =
+        res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ?? "billets.pdf";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return true;
+}
+
+/** Bouton de téléchargement du PDF d'un lot existant. */
+export function DownloadPdfButton({ eventId, orderId }: { eventId: string; orderId: string }) {
+    const [pending, startTransition] = useTransition();
+    return (
+        <Button
+            size="sm"
+            variant="outline"
+            disabled={pending}
+            onClick={() => startTransition(async () => { await downloadBatchPdf(eventId, orderId); })}
+        >
+            <IconDownload className="size-4" aria-hidden="true" />
+            {pending ? "Génération…" : "PDF"}
+        </Button>
+    );
+}
 
 type TicketOption = { id: string; title: string; price: number; remaining: number | null };
 
@@ -54,9 +96,10 @@ export function PrintBatchForm({ eventId, tickets }: { eventId: string; tickets:
                 toast.error(res.error);
                 return;
             }
-            toast.success(`${qty} billets créés. Le PDF se télécharge.`);
             router.refresh();
-            window.location.href = `/api/events/${eventId}/print-batches/${res.orderId}`;
+            const ok = await downloadBatchPdf(eventId, res.orderId);
+            if (ok) toast.success(`${qty} billets créés. Le PDF est téléchargé.`);
+            else toast.message("Le lot est créé : retéléchargez son PDF depuis la liste des lots.");
         });
     }
 
@@ -230,6 +273,56 @@ export function PrintArtUploader({
                         <IconTrash className="size-4" aria-hidden="true" />
                     </Button>
                 )}
+            </div>
+        </div>
+    );
+}
+
+/** Couleur du numéro imprimé (recto et verso), selon le fond du visuel. */
+export function NumberColorPicker({ ticketId, value }: { ticketId: string; value: string }) {
+    const router = useRouter();
+    const [color, setColor] = useState(value === "light" ? "light" : "dark");
+    const [pending, startTransition] = useTransition();
+
+    function choose(next: "dark" | "light") {
+        if (next === color) return;
+        const previous = color;
+        setColor(next);
+        startTransition(async () => {
+            const res = await setPrintNumberColor(ticketId, next);
+            if (res.error) {
+                setColor(previous);
+                toast.error(res.error);
+                return;
+            }
+            router.refresh();
+        });
+    }
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Couleur du numéro :</span>
+            <div role="radiogroup" aria-label="Couleur du numéro" className="inline-flex rounded-md border p-0.5">
+                {([
+                    { key: "dark", label: "Noir" },
+                    { key: "light", label: "Blanc" },
+                ] as const).map((o) => (
+                    <button
+                        key={o.key}
+                        type="button"
+                        role="radio"
+                        aria-checked={color === o.key}
+                        disabled={pending}
+                        onClick={() => choose(o.key)}
+                        className={
+                            color === o.key
+                                ? "rounded bg-secondary px-3 py-1 font-medium text-secondary-foreground"
+                                : "rounded px-3 py-1 text-muted-foreground hover:text-foreground"
+                        }
+                    >
+                        {o.label}
+                    </button>
+                ))}
             </div>
         </div>
     );

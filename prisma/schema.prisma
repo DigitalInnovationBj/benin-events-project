@@ -443,6 +443,13 @@ model Ticket {
   /// compris). Null = design Benin Events par défaut.
   printFrontUrl String?
   printBackUrl  String?
+  /// Couleur du numéro imprimé (« dark » ou « light »), choisie selon le fond
+  /// du visuel du graphiste.
+  printNumberColor String @default("dark")
+  /// Dernier numéro imprimé attribué. Jamais décrémenté : un numéro annulé
+  /// (invendu) n'est pas réattribué, pour ne pas avoir deux billets papier
+  /// portant le même numéro.
+  printSerialSeq   Int    @default(0)
 
   // Relations
   eventId    String
