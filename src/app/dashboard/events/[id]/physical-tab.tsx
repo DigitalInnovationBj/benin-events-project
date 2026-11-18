@@ -126,10 +126,10 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <StatTile label="Billets imprimés" value={printed} hint={`${batches.length} lot${batches.length > 1 ? "s" : ""}`} />
                 <StatTile label="Billets vendus" value={sold} hint="activés par un point de vente" />
-                <StatTile label="Ventes physiques" value={formatXOF(amount)} highlight />
+                <StatTile label="Ventes physiques" value={formatXOF(amount, { zeroLabel: null })} highlight />
                 <StatTile
                     label={`Commission Benin Events (${Math.round(PHYSICAL_COMMISSION_RATE * 100)} %)`}
-                    value={formatXOF(physicalCommission(amount))}
+                    value={formatXOF(physicalCommission(amount), { zeroLabel: null })}
                     hint="sur les billets vendus"
                 />
             </div>
@@ -213,7 +213,7 @@ export async function PhysicalTab({ eventId }: { eventId: string }) {
                                                             {isOrganizer && <span className="ml-2 text-xs text-muted-foreground">(vous)</span>}
                                                         </td>
                                                         <td className="py-2.5 text-right tabular-nums">{s._count._all}</td>
-                                                        <td className="py-2.5 text-right tabular-nums">{formatXOF(s._sum.price ?? 0)}</td>
+                                                        <td className="py-2.5 text-right tabular-nums">{formatXOF(s._sum.price ?? 0, { zeroLabel: null })}</td>
                                                         <td className="hidden py-2.5 text-right tabular-nums sm:table-cell">
                                                             {Number(entriesBySeller.get(s.activatedById) ?? 0)}
                                                         </td>
