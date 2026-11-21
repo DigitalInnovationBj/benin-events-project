@@ -156,8 +156,8 @@ export function ContactAutoReplyEmail({
                     <Text style={footer}>
                         Si votre demande est urgente, vous pouvez nous écrire
                         directement à{" "}
-                        <a href="mailto:support@beninevents.com" style={footerLink}>
-                            support@beninevents.com
+                        <a href="mailto:beninevents.officiel@gmail.com" style={footerLink}>
+                            beninevents.officiel@gmail.com
                         </a>
                     </Text>
                     <Text style={footer}>

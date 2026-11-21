@@ -19,6 +19,7 @@ import { RefundConfirmationEmail } from "@/emails/refund-confirmation";
 import { PartnerRequestAdminEmail } from "@/emails/partner-request-admin";
 import { PartnerRequestDecisionEmail } from "@/emails/partner-request-decision";
 import { OrganizerCredentialsEmail } from "@/emails/organizer-credentials";
+import { CONTACT_EMAIL } from "@/lib/socials";
 
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
@@ -512,7 +513,8 @@ export async function sendContactEmails(params: SendContactEmailsParams) {
     await Promise.all([
         resend.emails.send({
             from: FROM_SUPPORT,
-            to: "support@beninevents.com",
+            // Boîte relevée par l'équipe (l'adresse @beninevents.com reste l'expéditeur).
+            to: CONTACT_EMAIL,
             replyTo: email,
             subject: `[Contact] ${subject} - ${name}`,
             html: notif.html,

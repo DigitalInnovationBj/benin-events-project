@@ -149,8 +149,8 @@ export function EventDigestEmail({ userName, digestType, events, appUrl, unsubsc
                         ) : (
                             <>
                                 {" "}Pour ne plus recevoir ces notifications, écrivez-nous à{" "}
-                                <a href="mailto:support@beninevents.com" style={footerLink}>
-                                    support@beninevents.com
+                                <a href="mailto:beninevents.officiel@gmail.com" style={footerLink}>
+                                    beninevents.officiel@gmail.com
                                 </a>.
                             </>
                         )}
