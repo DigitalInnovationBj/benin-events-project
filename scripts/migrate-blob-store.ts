@@ -1,14 +1,12 @@
 /**
  * Copie les fichiers de l'ancien Vercel Blob store vers le nouveau et met à
- * jour leurs adresses en base (même logique que la route temporaire
- * /api/admin/migrate-blob, voir src/lib/blob-migration.ts).
+ * jour leurs adresses en base (voir src/lib/blob-migration.ts).
  *
  *   pnpm exec tsx scripts/migrate-blob-store.ts           # aperçu, n'écrit rien
  *   pnpm exec tsx scripts/migrate-blob-store.ts --apply   # copie et met à jour
  *
  * Nécessite dans .env : DATABASE_URL et NEW_BLOB_READ_WRITE_TOKEN (le
- * BLOB_READ_WRITE_TOKEN du nouveau projet Vercel). Si ce token n'est pas
- * lisible (variable sensible), utilisez plutôt la route admin.
+ * BLOB_READ_WRITE_TOKEN du nouveau projet Vercel).
  */
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";

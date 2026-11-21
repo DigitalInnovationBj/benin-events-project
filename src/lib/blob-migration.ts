@@ -3,9 +3,9 @@ import type { PrismaClient } from "@prisma/client";
 
 /**
  * Migration des fichiers de l'ancien Vercel Blob store vers le store du
- * projet (compte Digital Innovation). Utilisé par la route temporaire
- * /api/admin/migrate-blob (token du projet, côté Vercel) et par
- * scripts/migrate-blob-store.ts (token fourni en local).
+ * projet (compte Digital Innovation). Utilisé par
+ * scripts/migrate-blob-store.ts ; la migration de novembre 2026 est passée
+ * par une route admin temporaire, retirée depuis.
  *
  * Colonnes : Event.imageUrl, Event.ogImage, Ticket.imageUrl,
  * Ticket.printFrontUrl, User.image. Idempotent (les adresses déjà sur le
