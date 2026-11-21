@@ -11,7 +11,6 @@ Plateforme de billetterie événementielle pour le Bénin : découverte d'évén
 - **Paiements** : FeexPay (Mobile Money), avec webhook et réconciliation
 - **Emails** : [Resend](https://resend.com/) + React Email
 - **Billets** : QR codes et PDF (`@react-pdf/renderer`)
-- **Recherche IA** : Google Generative AI
 - **Hébergement** : [Vercel](https://vercel.com/) (hosting, Blob, crons)
 - **Styling** : [Tailwind CSS 4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/)
 - **Icônes** : [Tabler Icons](https://tabler-icons.io/) (`@tabler/icons-react`)
@@ -48,9 +47,6 @@ FEEXPAY_WEBHOOK_SECRET=...
 
 # Emails
 RESEND_API_KEY=re_...
-
-# Recherche IA
-GOOGLE_AI_API_KEY=...
 
 # Crons Vercel
 CRON_SECRET=...
@@ -93,8 +89,10 @@ Ouvrez [http://localhost:3000](http://localhost:3000).
 - `src/app/dashboard/` : espace organisateur (événements, commandes, agents, scan, paiements).
 - `src/app/admin/` : administration (organisateurs, demandes, versements, paramètres).
 - `src/app/agent/` : contrôle d'accès des billets par les agents.
-- `src/app/api/` : auth, webhook FeexPay, validation des billets, recherche IA, newsletter/campagnes, crons.
+- `src/app/api/` : auth, webhook FeexPay, validation des billets, newsletter/campagnes, crons.
 - `src/actions/` : server actions.
+
+> La recherche IA (Google Generative AI) est mise de côté dans la branche `archive/recherche-ia`, à reprendre plus tard.
 - `src/components/ui/` : composants shadcn/ui ; `src/components/` : composants métier.
 - `src/emails/` : templates d'emails.
 - `src/lib/` : auth, Prisma, FeexPay, réconciliation des paiements, PDF des billets, recherche, etc.
