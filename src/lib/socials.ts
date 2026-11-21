@@ -25,11 +25,11 @@ export type SocialLink = {
 /** Identifiant utilisé à l'identique sur tous les réseaux. */
 export const SOCIAL_HANDLE = "@beninevents.officiel";
 
-/** Adresse professionnelle, référencée dans les pages légales. */
-export const CONTACT_EMAIL = "contact@beninevents.com";
+/** Adresse de contact principale, mise en avant partout (pages légales comprises). */
+export const CONTACT_EMAIL = "beninevents.officiel@gmail.com";
 
-/** Seconde adresse de contact, mise en avant à côté de la première. */
-export const CONTACT_EMAIL_ALT = "beninevents.officiel@gmail.com";
+/** Seconde adresse, affichée à côté de la première (contact, pied de page). */
+export const CONTACT_EMAIL_ALT = "contact@beninevents.com";
 
 const USERNAME = "beninevents.officiel";
 

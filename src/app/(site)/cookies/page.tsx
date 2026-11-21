@@ -8,6 +8,7 @@ import LegalLayout, {
     LegalList,
     LegalHighlight,
 } from "@/components/LegalLayout";
+import { CONTACT_EMAIL } from "@/lib/socials";
 
 export const metadata: Metadata = {
     title: "Politique des cookies | Benin Events",
@@ -22,7 +23,7 @@ export default function CookiesPage() {
             badge="Cookies"
             title="Politique des cookies"
             subtitle="Comment nous utilisons les cookies et comment gérer vos préférences"
-            updatedAt="Avril 2026"
+            updatedAt="Novembre 2026"
         >
             <LegalSection title="1. Qu'est-ce qu'un cookie ?">
                 <p>
@@ -164,10 +165,10 @@ export default function CookiesPage() {
                 <p>
                     Pour toute question relative aux cookies, contactez-nous à{" "}
                     <a
-                        href="mailto:contact@beninevents.com"
+                        href={`mailto:${CONTACT_EMAIL}`}
                         className="text-secondary hover:underline"
                     >
-                        contact@beninevents.com
+                        {CONTACT_EMAIL}
                     </a>
                     .
                 </p>

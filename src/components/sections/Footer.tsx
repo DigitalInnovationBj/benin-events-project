@@ -230,15 +230,13 @@ export default function Footer() {
 
                     {/* Crédit */}
                     <div className="flex items-center gap-1.5">
-                        <span>Développé par</span>
-                        <a
-                            href="https://digitalinnovation.bj"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <span>Une plateforme éditée par</span>
+                        <Link
+                            href="/mentions-legales"
                             className="font-semibold text-muted-foreground hover:text-foreground transition-colors"
                         >
                             Digital Innovation
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

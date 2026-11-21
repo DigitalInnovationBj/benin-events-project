@@ -8,6 +8,8 @@ import LegalLayout, {
     LegalList,
     LegalHighlight,
 } from "@/components/LegalLayout";
+import { COMPANY } from "@/lib/company";
+import { CONTACT_EMAIL } from "@/lib/socials";
 
 export const metadata: Metadata = {
     title: "Mentions légales | Benin Events",
@@ -21,38 +23,58 @@ export default function MentionsLegalesPage() {
             badge="Légal"
             title="Mentions légales"
             subtitle="Informations légales obligatoires relatives à la plateforme Benin Events"
-            updatedAt="Avril 2026"
+            updatedAt="Novembre 2026"
         >
             <LegalSection title="1. Éditeur du site">
                 <p>
                     Le site{" "}
                     <strong className="text-foreground">Benin Events</strong>{" "}
-                    est une plateforme numérique dédiée à la découverte, la
-                    réservation et l&apos;organisation d&apos;évènements en
-                    République du Bénin.
+                    (www.beninevents.com) est une plateforme de billetterie et de
+                    découverte d&apos;évènements en République du Bénin,
+                    développée et exploitée par la société{" "}
+                    <strong className="text-foreground">{COMPANY.name}</strong>.
                 </p>
-                <LegalSubSection title="Coordonnées de l'éditeur">
+                <LegalSubSection title="Société éditrice">
                     <LegalList
                         items={[
-                            "Dénomination : Benin Events",
-                            "Siège social : Cotonou, République du Bénin",
-                            "Adresse e-mail : contact@beninevents.com",
-                            "Site web : www.beninevents.com",
+                            `Dénomination : ${COMPANY.name}`,
+                            `Forme juridique : ${COMPANY.legalForm}, exploitée par ${COMPANY.owner}`,
+                            `RCCM : ${COMPANY.rccm}`,
+                            `IFU : ${COMPANY.ifu}`,
+                            `Régime fiscal : ${COMPANY.taxRegime}`,
+                            `Activité : ${COMPANY.activity}`,
+                            `Siège social : ${COMPANY.address}`,
+                            `Téléphone : ${COMPANY.phone}`,
+                            `E-mail : ${COMPANY.email}`,
                         ]}
                     />
+                </LegalSubSection>
+                <LegalSubSection title="Contact Benin Events">
+                    <p>
+                        Pour toute question sur la plateforme, vos billets ou vos
+                        évènements :{" "}
+                        <a
+                            href={`mailto:${CONTACT_EMAIL}`}
+                            className="text-secondary hover:underline"
+                        >
+                            {CONTACT_EMAIL}
+                        </a>
+                        .
+                    </p>
                 </LegalSubSection>
             </LegalSection>
 
             <LegalSection title="2. Directeur de la publication">
                 <p>
-                    Le directeur de la publication est le représentant légal de
-                    Benin Events. Pour toute question relative au contenu du
-                    site, vous pouvez le contacter à l&apos;adresse suivante :{" "}
+                    Le directeur de la publication est{" "}
+                    <strong className="text-foreground">{COMPANY.owner}</strong>,
+                    exploitant de {COMPANY.name}. Pour toute question relative au
+                    contenu du site :{" "}
                     <a
-                        href="mailto:contact@beninevents.com"
+                        href={`mailto:${CONTACT_EMAIL}`}
                         className="text-secondary hover:underline"
                     >
-                        contact@beninevents.com
+                        {CONTACT_EMAIL}
                     </a>
                     .
                 </p>
@@ -60,8 +82,8 @@ export default function MentionsLegalesPage() {
 
             <LegalSection title="3. Hébergement">
                 <p>
-                    Le site Benin Events est hébergé par la société Vercel Inc.,
-                    dont le siège social est situé au :
+                    Le site et les fichiers mis en ligne (images des évènements,
+                    visuels des billets) sont hébergés par :
                 </p>
                 <LegalHighlight>
                     <strong>Vercel Inc.</strong>
@@ -80,6 +102,20 @@ export default function MentionsLegalesPage() {
                         www.vercel.com
                     </a>
                 </LegalHighlight>
+                <p>
+                    La base de données est hébergée par{" "}
+                    <strong className="text-foreground">Neon Inc.</strong>{" "}
+                    (service PostgreSQL managé,{" "}
+                    <a
+                        href="https://neon.tech"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-secondary hover:underline"
+                    >
+                        www.neon.tech
+                    </a>
+                    ).
+                </p>
             </LegalSection>
 
             <LegalSection title="4. Propriété intellectuelle">
@@ -88,8 +124,10 @@ export default function MentionsLegalesPage() {
                     Events (textes, graphismes, logiciels, photographies,
                     images, sons, plans, noms, logos, marques, créations et
                     œuvres protégeables diverses, bases de données) sont la
-                    propriété exclusive de Benin Events ou font l&apos;objet
-                    d&apos;une autorisation d&apos;utilisation.
+                    propriété exclusive de {COMPANY.name}, éditrice de Benin
+                    Events, ou font l&apos;objet d&apos;une autorisation
+                    d&apos;utilisation. La marque et le logo Benin Events
+                    appartiennent à {COMPANY.name}.
                 </p>
                 <p>
                     Ces éléments sont protégés par les lois relatives à la
@@ -101,8 +139,8 @@ export default function MentionsLegalesPage() {
                     Toute reproduction, représentation, utilisation ou
                     adaptation, sous quelque forme que ce soit, de tout ou
                     partie de ces éléments, y compris les applications
-                    informatiques, sans l&apos;accord préalable et écrit de
-                    Benin Events, est strictement interdite et constitue une
+                    informatiques, sans l&apos;accord préalable et écrit de{" "}
+                    {COMPANY.name}, est strictement interdite et constitue une
                     contrefaçon sanctionnée par les lois en vigueur.
                 </p>
             </LegalSection>
@@ -111,8 +149,8 @@ export default function MentionsLegalesPage() {
                 <p>
                     Les organisateurs d&apos;évènements publient du contenu
                     (descriptions, images, informations) sur la plateforme. Ce
-                    contenu relève de leur responsabilité exclusive. Benin
-                    Events se réserve le droit de supprimer tout contenu
+                    contenu relève de leur responsabilité exclusive.{" "}
+                    {COMPANY.name}{" "}se réserve le droit de supprimer tout contenu
                     contrevenant aux Conditions Générales d&apos;Utilisation ou
                     à la législation en vigueur.
                 </p>

@@ -8,6 +8,7 @@ import LegalLayout, {
     LegalList,
     LegalHighlight,
 } from "@/components/LegalLayout";
+import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
     title: "Conditions Générales d'Utilisation | Benin Events",
@@ -22,7 +23,7 @@ export default function CguPage() {
             badge="CGU"
             title="Conditions Générales d'Utilisation"
             subtitle="Règles régissant l'utilisation de la plateforme Benin Events"
-            updatedAt="Avril 2026"
+            updatedAt="Novembre 2026"
         >
             <LegalHighlight>
                 En accédant à la plateforme Benin Events, vous acceptez sans
@@ -44,6 +45,19 @@ export default function CguPage() {
                     utilisateurs de découvrir des évènements au Bénin,
                     d'interagir avec leur communauté, et aux organisateurs
                     certifiés de publier et gérer leurs évènements.
+                </p>
+                <p>
+                    La plateforme est développée et exploitée par{" "}
+                    <strong className="text-foreground">{COMPANY.name}</strong>{" "}
+                    ({COMPANY.legalForm}, RCCM {COMPANY.rccm.split(" du ")[0]}, IFU{" "}
+                    {COMPANY.ifu}), dont le siège est à {COMPANY.city}. Dans les
+                    présentes CGU, « Benin Events » ou « la plateforme » désigne
+                    le service édité par {COMPANY.name}. Les informations
+                    complètes figurent dans les{" "}
+                    <a href="/mentions-legales" className="text-secondary hover:underline">
+                        mentions légales
+                    </a>
+                    .
                 </p>
             </LegalSection>
 
@@ -141,6 +155,26 @@ export default function CguPage() {
                         ]}
                     />
                 </LegalSubSection>
+                <LegalSubSection title="Frais et commissions">
+                    <p>
+                        La publication d'un évènement peut être soumise à des
+                        frais de publication. Une commission est prélevée sur
+                        chaque billet vendu en ligne, et une commission
+                        distincte s'applique aux billets imprimés vendus en
+                        point de vente. Les montants et taux en vigueur sont
+                        affichés dans l'espace organisateur avant toute
+                        publication ; ils peuvent évoluer, et s'appliquent
+                        alors aux ventes réalisées après leur modification.
+                    </p>
+                    <p>
+                        Les recettes des ventes en ligne sont encaissées par la
+                        plateforme puis reversées à l'organisateur sur demande,
+                        déduction faite des commissions. Les billets imprimés
+                        sont encaissés directement par l'organisateur et ses
+                        points de vente ; la commission correspondante est
+                        facturée à l'organisateur.
+                    </p>
+                </LegalSubSection>
                 <LegalSubSection title="Contenu interdit">
                     <LegalList
                         items={[
@@ -166,8 +200,38 @@ export default function CguPage() {
                     <p>
                         Les prix des billets sont fixés par les organisateurs et
                         affichés toutes taxes comprises (TTC). Les paiements
-                        sont sécurisés. Toute transaction est définitive sauf
-                        annulation de l'évènement par l'organisateur.
+                        sont sécurisés et traités par des prestataires agréés :
+                    </p>
+                    <LegalList
+                        items={[
+                            "Mobile Money (MTN, Moov, Celtiis) : via FeexPay",
+                            "Carte bancaire Visa et Mastercard : via GeniusPay. Les frais de paiement par carte sont ajoutés au prix des billets et affichés avant la validation du paiement",
+                        ]}
+                    />
+                    <p>
+                        Benin Events n'a jamais accès à vos numéros de carte.
+                        Toute transaction est définitive sauf annulation de
+                        l'évènement par l'organisateur.
+                    </p>
+                </LegalSubSection>
+                <LegalSubSection title="Billets électroniques">
+                    <p>
+                        Chaque billet comporte un QR code unique, vérifié à
+                        l'entrée. Un billet donne droit au nombre d'entrées et
+                        aux jours ou sessions indiqués sur sa page (par exemple
+                        un pass valable plusieurs jours). Toute copie d'un
+                        billet déjà utilisé sera refusée.
+                    </p>
+                </LegalSubSection>
+                <LegalSubSection title="Billets imprimés">
+                    <p>
+                        Certains organisateurs vendent aussi des billets
+                        imprimés auprès de points de vente officiels. Un billet
+                        imprimé n'est valable qu'après son activation par le
+                        point de vente, au moment de l'achat : un billet non
+                        activé est refusé à l'entrée. Avant d'acheter un billet
+                        imprimé, vous pouvez vérifier sa validité en scannant
+                        son QR code.
                     </p>
                 </LegalSubSection>
                 <LegalSubSection title="Remboursements">
@@ -214,7 +278,8 @@ export default function CguPage() {
             <LegalSection title="Article 9 — Protection des données personnelles">
                 <p>
                     Le traitement des données personnelles des utilisateurs est
-                    régi par la Politique de Confidentialité de Benin Events,
+                    régi par la Politique de Confidentialité de Benin Events
+                    ({COMPANY.name}, responsable du traitement),
                     accessible à l'adresse{" "}
                     <a
                         href="/confidentialite"

@@ -163,8 +163,8 @@ export function AgentInvitationEmail({
                     </Text>
                     <Text style={footerLine}>
                         Benin Events · Pour toute question :{" "}
-                        <a href="mailto:contact@beninevents.com" style={footerLink}>
-                            contact@beninevents.com
+                        <a href="mailto:beninevents.officiel@gmail.com" style={footerLink}>
+                            beninevents.officiel@gmail.com
                         </a>
                     </Text>
                 </Container>

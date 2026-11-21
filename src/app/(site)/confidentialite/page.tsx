@@ -8,6 +8,8 @@ import LegalLayout, {
     LegalList,
     LegalHighlight,
 } from "@/components/LegalLayout";
+import { COMPANY } from "@/lib/company";
+import { CONTACT_EMAIL } from "@/lib/socials";
 
 export const metadata: Metadata = {
     title: "Politique de confidentialité | Benin Events",
@@ -22,7 +24,7 @@ export default function ConfidentialitePage() {
             badge="Confidentialité"
             title="Politique de confidentialité"
             subtitle="Comment nous collectons, utilisons et protégeons vos données personnelles"
-            updatedAt="Avril 2026"
+            updatedAt="Novembre 2026"
         >
             <LegalSection title="1. Responsable du traitement">
                 <p>
@@ -30,16 +32,20 @@ export default function ConfidentialitePage() {
                     collectées via la plateforme Benin Events est :
                 </p>
                 <LegalHighlight>
-                    <strong>Benin Events</strong>
+                    <strong>{COMPANY.name}</strong>, éditrice de Benin Events
                     <br />
-                    Cotonou, République du Bénin
+                    {COMPANY.legalForm} — RCCM {COMPANY.rccm.split(" du ")[0]} — IFU {COMPANY.ifu}
+                    <br />
+                    {COMPANY.address}
+                    <br />
+                    Téléphone : {COMPANY.phone}
                     <br />
                     E-mail :{" "}
                     <a
-                        href="mailto:contact@beninevents.com"
+                        href={`mailto:${CONTACT_EMAIL}`}
                         className="text-secondary hover:underline"
                     >
-                        contact@beninevents.com
+                        {CONTACT_EMAIL}
                     </a>
                 </LegalHighlight>
             </LegalSection>
@@ -58,6 +64,35 @@ export default function ConfidentialitePage() {
                             "Identifiant unique de session",
                         ]}
                     />
+                </LegalSubSection>
+                <LegalSubSection title="Données de réservation et de paiement">
+                    <p>
+                        Lors d&apos;un achat de billets, avec ou sans compte,
+                        nous collectons :
+                    </p>
+                    <LegalList
+                        items={[
+                            "Nom et adresse e-mail de l'acheteur (et, le cas échéant, des participants)",
+                            "Numéro de téléphone Mobile Money utilisé pour le paiement",
+                            "Détail de la commande : billets, montants, moyen de paiement, statut",
+                        ]}
+                    />
+                    <p>
+                        Les données de carte bancaire sont saisies et traitées
+                        directement par le prestataire de paiement (GeniusPay) :
+                        Benin Events n&apos;y a jamais accès.
+                    </p>
+                </LegalSubSection>
+                <LegalSubSection title="Organisateurs, agents et points de vente">
+                    <p>
+                        Pour les comptes organisateurs, nous conservons les
+                        informations de l&apos;organisation (nom, téléphone,
+                        adresse) et les données utiles aux reversements. Pour
+                        les agents de contrôle et les points de vente, nous
+                        enregistrons les billets qu&apos;ils scannent ou
+                        activent, avec la date et l&apos;heure, afin de
+                        permettre le bilan des ventes et de prévenir la fraude.
+                    </p>
                 </LegalSubSection>
                 <LegalSubSection title="Données d'utilisation">
                     <LegalList
@@ -132,11 +167,18 @@ export default function ConfidentialitePage() {
                 <LegalList
                     items={[
                         "Google LLC (connexion via un compte Google, si vous choisissez cette option) — USA",
-                        "Vercel Inc. (hébergement de la plateforme) — USA",
+                        "Vercel Inc. (hébergement de la plateforme et des fichiers mis en ligne) — USA",
+                        "FeexPay (paiements Mobile Money) — Bénin",
+                        "GeniusPay (paiements par carte Visa / Mastercard) — Côte d'Ivoire",
                         "Resend (envoi des e-mails transactionnels) — soumis au RGPD",
                         "Neon / PostgreSQL (base de données, y compris les comptes et sessions) — données chiffrées au repos",
                     ]}
                 />
+                <p>
+                    Les organisateurs reçoivent les nom et e-mail des
+                    participants à leurs propres évènements, pour la gestion de
+                    l&apos;accueil et du contrôle des billets.
+                </p>
                 <p>
                     Aucune donnée personnelle n&apos;est vendue à des tiers ni
                     utilisée à des fins commerciales non prévues dans la
@@ -164,10 +206,10 @@ export default function ConfidentialitePage() {
                 <p>
                     Pour exercer ces droits, contactez-nous à{" "}
                     <a
-                        href="mailto:contact@beninevents.com"
+                        href={`mailto:${CONTACT_EMAIL}`}
                         className="text-secondary hover:underline"
                     >
-                        contact@beninevents.com
+                        {CONTACT_EMAIL}
                     </a>
                     . Nous répondrons dans un délai de 30 jours.
                 </p>

@@ -112,7 +112,7 @@ const FAQ_GROUPS = [
             {
                 id: "c4",
                 q: "Comment contacter le support de Benin Events ?",
-                a: "Plusieurs options s'offrent à vous : le formulaire de la page Contact, notre adresse e-mail contact@beninevents.com, ou nos réseaux sociaux (Facebook, TikTok, Instagram). Notre équipe répond généralement sous 24 heures ouvrées.",
+                a: "Plusieurs options s'offrent à vous : le formulaire de la page Contact, notre adresse e-mail beninevents.officiel@gmail.com, ou nos réseaux sociaux (Facebook, TikTok, Instagram). Notre équipe répond généralement sous 24 heures ouvrées.",
             },
         ],
     },
