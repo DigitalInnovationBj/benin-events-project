@@ -99,7 +99,9 @@ export const auth = betterAuth({
         // Utilisé uniquement côté serveur pour auth.api.createUser (création
         // de comptes organisateurs par un admin) — pas d'UI d'administration
         // better-auth exposée, pas de ban/impersonation actifs dans l'app.
-        admin(),
+        // defaultRole : sans lui, le plugin impose role "user" (minuscule) à
+        // chaque inscription, refusé par l'enum Prisma Role → aucun compte créé.
+        admin({ defaultRole: "USER" }),
         nextCookies(),
     ],
 
