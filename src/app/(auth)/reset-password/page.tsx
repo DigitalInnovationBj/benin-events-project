@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
@@ -88,23 +89,30 @@ function ResetPasswordContent() {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="otp">Code reçu par email</Label>
-                            <Input
-                                id="otp"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                pattern="[0-9]{6}"
-                                maxLength={6}
-                                placeholder="123456"
-                                value={otp}
-                                onChange={(e) =>
-                                    setOtp(e.target.value.replace(/\D/g, ""))
-                                }
-                                required
-                                className="h-14 rounded-xl text-center text-2xl tracking-[0.5em] font-bold"
-                            />
+                        <div className="space-y-3">
+                            <Label htmlFor="otp" className="block text-center">Code reçu par email</Label>
+                            <InputOTP
+                                    id="otp"
+                                    maxLength={6}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    value={otp}
+                                    onChange={setOtp}
+                                    autoFocus
+                                    disabled={isLoading}
+                                    containerClassName="justify-center"
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from({ length: 6 }, (_, i) => (
+                                            <InputOTPSlot
+                                                key={i}
+                                                index={i}
+                                                className="h-12 w-10 sm:h-14 sm:w-12 text-xl font-bold"
+                                            />
+                                        ))}
+                                    </InputOTPGroup>
+                                </InputOTP>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="password">

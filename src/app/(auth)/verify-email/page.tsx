@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 import { Label } from "@/components/ui/label";
 import {
     IconLoader2,
@@ -29,14 +30,14 @@ function VerifyEmailContent() {
         if (!email) router.push("/sign-in");
     }, [email, router]);
 
-    const handleVerify = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const verify = async (code: string) => {
+        if (isLoading || code.length !== 6) return;
         setIsLoading(true);
         setError(null);
 
         const { error: err } = await authClient.emailOtp.verifyEmail({
             email,
-            otp: otp.trim(),
+            otp: code,
         });
 
         if (err) {
@@ -49,6 +50,7 @@ function VerifyEmailContent() {
                         ? "Code incorrect. Vérifiez le dernier email reçu et réessayez."
                         : "Impossible de vérifier le code pour le moment. Réessayez.";
             setError(message);
+            setOtp("");
             setIsLoading(false);
             return;
         }
@@ -57,6 +59,11 @@ function VerifyEmailContent() {
         // rechargement complet pour que toute l'app voie la nouvelle session.
         toast.success("Email vérifié ! Bienvenue sur Benin Events.");
         window.location.assign(redirectUrl);
+    };
+
+    const handleVerify = (e: React.FormEvent) => {
+        e.preventDefault();
+        void verify(otp);
     };
 
     const handleResend = async () => {
@@ -112,23 +119,31 @@ function VerifyEmailContent() {
                     )}
 
                     <form onSubmit={handleVerify} className="space-y-4 mb-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="otp">Code de vérification</Label>
-                            <Input
-                                id="otp"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                pattern="[0-9]{6}"
-                                maxLength={6}
-                                placeholder="123456"
-                                value={otp}
-                                onChange={(e) =>
-                                    setOtp(e.target.value.replace(/\D/g, ""))
-                                }
-                                required
-                                className="h-14 rounded-xl text-center text-2xl tracking-[0.5em] font-bold"
-                            />
+                        <div className="space-y-3">
+                            <Label htmlFor="otp" className="block text-center">Code de vérification</Label>
+                            <InputOTP
+                                    id="otp"
+                                    maxLength={6}
+                                    pattern={REGEXP_ONLY_DIGITS}
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    value={otp}
+                                    onChange={setOtp}
+                                    onComplete={(code) => verify(code)}
+                                    autoFocus
+                                    disabled={isLoading}
+                                    containerClassName="justify-center"
+                                >
+                                    <InputOTPGroup>
+                                        {Array.from({ length: 6 }, (_, i) => (
+                                            <InputOTPSlot
+                                                key={i}
+                                                index={i}
+                                                className="h-12 w-10 sm:h-14 sm:w-12 text-xl font-bold"
+                                            />
+                                        ))}
+                                    </InputOTPGroup>
+                                </InputOTP>
                         </div>
                         <Button
                             type="submit"
