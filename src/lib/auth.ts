@@ -33,6 +33,22 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         requireEmailVerification: true,
+        // Réinscription avec un email déjà enregistré : better-auth répond
+        // « succès » sans rien envoyer (anti-énumération). Si le compte n'est
+        // pas encore vérifié, on renvoie un code pour ne pas laisser la
+        // personne attendre un email qui n'arrivera jamais.
+        onExistingUserSignUp: async ({ user }) => {
+            if (user.emailVerified) return;
+            await auth.api.sendVerificationOTP({
+                body: { email: user.email, type: "email-verification" },
+            });
+        },
+    },
+
+    emailVerification: {
+        // Après saisie du code, la personne est connectée directement
+        // (sinon elle devait ressaisir ses identifiants).
+        autoSignInAfterVerification: true,
     },
 
     socialProviders: {
@@ -86,7 +102,7 @@ export const auth = betterAuth({
     plugins: [
         emailOTP({
             otpLength: 6,
-            expiresIn: 300,
+            expiresIn: 15 * 60, // 15 min : marge si l'email arrive en retard
             allowedAttempts: 3,
             sendVerificationOnSignUp: true,
             overrideDefaultEmailVerification: true,

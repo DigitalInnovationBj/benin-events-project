@@ -52,7 +52,13 @@ function LoginContent() {
 
         if (err) {
             if (err.status === 403) {
-                // Email non vérifié : un OTP vient d'être renvoyé automatiquement
+                // Email non vérifié : on envoie un nouveau code avant d'aller
+                // sur la page de saisie (better-auth ne le fait pas tout seul).
+                await authClient.emailOtp.sendVerificationOtp({
+                    email: email.trim().toLowerCase(),
+                    type: "email-verification",
+                });
+                toast.success("Un code de vérification vient de vous être envoyé.");
                 router.push(
                     `/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}&redirect_url=${encodeURIComponent(redirectUrl)}`,
                 );

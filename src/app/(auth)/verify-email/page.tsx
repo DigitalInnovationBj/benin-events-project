@@ -41,14 +41,22 @@ function VerifyEmailContent() {
 
         if (err) {
             const message =
-                err.message ?? "Code invalide ou expiré. Réessayez.";
+                err.code === "OTP_EXPIRED"
+                    ? "Ce code a expiré. Cliquez sur « Renvoyer le code » pour en recevoir un nouveau."
+                    : err.code === "TOO_MANY_ATTEMPTS"
+                      ? "Trop d'essais avec ce code. Cliquez sur « Renvoyer le code » pour en recevoir un nouveau."
+                      : err.code === "INVALID_OTP"
+                        ? "Code incorrect. Vérifiez le dernier email reçu et réessayez."
+                        : "Impossible de vérifier le code pour le moment. Réessayez.";
             setError(message);
             setIsLoading(false);
             return;
         }
 
+        // La vérification connecte directement (autoSignInAfterVerification) :
+        // rechargement complet pour que toute l'app voie la nouvelle session.
         toast.success("Email vérifié ! Bienvenue sur Benin Events.");
-        router.push(redirectUrl);
+        window.location.assign(redirectUrl);
     };
 
     const handleResend = async () => {
@@ -61,9 +69,14 @@ function VerifyEmailContent() {
         });
 
         if (err) {
-            setError(err.message ?? "Impossible de renvoyer le code.");
+            setError(
+                err.status === 429
+                    ? "Trop de demandes. Patientez une minute avant de redemander un code."
+                    : "Impossible de renvoyer le code pour le moment. Réessayez.",
+            );
         } else {
-            toast.success("Nouveau code envoyé !");
+            setOtp("");
+            toast.success("Nouveau code envoyé ! Pensez à regarder dans les spams.");
         }
         setIsResending(false);
     };

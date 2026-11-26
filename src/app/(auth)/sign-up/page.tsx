@@ -27,6 +27,7 @@ function SignUpContent() {
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState<"email" | "google" | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [existingAccount, setExistingAccount] = useState(false);
 
     useEffect(() => {
         if (session) router.push(redirectUrl);
@@ -50,6 +51,7 @@ function SignUpContent() {
 
         setIsLoading("email");
         setError(null);
+        setExistingAccount(false);
 
         const normalizedEmail = email.trim().toLowerCase();
         const { error: err } = await authClient.signUp.email({
@@ -60,17 +62,40 @@ function SignUpContent() {
 
         if (err) {
             const message =
-                err.status === 422
-                    ? "Un compte existe déjà avec cet email."
-                    : (err.message ?? "Erreur lors de la création du compte");
+                err.status === 429
+                    ? "Trop de tentatives. Patientez une minute puis réessayez."
+                    : "Impossible de créer le compte pour le moment. Réessayez dans un instant.";
             setError(message);
             toast.error(message);
             setIsLoading(null);
             return;
         }
 
-        // Un OTP de vérification a été envoyé automatiquement (sendVerificationOnSignUp)
-        toast.success("Compte créé ! Vérifiez votre boîte mail.");
+        // better-auth répond « succès » que le compte soit nouveau ou existe
+        // déjà (il ne révèle pas quels emails sont inscrits). On tente donc la
+        // connexion avec les mêmes identifiants pour savoir où envoyer la personne.
+        const { error: signInErr } = await authClient.signIn.email({
+            email: normalizedEmail,
+            password,
+        });
+
+        if (!signInErr) {
+            // Compte déjà existant et vérifié, bon mot de passe : connecté.
+            toast.success("Vous aviez déjà un compte : vous êtes connecté.");
+            window.location.assign(redirectUrl);
+            return;
+        }
+
+        if (signInErr.status === 401) {
+            // Compte existant avec un autre mot de passe (ou créé via Google).
+            setExistingAccount(true);
+            setIsLoading(null);
+            return;
+        }
+
+        // Compte non vérifié (nouveau, ou déjà créé lors d'un premier essai) :
+        // un code vient d'être envoyé.
+        toast.success("Code envoyé ! Vérifiez votre boîte mail.");
         router.push(
             `/verify-email?email=${encodeURIComponent(normalizedEmail)}&redirect_url=${encodeURIComponent(redirectUrl)}`,
         );
@@ -118,6 +143,25 @@ function SignUpContent() {
                             <p className="text-sm text-destructive font-medium">
                                 {error}
                             </p>
+                        </div>
+                    )}
+
+                    {existingAccount && (
+                        <div className="mb-6 p-4 bg-secondary/10 border border-secondary/30 rounded-2xl space-y-3 animate-in fade-in slide-in-from-top-2">
+                            <p className="text-sm font-medium">
+                                Vous avez déjà un compte avec cette adresse
+                                email. Connectez-vous avec votre mot de passe,
+                                ou avec Google si c'est ainsi que vous l'avez
+                                créé.
+                            </p>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <Button asChild className="flex-1 rounded-xl bg-secondary text-primary hover:bg-secondary/90">
+                                    <Link href={`/sign-in${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}>Se connecter</Link>
+                                </Button>
+                                <Button asChild variant="outline" className="flex-1 rounded-xl">
+                                    <Link href="/forgot-password">Mot de passe oublié</Link>
+                                </Button>
+                            </div>
                         </div>
                     )}
 

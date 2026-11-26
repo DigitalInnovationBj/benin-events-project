@@ -75,7 +75,7 @@ export function AuthVerificationEmail({ otp, type }: AuthVerificationEmailProps)
                             <Text style={otpText}>{otp}</Text>
                         </Section>
                         <Text style={expiry}>
-                            ⏱ Ce code expire dans 5 minutes — faites vite !
+                            ⏱ Ce code expire dans 15 minutes.
                         </Text>
                         <Text style={bodyText}>
                             Vous n&apos;êtes pas à l&apos;origine de cette

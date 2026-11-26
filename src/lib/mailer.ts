@@ -12,6 +12,8 @@ type EmailPayload = { from: string; to: string; subject: string; html: string };
 export async function batchSend(emails: EmailPayload[]) {
     const batches = chunk(emails, 100);
     for (const batch of batches) {
-        await resend.batch.send(batch);
+        // Resend renvoie { error } sans lever d'exception : on consigne le refus.
+        const { error } = await resend.batch.send(batch);
+        if (error) console.error("[email] Lot refusé par Resend", { count: batch.length, error });
     }
 }

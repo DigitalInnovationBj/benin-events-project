@@ -21,6 +21,25 @@ import { PartnerRequestDecisionEmail } from "@/emails/partner-request-decision";
 import { OrganizerCredentialsEmail } from "@/emails/organizer-credentials";
 import { CONTACT_EMAIL } from "@/lib/socials";
 
+type EmailPayload = Parameters<typeof resend.emails.send>[0];
+
+/**
+ * Resend ne lève pas d'exception quand un envoi est refusé (quota, domaine,
+ * clé…) : il renvoie `{ error }`. Sans ce contrôle, un échec passe inaperçu
+ * — ni log, ni erreur. On consigne donc chaque refus dans les logs Vercel.
+ */
+async function sendEmail(payload: EmailPayload): Promise<{ error: { message: string } | null }> {
+    const { error } = await resend.emails.send(payload);
+    if (error) {
+        console.error("[email] Envoi refusé par Resend", {
+            to: payload.to,
+            subject: payload.subject,
+            error,
+        });
+    }
+    return { error };
+}
+
 const FROM_VENTES = "Benin Events <ventes@beninevents.com>";
 const FROM_SUPPORT = "Benin Events <support@beninevents.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -141,7 +160,7 @@ export async function sendOrderConfirmationEmail(
         })),
     ]);
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_VENTES,
         to,
         subject: `Vos billets pour ${eventTitle} - Confirmation`,
@@ -174,7 +193,7 @@ export async function sendOrganizerRequestAdminEmail(
         OrganizerRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/requests` }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to: adminEmails,
         subject: `Nouvelle demande d'organisateur - ${params.organizerName}`,
@@ -214,7 +233,7 @@ export async function sendOrganizerRequestDecisionEmail(
         ? "Votre demande d'organisateur a été approuvée - Benin Events"
         : "Votre demande d'organisateur - Décision";
 
-    await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
+    await sendEmail({ from: FROM_SUPPORT, to, subject, html, text });
 }
 
 // ─────────────────────────────────────────────
@@ -241,7 +260,7 @@ export async function sendOrganizerCredentialsEmail(
         }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to,
         subject: "Votre compte organisateur Benin Events est prêt",
@@ -272,7 +291,7 @@ export async function sendPartnerRequestAdminEmail(
         PartnerRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/partner-requests` }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to: adminEmails,
         subject: `Nouvelle candidature partenaire - ${params.organizationName}`,
@@ -315,7 +334,7 @@ export async function sendPartnerRequestDecisionEmail(
         ? "Bienvenue dans le programme Partenaire - Benin Events"
         : "Votre candidature partenaire - Décision";
 
-    await resend.emails.send({ from: FROM_SUPPORT, to, subject, html, text });
+    await sendEmail({ from: FROM_SUPPORT, to, subject, html, text });
 }
 
 // ─────────────────────────────────────────────
@@ -341,7 +360,7 @@ export async function sendAgentInvitationEmail(params: SendAgentInvitationParams
         AgentInvitationEmail({ recipientName, eventTitle, eventDate, eventLocation, eventType, organizerName, confirmUrl }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to,
         subject: `Invitation agent pour ${eventTitle} - Benin Events`,
@@ -375,7 +394,7 @@ export async function sendPayoutRequestAdminEmail(params: SendPayoutRequestAdmin
         PayoutRequestAdminEmail({ ...rest, adminPanelUrl: `${APP_URL}/admin/payouts` }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to: adminEmails,
         subject: `Demande de reversement - ${params.organizerName}`,
@@ -412,7 +431,7 @@ export async function sendPayoutStatusEmail(params: SendPayoutStatusParams) {
         REJECTED:   "Votre demande de reversement - Décision",
     };
 
-    await resend.emails.send({ from: FROM_SUPPORT, to, subject: subjects[type], html, text });
+    await sendEmail({ from: FROM_SUPPORT, to, subject: subjects[type], html, text });
 }
 
 // ─────────────────────────────────────────────
@@ -474,7 +493,7 @@ export async function sendTicketGiftEmail(params: SendTicketGiftParams) {
 
     const slug = eventTitle.toLowerCase().replace(/\s+/g, "-").slice(0, 30);
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_VENTES,
         to,
         subject: `${senderName} vous offre un billet pour ${eventTitle}`,
@@ -511,7 +530,7 @@ export async function sendContactEmails(params: SendContactEmailsParams) {
     ]);
 
     await Promise.all([
-        resend.emails.send({
+        sendEmail({
             from: FROM_SUPPORT,
             // Boîte relevée par l'équipe (l'adresse @beninevents.com reste l'expéditeur).
             to: CONTACT_EMAIL,
@@ -520,7 +539,7 @@ export async function sendContactEmails(params: SendContactEmailsParams) {
             html: notif.html,
             text: notif.text,
         }),
-        resend.emails.send({
+        sendEmail({
             from: FROM_SUPPORT,
             to: email,
             subject: "Nous avons bien reçu votre message - Benin Events",
@@ -550,13 +569,15 @@ export async function sendAuthOtpEmail(params: SendAuthOtpParams) {
             ? `${otp} — Réinitialisation de votre mot de passe`
             : `${otp} — Vérifiez votre adresse email`;
 
-    await resend.emails.send({
+    const { error } = await sendEmail({
         from: FROM_SUPPORT,
         to,
         subject,
         html,
         text,
     });
+    // Code de connexion : un échec doit remonter (better-auth le consigne).
+    if (error) throw new Error(`Envoi du code impossible : ${error.message}`);
 }
 
 // ─────────────────────────────────────────────
@@ -588,7 +609,7 @@ export async function sendEventCancellationEmail(params: SendEventCancellationPa
         }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to,
         subject: `« ${eventTitle} » est annulé — remboursement en cours`,
@@ -616,7 +637,7 @@ export async function sendRefundConfirmationEmail(params: SendRefundConfirmation
         RefundConfirmationEmail({ recipientName, eventTitle, orderReference, totalAmount }),
     );
 
-    await resend.emails.send({
+    await sendEmail({
         from: FROM_SUPPORT,
         to,
         subject: `Remboursement effectué — ${totalAmount.toLocaleString("fr-FR")} FCFA`,
